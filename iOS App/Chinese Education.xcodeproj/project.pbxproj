@@ -1,0 +1,769 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		290655B32DB1E83500FA06C0 /* correct.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 290655B22DB1E83500FA06C0 /* correct.mp4 */; };
+		290655B52DB1E83D00FA06C0 /* incorrect.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 290655B42DB1E83D00FA06C0 /* incorrect.mp4 */; };
+		2916463F2D524BC200EF15E4 /* Chinese_EducationApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2916463E2D524BC200EF15E4 /* Chinese_EducationApp.swift */; };
+		291646432D524BC500EF15E4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 291646422D524BC500EF15E4 /* Assets.xcassets */; };
+		291646462D524BC500EF15E4 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 291646452D524BC500EF15E4 /* Preview Assets.xcassets */; };
+		291646482D524BC500EF15E4 /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 291646472D524BC500EF15E4 /* Persistence.swift */; };
+		2916464B2D524BC600EF15E4 /* Chinese_Education.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 291646492D524BC600EF15E4 /* Chinese_Education.xcdatamodeld */; };
+		291646552D524BC600EF15E4 /* Chinese_EducationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 291646542D524BC600EF15E4 /* Chinese_EducationTests.swift */; };
+		2916465F2D524BC600EF15E4 /* Chinese_EducationUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2916465E2D524BC600EF15E4 /* Chinese_EducationUITests.swift */; };
+		291646612D524BC600EF15E4 /* Chinese_EducationUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 291646602D524BC600EF15E4 /* Chinese_EducationUITestsLaunchTests.swift */; };
+		2916466E2D524D6E00EF15E4 /* SKScene.sks in Resources */ = {isa = PBXBuildFile; fileRef = 2916466D2D524D6E00EF15E4 /* SKScene.sks */; };
+		2916466F2D524D6E00EF15E4 /* SKScene.sks in Resources */ = {isa = PBXBuildFile; fileRef = 2916466D2D524D6E00EF15E4 /* SKScene.sks */; };
+		291646702D524D6E00EF15E4 /* SKScene.sks in Resources */ = {isa = PBXBuildFile; fileRef = 2916466D2D524D6E00EF15E4 /* SKScene.sks */; };
+		291646722D5259DD00EF15E4 /* GameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 291646712D5259DD00EF15E4 /* GameView.swift */; };
+		291646732D5259DD00EF15E4 /* GameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 291646712D5259DD00EF15E4 /* GameView.swift */; };
+		291646742D5259DD00EF15E4 /* GameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 291646712D5259DD00EF15E4 /* GameView.swift */; };
+		291646762D525A0100EF15E4 /* GameScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 291646752D525A0100EF15E4 /* GameScene.swift */; };
+		291646772D525A0100EF15E4 /* GameScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 291646752D525A0100EF15E4 /* GameScene.swift */; };
+		291646782D525A0100EF15E4 /* GameScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 291646752D525A0100EF15E4 /* GameScene.swift */; };
+		2984CBF32D61DD39008D19C0 /* ConversationScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2984CBF22D61DD39008D19C0 /* ConversationScene.swift */; };
+		2984CBF72D61FA20008D19C0 /* Water.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 2984CBF62D61F7F4008D19C0 /* Water.mp4 */; };
+		2984CBF82D61FA22008D19C0 /* Water.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 2984CBF62D61F7F4008D19C0 /* Water.mp4 */; };
+		2984CBF92D61FA23008D19C0 /* Water.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 2984CBF62D61F7F4008D19C0 /* Water.mp4 */; };
+		298508F22D75EB0100AECD23 /* moving.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 298508F12D75EB0100AECD23 /* moving.mp4 */; };
+		298508F42D78820700AECD23 /* Custom_Button.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298508F32D78820700AECD23 /* Custom_Button.swift */; };
+		298508F62D7D845A00AECD23 /* HintScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298508F52D7D845A00AECD23 /* HintScene.swift */; };
+		298509002D85539C00AECD23 /* NPC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298508FF2D85539C00AECD23 /* NPC.swift */; };
+		2985090F2D6D333300A50896 /* BadgeScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2985090E2D6D333300A50896 /* BadgeScene.swift */; };
+		298B28662D6CAD4A0035F5DA /* TransitionScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298B28652D6CAD4A0035F5DA /* TransitionScene.swift */; };
+		298CE7312D6A129200762889 /* PlayerProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298CE7302D6A129200762889 /* PlayerProgress.swift */; };
+		298CE7332D6A143300762889 /* StoryScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298CE7322D6A143200762889 /* StoryScene.swift */; };
+		298CE7352D6A1A2800762889 /* NewWorldScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298CE7342D6A1A2800762889 /* NewWorldScene.swift */; };
+		298CE7372D6AA2DD00762889 /* QuestionBank.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298CE7362D6AA2DD00762889 /* QuestionBank.swift */; };
+		298CE73B2D6AA30500762889 /* TeacherQuestionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298CE73A2D6AA30500762889 /* TeacherQuestionManager.swift */; };
+		298CE73D2D6AA33000762889 /* QuestionSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298CE73C2D6AA33000762889 /* QuestionSyncManager.swift */; };
+		298CE7402D6AC4F700762889 /* PlayerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298CE73F2D6AC4F700762889 /* PlayerManager.swift */; };
+		298CE7422D6AC56200762889 /* GameStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298CE7412D6AC56200762889 /* GameStats.swift */; };
+		299653E92D636DAB0038E8B1 /* ClampingScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 299653E82D636DAB0038E8B1 /* ClampingScene.swift */; };
+		299653EB2D637D300038E8B1 /* SigninScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 299653EA2D637D300038E8B1 /* SigninScene.swift */; };
+		299653EC2D637D300038E8B1 /* SigninScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 299653EA2D637D300038E8B1 /* SigninScene.swift */; };
+		299653ED2D637D300038E8B1 /* SigninScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 299653EA2D637D300038E8B1 /* SigninScene.swift */; };
+		299ECD602D68BFFF001A6647 /* cartoon_fast_music.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 299ECD5F2D68BFFF001A6647 /* cartoon_fast_music.mp3 */; };
+		29F8129B2D86C95900C81CE7 /* GradientBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F8129A2D86C95800C81CE7 /* GradientBackground.swift */; };
+		29F8129D2D87123100C81CE7 /* IntroductionScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F8129C2D87123100C81CE7 /* IntroductionScene.swift */; };
+		29F8129F2D8714A800C81CE7 /* intro.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 29F8129E2D8713AD00C81CE7 /* intro.mp4 */; };
+		29F812A12D8E3FDA00C81CE7 /* MazeScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F812A02D8E3FDA00C81CE7 /* MazeScene.swift */; };
+		29F812A32D90C41800C81CE7 /* WelcomeBackScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F812A22D90C41800C81CE7 /* WelcomeBackScene.swift */; };
+		29F812A52D90C7BE00C81CE7 /* welcomeback.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 29F812A42D90C7BE00C81CE7 /* welcomeback.mp4 */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		291646512D524BC600EF15E4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 291646332D524BC200EF15E4 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2916463A2D524BC200EF15E4;
+			remoteInfo = "Chinese Education";
+		};
+		2916465B2D524BC600EF15E4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 291646332D524BC200EF15E4 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2916463A2D524BC200EF15E4;
+			remoteInfo = "Chinese Education";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		290655B22DB1E83500FA06C0 /* correct.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = correct.mp4; sourceTree = "<group>"; };
+		290655B42DB1E83D00FA06C0 /* incorrect.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = incorrect.mp4; sourceTree = "<group>"; };
+		2916463B2D524BC200EF15E4 /* Chinese Education.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Chinese Education.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		2916463E2D524BC200EF15E4 /* Chinese_EducationApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Chinese_EducationApp.swift; sourceTree = "<group>"; };
+		291646422D524BC500EF15E4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		291646452D524BC500EF15E4 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		291646472D524BC500EF15E4 /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
+		2916464A2D524BC600EF15E4 /* Chinese_Education.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Chinese_Education.xcdatamodel; sourceTree = "<group>"; };
+		291646502D524BC600EF15E4 /* Chinese EducationTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Chinese EducationTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		291646542D524BC600EF15E4 /* Chinese_EducationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Chinese_EducationTests.swift; sourceTree = "<group>"; };
+		2916465A2D524BC600EF15E4 /* Chinese EducationUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Chinese EducationUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		2916465E2D524BC600EF15E4 /* Chinese_EducationUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Chinese_EducationUITests.swift; sourceTree = "<group>"; };
+		291646602D524BC600EF15E4 /* Chinese_EducationUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Chinese_EducationUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		2916466D2D524D6E00EF15E4 /* SKScene.sks */ = {isa = PBXFileReference; lastKnownFileType = file.sks; path = SKScene.sks; sourceTree = "<group>"; };
+		291646712D5259DD00EF15E4 /* GameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameView.swift; sourceTree = "<group>"; };
+		291646752D525A0100EF15E4 /* GameScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameScene.swift; sourceTree = "<group>"; };
+		2984CBF22D61DD39008D19C0 /* ConversationScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationScene.swift; sourceTree = "<group>"; };
+		2984CBF62D61F7F4008D19C0 /* Water.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = Water.mp4; sourceTree = "<group>"; };
+		298508F12D75EB0100AECD23 /* moving.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = moving.mp4; sourceTree = "<group>"; };
+		298508F32D78820700AECD23 /* Custom_Button.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Custom_Button.swift; sourceTree = "<group>"; };
+		298508F52D7D845A00AECD23 /* HintScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HintScene.swift; sourceTree = "<group>"; };
+		298508FF2D85539C00AECD23 /* NPC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NPC.swift; sourceTree = "<group>"; };
+		2985090E2D6D333300A50896 /* BadgeScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BadgeScene.swift; sourceTree = "<group>"; };
+		298B28652D6CAD4A0035F5DA /* TransitionScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransitionScene.swift; sourceTree = "<group>"; };
+		298CE7302D6A129200762889 /* PlayerProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerProgress.swift; sourceTree = "<group>"; };
+		298CE7322D6A143200762889 /* StoryScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoryScene.swift; sourceTree = "<group>"; };
+		298CE7342D6A1A2800762889 /* NewWorldScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewWorldScene.swift; sourceTree = "<group>"; };
+		298CE7362D6AA2DD00762889 /* QuestionBank.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestionBank.swift; sourceTree = "<group>"; };
+		298CE73A2D6AA30500762889 /* TeacherQuestionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeacherQuestionManager.swift; sourceTree = "<group>"; };
+		298CE73C2D6AA33000762889 /* QuestionSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestionSyncManager.swift; sourceTree = "<group>"; };
+		298CE73F2D6AC4F700762889 /* PlayerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerManager.swift; sourceTree = "<group>"; };
+		298CE7412D6AC56200762889 /* GameStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameStats.swift; sourceTree = "<group>"; };
+		299653E82D636DAB0038E8B1 /* ClampingScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClampingScene.swift; sourceTree = "<group>"; };
+		299653EA2D637D300038E8B1 /* SigninScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SigninScene.swift; sourceTree = "<group>"; };
+		299ECD5F2D68BFFF001A6647 /* cartoon_fast_music.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = cartoon_fast_music.mp3; sourceTree = "<group>"; };
+		29F8129A2D86C95800C81CE7 /* GradientBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradientBackground.swift; sourceTree = "<group>"; };
+		29F8129C2D87123100C81CE7 /* IntroductionScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroductionScene.swift; sourceTree = "<group>"; };
+		29F8129E2D8713AD00C81CE7 /* intro.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = intro.mp4; sourceTree = "<group>"; };
+		29F812A02D8E3FDA00C81CE7 /* MazeScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MazeScene.swift; sourceTree = "<group>"; };
+		29F812A22D90C41800C81CE7 /* WelcomeBackScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeBackScene.swift; sourceTree = "<group>"; };
+		29F812A42D90C7BE00C81CE7 /* welcomeback.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = welcomeback.mp4; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		291646382D524BC200EF15E4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		2916464D2D524BC600EF15E4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		291646572D524BC600EF15E4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		291646322D524BC200EF15E4 = {
+			isa = PBXGroup;
+			children = (
+				2916463D2D524BC200EF15E4 /* Chinese Education */,
+				291646532D524BC600EF15E4 /* Chinese EducationTests */,
+				2916465D2D524BC600EF15E4 /* Chinese EducationUITests */,
+				2916463C2D524BC200EF15E4 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		2916463C2D524BC200EF15E4 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				2916463B2D524BC200EF15E4 /* Chinese Education.app */,
+				291646502D524BC600EF15E4 /* Chinese EducationTests.xctest */,
+				2916465A2D524BC600EF15E4 /* Chinese EducationUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		2916463D2D524BC200EF15E4 /* Chinese Education */ = {
+			isa = PBXGroup;
+			children = (
+				2916463E2D524BC200EF15E4 /* Chinese_EducationApp.swift */,
+				291646422D524BC500EF15E4 /* Assets.xcassets */,
+				2916466D2D524D6E00EF15E4 /* SKScene.sks */,
+				291646472D524BC500EF15E4 /* Persistence.swift */,
+				291646492D524BC600EF15E4 /* Chinese_Education.xcdatamodeld */,
+				299ECD5F2D68BFFF001A6647 /* cartoon_fast_music.mp3 */,
+				298508F12D75EB0100AECD23 /* moving.mp4 */,
+				290655B22DB1E83500FA06C0 /* correct.mp4 */,
+				290655B42DB1E83D00FA06C0 /* incorrect.mp4 */,
+				29F812A42D90C7BE00C81CE7 /* welcomeback.mp4 */,
+				29F8129E2D8713AD00C81CE7 /* intro.mp4 */,
+				2984CBF62D61F7F4008D19C0 /* Water.mp4 */,
+				298508F32D78820700AECD23 /* Custom_Button.swift */,
+				291646442D524BC500EF15E4 /* Preview Content */,
+				291646712D5259DD00EF15E4 /* GameView.swift */,
+				298CE73E2D6AA79700762889 /* Scene */,
+				298B28632D6CAC780035F5DA /* Player */,
+				298B28642D6CAC9F0035F5DA /* Question */,
+			);
+			path = "Chinese Education";
+			sourceTree = "<group>";
+		};
+		291646442D524BC500EF15E4 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				291646452D524BC500EF15E4 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		291646532D524BC600EF15E4 /* Chinese EducationTests */ = {
+			isa = PBXGroup;
+			children = (
+				291646542D524BC600EF15E4 /* Chinese_EducationTests.swift */,
+			);
+			path = "Chinese EducationTests";
+			sourceTree = "<group>";
+		};
+		2916465D2D524BC600EF15E4 /* Chinese EducationUITests */ = {
+			isa = PBXGroup;
+			children = (
+				2916465E2D524BC600EF15E4 /* Chinese_EducationUITests.swift */,
+				291646602D524BC600EF15E4 /* Chinese_EducationUITestsLaunchTests.swift */,
+			);
+			path = "Chinese EducationUITests";
+			sourceTree = "<group>";
+		};
+		298B28632D6CAC780035F5DA /* Player */ = {
+			isa = PBXGroup;
+			children = (
+				298CE73F2D6AC4F700762889 /* PlayerManager.swift */,
+				298CE7412D6AC56200762889 /* GameStats.swift */,
+				298CE7302D6A129200762889 /* PlayerProgress.swift */,
+				298508FF2D85539C00AECD23 /* NPC.swift */,
+			);
+			name = Player;
+			sourceTree = "<group>";
+		};
+		298B28642D6CAC9F0035F5DA /* Question */ = {
+			isa = PBXGroup;
+			children = (
+				298CE7362D6AA2DD00762889 /* QuestionBank.swift */,
+				298CE73A2D6AA30500762889 /* TeacherQuestionManager.swift */,
+				298CE73C2D6AA33000762889 /* QuestionSyncManager.swift */,
+			);
+			path = Question;
+			sourceTree = "<group>";
+		};
+		298CE73E2D6AA79700762889 /* Scene */ = {
+			isa = PBXGroup;
+			children = (
+				29F812A02D8E3FDA00C81CE7 /* MazeScene.swift */,
+				29F8129A2D86C95800C81CE7 /* GradientBackground.swift */,
+				299653E82D636DAB0038E8B1 /* ClampingScene.swift */,
+				298B28652D6CAD4A0035F5DA /* TransitionScene.swift */,
+				2984CBF22D61DD39008D19C0 /* ConversationScene.swift */,
+				298508F52D7D845A00AECD23 /* HintScene.swift */,
+				298CE7322D6A143200762889 /* StoryScene.swift */,
+				299653EA2D637D300038E8B1 /* SigninScene.swift */,
+				29F8129C2D87123100C81CE7 /* IntroductionScene.swift */,
+				29F812A22D90C41800C81CE7 /* WelcomeBackScene.swift */,
+				291646752D525A0100EF15E4 /* GameScene.swift */,
+				298CE7342D6A1A2800762889 /* NewWorldScene.swift */,
+				2985090E2D6D333300A50896 /* BadgeScene.swift */,
+			);
+			name = Scene;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		2916463A2D524BC200EF15E4 /* Chinese Education */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 291646642D524BC600EF15E4 /* Build configuration list for PBXNativeTarget "Chinese Education" */;
+			buildPhases = (
+				291646372D524BC200EF15E4 /* Sources */,
+				291646382D524BC200EF15E4 /* Frameworks */,
+				291646392D524BC200EF15E4 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Chinese Education";
+			productName = "Chinese Education";
+			productReference = 2916463B2D524BC200EF15E4 /* Chinese Education.app */;
+			productType = "com.apple.product-type.application";
+		};
+		2916464F2D524BC600EF15E4 /* Chinese EducationTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 291646672D524BC600EF15E4 /* Build configuration list for PBXNativeTarget "Chinese EducationTests" */;
+			buildPhases = (
+				2916464C2D524BC600EF15E4 /* Sources */,
+				2916464D2D524BC600EF15E4 /* Frameworks */,
+				2916464E2D524BC600EF15E4 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				291646522D524BC600EF15E4 /* PBXTargetDependency */,
+			);
+			name = "Chinese EducationTests";
+			productName = "Chinese EducationTests";
+			productReference = 291646502D524BC600EF15E4 /* Chinese EducationTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		291646592D524BC600EF15E4 /* Chinese EducationUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2916466A2D524BC600EF15E4 /* Build configuration list for PBXNativeTarget "Chinese EducationUITests" */;
+			buildPhases = (
+				291646562D524BC600EF15E4 /* Sources */,
+				291646572D524BC600EF15E4 /* Frameworks */,
+				291646582D524BC600EF15E4 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				2916465C2D524BC600EF15E4 /* PBXTargetDependency */,
+			);
+			name = "Chinese EducationUITests";
+			productName = "Chinese EducationUITests";
+			productReference = 2916465A2D524BC600EF15E4 /* Chinese EducationUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		291646332D524BC200EF15E4 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1420;
+				LastUpgradeCheck = 1420;
+				TargetAttributes = {
+					2916463A2D524BC200EF15E4 = {
+						CreatedOnToolsVersion = 14.2;
+					};
+					2916464F2D524BC600EF15E4 = {
+						CreatedOnToolsVersion = 14.2;
+						TestTargetID = 2916463A2D524BC200EF15E4;
+					};
+					291646592D524BC600EF15E4 = {
+						CreatedOnToolsVersion = 14.2;
+						TestTargetID = 2916463A2D524BC200EF15E4;
+					};
+				};
+			};
+			buildConfigurationList = 291646362D524BC200EF15E4 /* Build configuration list for PBXProject "Chinese Education" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 291646322D524BC200EF15E4;
+			productRefGroup = 2916463C2D524BC200EF15E4 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				2916463A2D524BC200EF15E4 /* Chinese Education */,
+				2916464F2D524BC600EF15E4 /* Chinese EducationTests */,
+				291646592D524BC600EF15E4 /* Chinese EducationUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		291646392D524BC200EF15E4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				291646462D524BC500EF15E4 /* Preview Assets.xcassets in Resources */,
+				29F8129F2D8714A800C81CE7 /* intro.mp4 in Resources */,
+				298508F22D75EB0100AECD23 /* moving.mp4 in Resources */,
+				290655B52DB1E83D00FA06C0 /* incorrect.mp4 in Resources */,
+				29F812A52D90C7BE00C81CE7 /* welcomeback.mp4 in Resources */,
+				291646432D524BC500EF15E4 /* Assets.xcassets in Resources */,
+				299ECD602D68BFFF001A6647 /* cartoon_fast_music.mp3 in Resources */,
+				2916466E2D524D6E00EF15E4 /* SKScene.sks in Resources */,
+				2984CBF72D61FA20008D19C0 /* Water.mp4 in Resources */,
+				290655B32DB1E83500FA06C0 /* correct.mp4 in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		2916464E2D524BC600EF15E4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2916466F2D524D6E00EF15E4 /* SKScene.sks in Resources */,
+				2984CBF82D61FA22008D19C0 /* Water.mp4 in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		291646582D524BC600EF15E4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				291646702D524D6E00EF15E4 /* SKScene.sks in Resources */,
+				2984CBF92D61FA23008D19C0 /* Water.mp4 in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		291646372D524BC200EF15E4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				298CE73D2D6AA33000762889 /* QuestionSyncManager.swift in Sources */,
+				291646762D525A0100EF15E4 /* GameScene.swift in Sources */,
+				29F812A12D8E3FDA00C81CE7 /* MazeScene.swift in Sources */,
+				2984CBF32D61DD39008D19C0 /* ConversationScene.swift in Sources */,
+				29F812A32D90C41800C81CE7 /* WelcomeBackScene.swift in Sources */,
+				298CE7422D6AC56200762889 /* GameStats.swift in Sources */,
+				298CE7352D6A1A2800762889 /* NewWorldScene.swift in Sources */,
+				29F8129D2D87123100C81CE7 /* IntroductionScene.swift in Sources */,
+				29F8129B2D86C95900C81CE7 /* GradientBackground.swift in Sources */,
+				299653EB2D637D300038E8B1 /* SigninScene.swift in Sources */,
+				2985090F2D6D333300A50896 /* BadgeScene.swift in Sources */,
+				298CE7402D6AC4F700762889 /* PlayerManager.swift in Sources */,
+				298509002D85539C00AECD23 /* NPC.swift in Sources */,
+				2916464B2D524BC600EF15E4 /* Chinese_Education.xcdatamodeld in Sources */,
+				298CE7372D6AA2DD00762889 /* QuestionBank.swift in Sources */,
+				298CE73B2D6AA30500762889 /* TeacherQuestionManager.swift in Sources */,
+				291646482D524BC500EF15E4 /* Persistence.swift in Sources */,
+				291646722D5259DD00EF15E4 /* GameView.swift in Sources */,
+				298CE7312D6A129200762889 /* PlayerProgress.swift in Sources */,
+				299653E92D636DAB0038E8B1 /* ClampingScene.swift in Sources */,
+				298508F62D7D845A00AECD23 /* HintScene.swift in Sources */,
+				298508F42D78820700AECD23 /* Custom_Button.swift in Sources */,
+				298CE7332D6A143300762889 /* StoryScene.swift in Sources */,
+				2916463F2D524BC200EF15E4 /* Chinese_EducationApp.swift in Sources */,
+				298B28662D6CAD4A0035F5DA /* TransitionScene.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		2916464C2D524BC600EF15E4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				291646772D525A0100EF15E4 /* GameScene.swift in Sources */,
+				291646732D5259DD00EF15E4 /* GameView.swift in Sources */,
+				299653EC2D637D300038E8B1 /* SigninScene.swift in Sources */,
+				291646552D524BC600EF15E4 /* Chinese_EducationTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		291646562D524BC600EF15E4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2916465F2D524BC600EF15E4 /* Chinese_EducationUITests.swift in Sources */,
+				291646742D5259DD00EF15E4 /* GameView.swift in Sources */,
+				291646782D525A0100EF15E4 /* GameScene.swift in Sources */,
+				299653ED2D637D300038E8B1 /* SigninScene.swift in Sources */,
+				291646612D524BC600EF15E4 /* Chinese_EducationUITestsLaunchTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		291646522D524BC600EF15E4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2916463A2D524BC200EF15E4 /* Chinese Education */;
+			targetProxy = 291646512D524BC600EF15E4 /* PBXContainerItemProxy */;
+		};
+		2916465C2D524BC600EF15E4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2916463A2D524BC200EF15E4 /* Chinese Education */;
+			targetProxy = 2916465B2D524BC600EF15E4 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		291646622D524BC600EF15E4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		291646632D524BC600EF15E4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		291646652D524BC600EF15E4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Chinese Education/Preview Content\"";
+				DEVELOPMENT_TEAM = U9QUV3822W;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "JS-Corp.Chinese-Education";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		291646662D524BC600EF15E4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Chinese Education/Preview Content\"";
+				DEVELOPMENT_TEAM = U9QUV3822W;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "JS-Corp.Chinese-Education";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		291646682D524BC600EF15E4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = U9QUV3822W;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "JS-Corp.Chinese-EducationTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Chinese Education.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Chinese Education";
+			};
+			name = Debug;
+		};
+		291646692D524BC600EF15E4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = U9QUV3822W;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "JS-Corp.Chinese-EducationTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Chinese Education.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Chinese Education";
+			};
+			name = Release;
+		};
+		2916466B2D524BC600EF15E4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = U9QUV3822W;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "JS-Corp.Chinese-EducationUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Chinese Education";
+			};
+			name = Debug;
+		};
+		2916466C2D524BC600EF15E4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = U9QUV3822W;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "JS-Corp.Chinese-EducationUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Chinese Education";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		291646362D524BC200EF15E4 /* Build configuration list for PBXProject "Chinese Education" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				291646622D524BC600EF15E4 /* Debug */,
+				291646632D524BC600EF15E4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		291646642D524BC600EF15E4 /* Build configuration list for PBXNativeTarget "Chinese Education" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				291646652D524BC600EF15E4 /* Debug */,
+				291646662D524BC600EF15E4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		291646672D524BC600EF15E4 /* Build configuration list for PBXNativeTarget "Chinese EducationTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				291646682D524BC600EF15E4 /* Debug */,
+				291646692D524BC600EF15E4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		2916466A2D524BC600EF15E4 /* Build configuration list for PBXNativeTarget "Chinese EducationUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2916466B2D524BC600EF15E4 /* Debug */,
+				2916466C2D524BC600EF15E4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCVersionGroup section */
+		291646492D524BC600EF15E4 /* Chinese_Education.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				2916464A2D524BC600EF15E4 /* Chinese_Education.xcdatamodel */,
+			);
+			currentVersion = 2916464A2D524BC600EF15E4 /* Chinese_Education.xcdatamodel */;
+			path = Chinese_Education.xcdatamodeld;
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
+		};
+/* End XCVersionGroup section */
+	};
+	rootObject = 291646332D524BC200EF15E4 /* Project object */;
+}
