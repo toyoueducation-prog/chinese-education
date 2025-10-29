@@ -64,6 +64,8 @@ class ConversationScene: SKScene {
     private var optionBackgrounds: [String: SKShapeNode] = [:] // ✅ Store option backgrounds
     private var synthesizer = AVSpeechSynthesizer()
     private var readingLabel: SKLabelNode!
+    private var currentVideoNode: SKVideoNode?  // ✅ Track current video for cleanup
+    private var questionNumber: Int = 1  // ✅ Track question number
     
     override func didMove(to view: SKView) {
         setupBackground()
@@ -289,39 +291,70 @@ class ConversationScene: SKScene {
     }
     
     func displayPassageAndQuestion(_ text: String, type: String) {
+        // ✅ Clear any existing videos first
+        clearCurrentVideo()
+        
+        // ✅ Create passage container with background
+        let passageContainer = SKShapeNode(rectOf: CGSize(width: size.width - 60, height: 200))
+        passageContainer.fillColor = UIColor.systemBlue.withAlphaComponent(0.1)
+        passageContainer.strokeColor = UIColor.systemBlue.withAlphaComponent(0.3)
+        passageContainer.lineWidth = 2
+        passageContainer.position = CGPoint(x: size.width / 2, y: size.height - 120)
+        passageContainer.name = "passageContainer"
+        addChild(passageContainer)
+        
         let passageLabel = SKLabelNode(text: passageText)
         passageLabel.name = "passage"
-        passageLabel.fontSize = 22  // ✅ Increased font size
-        passageLabel.fontColor = .black
+        passageLabel.fontSize = 20
+        passageLabel.fontColor = .darkBlue
+        passageLabel.fontName = "AvenirNext-Medium"
         passageLabel.horizontalAlignmentMode = .center
         passageLabel.verticalAlignmentMode = .top
         passageLabel.numberOfLines = 0
-        passageLabel.preferredMaxLayoutWidth = size.width - 80  // ✅ More margin
+        passageLabel.preferredMaxLayoutWidth = size.width - 80
         passageLabel.lineBreakMode = .byWordWrapping
-        passageLabel.position = CGPoint(x: size.width / 2, y: size.height - 100) // ✅ More top spacing
-        addChild(passageLabel)
+        passageLabel.position = CGPoint(x: 0, y: 80)
+        passageContainer.addChild(passageLabel)
 
         let passageHeight = passageLabel.calculateAccumulatedFrame().height
-        let questionStartY = size.height - 120 - passageHeight - 30  // ✅ More space between passage and question
+        let questionStartY = size.height - 320 - passageHeight - 20
+
+        // ✅ Create question container with better styling
+        let questionContainer = SKShapeNode(rectOf: CGSize(width: size.width - 40, height: 120))
+        questionContainer.fillColor = UIColor.systemYellow.withAlphaComponent(0.15)
+        questionContainer.strokeColor = UIColor.systemOrange.withAlphaComponent(0.4)
+        questionContainer.lineWidth = 3
+        questionContainer.position = CGPoint(x: size.width / 2, y: questionStartY + 60)
+        questionContainer.name = "questionContainer"
+        addChild(questionContainer)
+        
+        // ✅ Add question number
+        let questionNumberLabel = SKLabelNode(text: "問題 \(questionNumber)")
+        questionNumberLabel.fontSize = 18
+        questionNumberLabel.fontColor = .systemOrange
+        questionNumberLabel.fontName = "AvenirNext-Bold"
+        questionNumberLabel.position = CGPoint(x: 0, y: 40)
+        questionContainer.addChild(questionNumberLabel)
 
         questionLabel = SKLabelNode(text: text)
-        questionLabel.fontSize = 26  // ✅ Slightly larger question font
+        questionLabel.fontSize = 24
         questionLabel.fontColor = .black
+        questionLabel.fontName = "AvenirNext-Medium"
         questionLabel.horizontalAlignmentMode = .center
         questionLabel.verticalAlignmentMode = .top
         questionLabel.numberOfLines = 0
         questionLabel.preferredMaxLayoutWidth = size.width - 60
         questionLabel.lineBreakMode = .byWordWrapping
         questionLabel.name = "questionLabel"
-        questionLabel.position = CGPoint(x: size.width / 2, y: questionStartY)
-        addChild(questionLabel)
+        questionLabel.position = CGPoint(x: 0, y: 10)
+        questionContainer.addChild(questionLabel)
 
         answerStartTime = CACurrentMediaTime()
 
         if type == "mc" {
-            displayMultipleChoice(belowY: questionStartY - 40)  // ✅ More space between question and answers
+            displayMultipleChoice(belowY: questionStartY - 60)
         } else {
-            displayOpenAnswer(belowY: questionStartY - 40)
+            displayOpenAnswer(belowY: questionStartY - 60)
         }
     }
 
@@ -363,40 +396,74 @@ class ConversationScene: SKScene {
 
     // MARK: - Display Multiple Choice Answers Dynamically
     func displayMultipleChoice(belowY: CGFloat) {
-        var maxWidth: CGFloat = 0  // ✅ Track maximum width
+        let answerSpacing: CGFloat = 60
+        let startY = belowY
         
-        // ✅ Determine the widest text among the choices
-        for choice in choiceOptions {
-            let tempLabel = SKLabelNode(text: choice)
-            tempLabel.fontSize = 22
-            let width = tempLabel.frame.width + 40  // Add padding
-            maxWidth = max(maxWidth, width)
+        for (index, option) in choiceOptions.enumerated() {
+            let answerY = startY - (CGFloat(index) * answerSpacing)
+            
+            // ✅ Create answer container with better styling
+            let answerContainer = SKShapeNode(rectOf: CGSize(width: size.width - 60, height: 50))
+            answerContainer.fillColor = UIColor.white.withAlphaComponent(0.9)
+            answerContainer.strokeColor = UIColor.systemBlue.withAlphaComponent(0.6)
+            answerContainer.lineWidth = 2
+            answerContainer.position = CGPoint(x: size.width / 2, y: answerY)
+            answerContainer.name = "answerContainer_\(index)"
+            addChild(answerContainer)
+            
+            // ✅ Add option letter (A, B, C, D)
+            let optionLetter = SKLabelNode(text: String(Character(UnicodeScalar(65 + index)!)))
+            optionLetter.fontSize = 20
+            optionLetter.fontColor = .systemBlue
+            optionLetter.fontName = "AvenirNext-Bold"
+            optionLetter.position = CGPoint(x: -size.width/2 + 50, y: 0)
+            answerContainer.addChild(optionLetter)
+            
+            let answerLabel = SKLabelNode(text: option)
+            answerLabel.name = "answerOption_\(index)"
+            answerLabel.fontSize = 20
+            answerLabel.fontColor = .black
+            answerLabel.fontName = "AvenirNext-Medium"
+            answerLabel.horizontalAlignmentMode = .left
+            answerLabel.verticalAlignmentMode = .center
+            answerLabel.position = CGPoint(x: -size.width/2 + 80, y: 0)
+            answerLabel.preferredMaxLayoutWidth = size.width - 140
+            answerLabel.lineBreakMode = .byWordWrapping
+            answerContainer.addChild(answerLabel)
+            
+            // ✅ Store container reference for styling
+            optionBackgrounds["answerOption_\(index)"] = answerContainer
+        }
+    }
+    
+    // MARK: - Video Management
+    func clearCurrentVideo() {
+        if let videoNode = currentVideoNode {
+            videoNode.removeFromParent()
+            currentVideoNode = nil
         }
         
-        // ✅ Ensure a minimum width for short options
-        maxWidth = max(maxWidth, 200)
-
-        for (index, choice) in choiceOptions.enumerated() {
-            let optionName = "choice\(index)"  // ✅ Unique name for both label and background
-            
-            let optionBackground = SKShapeNode(rectOf: CGSize(width: maxWidth, height: 50), cornerRadius: 10)
-            optionBackground.fillColor = .white  // ✅ Set background to black
-            optionBackground.strokeColor = .white // ✅ Add white border for contrast
-            optionBackground.position = CGPoint(x: size.width / 2, y: belowY - CGFloat(index + 2) * 60) // Spaced properly
-            addChild(optionBackground)
-            
-            // ✅ Create text label for the choice
-            let option = SKLabelNode(text: choice)
-            option.fontSize = 22
-            option.fontColor = .black  // Default text color
-            option.horizontalAlignmentMode = .center
-            option.verticalAlignmentMode = .center
-            option.position = optionBackground.position
-            option.name = optionName  // Assign same name for easy detection
-            addChild(option)
-
-            options.append(option)
-            optionBackgrounds[optionName] = optionBackground  // ✅ Store reference to background
+        // ✅ Also remove any existing video nodes by name
+        enumerateChildNodes(withName: "//videoNode") { node, _ in
+            node.removeFromParent()
+        }
+    }
+    
+    // MARK: - Enhanced Answer Selection
+    func highlightSelectedAnswer(_ answerIndex: Int) {
+        // ✅ Highlight the selected answer
+        for (index, _) in choiceOptions.enumerated() {
+            if let container = optionBackgrounds["answerOption_\(index)"] {
+                if index == answerIndex {
+                    container.fillColor = UIColor.systemBlue.withAlphaComponent(0.3)
+                    container.strokeColor = UIColor.systemBlue
+                    container.lineWidth = 3
+                } else {
+                    container.fillColor = UIColor.white.withAlphaComponent(0.9)
+                    container.strokeColor = UIColor.systemBlue.withAlphaComponent(0.6)
+                    container.lineWidth = 2
+                }
+            }
         }
     }
 
@@ -444,6 +511,21 @@ class ConversationScene: SKScene {
             
         } else {
             if questionType == "mc" {
+                // ✅ Check if touching answer containers
+                for (index, _) in choiceOptions.enumerated() {
+                    if touchedNode.name == "answerContainer_\(index)" || 
+                       touchedNode.name == "answerOption_\(index)" {
+                        // ✅ Highlight the selected answer
+                        highlightSelectedAnswer(index)
+                        
+                        // ✅ Check answer and continue
+                        synthesizer.stopSpeaking(at: .word)
+                        checkAnswer(selectedAnswer: choiceOptions[index])
+                        return
+                    }
+                }
+                
+                // ✅ Fallback to old system for compatibility
                 for option in options {
                     if touchedNode.name == option.name {
                         // ✅ Change the background color of the selected answer
@@ -525,6 +607,8 @@ class ConversationScene: SKScene {
             if let nextQuestionKey = remainingQuestionKeys.first(where: { !answeredQuestions.contains($0) }) {
                 print("✅ Debug: Moving to Next Question: \(nextQuestionKey)")
                 currentQuestionKey = nextQuestionKey
+                questionNumber += 1  // ✅ Increment question number
+                clearCurrentVideo()  // ✅ Clear any playing videos
                 fetchLocalQuestion()
             } else if !incorrectAnswers.isEmpty {
                 print("🚨 Debug: Transitioning to HintScene")  // ✅ Confirm if this line prints
@@ -547,6 +631,24 @@ class ConversationScene: SKScene {
         playFeedbackVideo(named: videoName)
 
 
+        // ✅ Highlight correct answer and dim others
+        for (index, option) in choiceOptions.enumerated() {
+            if let container = optionBackgrounds["answerOption_\(index)"] {
+                if option.lowercased() == correctAnswer.lowercased() {
+                    // ✅ Highlight correct answer in green
+                    container.fillColor = UIColor.systemGreen.withAlphaComponent(0.3)
+                    container.strokeColor = UIColor.systemGreen
+                    container.lineWidth = 3
+                } else {
+                    // ✅ Dim incorrect answers
+                    container.fillColor = UIColor.gray.withAlphaComponent(0.2)
+                    container.strokeColor = UIColor.gray.withAlphaComponent(0.4)
+                    container.lineWidth = 1
+                }
+            }
+        }
+        
+        // ✅ Also handle old system for compatibility
         for node in children {
             if let answerNode = node as? SKLabelNode, answerNode.name?.contains("answerOption") == true {
                 answerNode.fontColor = .gray  // ✅ Dim the answers
@@ -583,6 +685,9 @@ class ConversationScene: SKScene {
     }
 
     func playFeedbackVideo(named videoName: String) {
+        // ✅ Clear any existing video first
+        clearCurrentVideo()
+        
         guard let url = Bundle.main.url(forResource: videoName, withExtension: "mp4") else { return }
         let player = AVPlayer(url: url)
         let videoNode = SKVideoNode(avPlayer: player)
@@ -591,12 +696,17 @@ class ConversationScene: SKScene {
         videoNode.size = videoSize
         videoNode.position = CGPoint(x: size.width / 2, y: 120)
         videoNode.zPosition = 50
+        videoNode.name = "videoNode"  // ✅ Add name for easy cleanup
         addChild(videoNode)
+        
+        // ✅ Store reference for cleanup
+        currentVideoNode = videoNode
 
         player.play()
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) {
-            videoNode.removeFromParent()
+        // ✅ Shorter duration and auto-cleanup
+        DispatchQueue.main.asyncAfter(deadline: .now() + 8.0) {
+            self.clearCurrentVideo()
         }
     }
     func moveToNextQuestionOrScene() {
@@ -703,13 +813,21 @@ class ConversationScene: SKScene {
     }
 
     func clearQuestionUI() {
+        // ✅ Clear videos first
+        clearCurrentVideo()
+        
         for node in children {
             if node.name == "passage" ||
                node.name == "questionLabel" ||
                node.name?.hasPrefix("choice") == true ||
+               node.name?.hasPrefix("answerOption") == true ||
+               node.name?.hasPrefix("answerContainer") == true ||
                node.name == "answerBox" ||
                node.name == "answerField" ||
-               node.name == "submitButton" {
+               node.name == "submitButton" ||
+               node.name == "passageContainer" ||
+               node.name == "questionContainer" ||
+               node.name == "videoNode" {
 
                 node.removeFromParent()
             }
