@@ -15,15 +15,30 @@ class BadgeScene: SKScene {
 
     // MARK: - Setup Background Video
     func setupVideo() {
-        guard let videoURL = Bundle.main.url(forResource: "moving", withExtension: "mp4") else {
-            fatalError("Badge video file not found")
+        // ✅ Try Move2.mp4 first (with transparent background support), fallback to moving.mp4
+        guard let videoURL = Bundle.main.url(forResource: "Move2", withExtension: "mp4") else {
+            print("⚠️ Move2.mp4 not found, falling back to moving.mp4")
+            guard let fallbackURL = Bundle.main.url(forResource: "moving", withExtension: "mp4") else {
+                fatalError("Badge video file not found")
+            }
+            setupVideoPlayer(url: fallbackURL)
+            return
         }
+        setupVideoPlayer(url: videoURL)
+    }
+    
+    // MARK: - Setup Video Player
+    private func setupVideoPlayer(url: URL) {
 
-        let player = AVPlayer(url: videoURL)
+        let player = AVPlayer(url: url)
         videoNode = SKVideoNode(avPlayer: player)
         videoNode?.position = CGPoint(x: size.width / 2, y: size.height / 2)
         videoNode?.size = size
         videoNode?.zPosition = -1
+        
+        // ✅ For transparent background video, the video file needs alpha channel
+        // SpriteKit's SKVideoNode will respect the video's alpha channel if present
+        // Note: The video file (Move2.mp4) should be encoded with alpha channel (e.g., ProRes 4444 or HEVC with alpha)
         addChild(videoNode!)
 
         player.play()

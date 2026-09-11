@@ -1,3 +1,4 @@
+// Legacy scene — not wired from SignInScene / GameScene (kept for reference).
 import SpriteKit
 
 class StoryScene: SKScene {

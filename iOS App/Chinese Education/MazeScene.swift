@@ -1,3 +1,4 @@
+// Legacy / experimental SwiftUI content — not part of the main SpriteKit game flow.
 import SwiftUI
 
 struct Question1: Codable {

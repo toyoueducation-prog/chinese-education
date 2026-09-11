@@ -208,9 +208,13 @@ class MapManager {
         var spawnPoints: [CGPoint] = []
         let mapSize = CGSize(width: 1280, height: 1280) // Default map size
         
+        // ✅ Ensure valid range bounds (upperBound >= lowerBound)
+        let maxX = max(100, mapSize.width - 100)
+        let maxY = max(100, mapSize.height - 100)
+        
         for _ in 0..<mapInfo.enemyCount {
-            let x = CGFloat.random(in: 100...(mapSize.width - 100))
-            let y = CGFloat.random(in: 100...(mapSize.height - 100))
+            let x = CGFloat.random(in: 100...maxX)
+            let y = CGFloat.random(in: 100...maxY)
             spawnPoints.append(CGPoint(x: x, y: y))
         }
         
@@ -286,8 +290,14 @@ class MapManager {
         for row in 0..<Int(mapSize.height) {
             for col in 0..<Int(mapSize.width) {
                 let tileName = getTileNameForPosition(col: col, row: row, mapName: mapInfo.name)
-                if let tileDefinition = tileMap.tileSet.tileDefinitions.first(where: { $0.name == tileName }) {
-                    tileMap.setTileGroup(tileDefinition.parent, andTileDefinition: tileDefinition, forColumn: col, row: row)
+                // Search through tileGroups and their rules to find the tile definition
+                for tileGroup in tileMap.tileSet.tileGroups {
+                    for rule in tileGroup.rules {
+                        if let tileDefinition = rule.tileDefinitions.first(where: { $0.name == tileName }) {
+                            tileMap.setTileGroup(tileGroup, andTileDefinition: tileDefinition, forColumn: col, row: row)
+                            break
+                        }
+                    }
                 }
             }
         }
@@ -304,34 +314,36 @@ class MapManager {
         let waterGroup = SKTileGroup()
         let stoneGroup = SKTileGroup()
         
-        // Add tile definitions (simplified for now)
-        if let grassTexture = SKTexture(imageNamed: "grass2") {
-            let grassDefinition = SKTileDefinition(texture: grassTexture)
-            grassDefinition.name = "grass"
-            grassGroup.rules = [SKTileGroupRule()]
-            grassGroup.rules[0].tileDefinitions = [grassDefinition]
-        }
+        // Add tile definitions
+        // SKTexture(imageNamed:) always returns a texture (non-optional), even if image doesn't exist
+        // SpriteKit will use a placeholder texture for missing images
+        let grassTexture = SKTexture(imageNamed: "grass2")
+        let grassDefinition = SKTileDefinition(texture: grassTexture)
+        grassDefinition.name = "grass"
+        let grassRule = SKTileGroupRule()
+        grassRule.tileDefinitions = [grassDefinition]
+        grassGroup.rules = [grassRule]
         
-        if let pathTexture = SKTexture(imageNamed: "path") {
-            let pathDefinition = SKTileDefinition(texture: pathTexture)
-            pathDefinition.name = "path"
-            pathGroup.rules = [SKTileGroupRule()]
-            pathGroup.rules[0].tileDefinitions = [pathDefinition]
-        }
+        let pathTexture = SKTexture(imageNamed: "path")
+        let pathDefinition = SKTileDefinition(texture: pathTexture)
+        pathDefinition.name = "path"
+        let pathRule = SKTileGroupRule()
+        pathRule.tileDefinitions = [pathDefinition]
+        pathGroup.rules = [pathRule]
         
-        if let waterTexture = SKTexture(imageNamed: "water") {
-            let waterDefinition = SKTileDefinition(texture: waterTexture)
-            waterDefinition.name = "water"
-            waterGroup.rules = [SKTileGroupRule()]
-            waterGroup.rules[0].tileDefinitions = [waterDefinition]
-        }
+        let waterTexture = SKTexture(imageNamed: "water")
+        let waterDefinition = SKTileDefinition(texture: waterTexture)
+        waterDefinition.name = "water"
+        let waterRule = SKTileGroupRule()
+        waterRule.tileDefinitions = [waterDefinition]
+        waterGroup.rules = [waterRule]
         
-        if let stoneTexture = SKTexture(imageNamed: "stone2") {
-            let stoneDefinition = SKTileDefinition(texture: stoneTexture)
-            stoneDefinition.name = "stone"
-            stoneGroup.rules = [SKTileGroupRule()]
-            stoneGroup.rules[0].tileDefinitions = [stoneDefinition]
-        }
+        let stoneTexture = SKTexture(imageNamed: "stone2")
+        let stoneDefinition = SKTileDefinition(texture: stoneTexture)
+        stoneDefinition.name = "stone"
+        let stoneRule = SKTileGroupRule()
+        stoneRule.tileDefinitions = [stoneDefinition]
+        stoneGroup.rules = [stoneRule]
         
         tileSet.tileGroups = [grassGroup, pathGroup, waterGroup, stoneGroup]
         return tileSet

@@ -10,27 +10,43 @@ import XCTest
 
 final class Chinese_EducationTests: XCTestCase {
 
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+    func testPIRLSClassifierRetrieving() {
+        let passage = "文章說明春天很溫暖，花會開。"
+        let q = "文章中提到，春天有什麼特徵？"
+        let answer = "A. 溫暖且花會開"
+        let (process, confidence) = PIRLSQuestionClassifier.classifyQuestionEnhanced(q, passageText: passage, answer: answer)
+        XCTAssertEqual(process, .retrieving)
+        XCTAssertGreaterThan(confidence, 0.2)
     }
 
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    func testPIRLSClassifierEvaluatingLeansEvaluatingOrInterpreting() {
+        let passage = "故事中的小華決定幫助同學。"
+        let q = "你認為小華這樣做對嗎？為什麼？"
+        let answer = "B. 對，因為能建立友誼"
+        let (process, _) = PIRLSQuestionClassifier.classifyQuestionEnhanced(q, passageText: passage, answer: answer)
+        XCTAssertTrue([.evaluating, .interpreting].contains(process), "Unexpected process: \(process)")
     }
 
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // Any test you write for XCTest can be annotated as throws and async.
-        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
-        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
-    }
-
-    func testPerformanceExample() throws {
-        // This is an example of a performance test case.
-        self.measure {
-            // Put the code you want to measure the time of here.
+    func testQuestionBankCoverageReport() {
+        let report = QuestionBank.shared.buildCoverageReport()
+        XCTAssertEqual(report.totalQuestions, 36)
+        XCTAssertEqual(report.passageCount, 9)
+        XCTAssertEqual(report.pirlsCounts.values.reduce(0, +), 36)
+        for p in PIRLSProcess.allCases {
+            XCTAssertGreaterThanOrEqual(report.pirlsCounts[p] ?? 0, 1, "Expected at least one question per PIRLS process: \(p)")
         }
     }
 
+    func testVocabularyMasteryProgression() {
+        var word = VocabularyWord(word: "測試")
+        word.encounters = 5
+        word.correctUses = 4
+        word.updateMastery()
+        XCTAssertGreaterThanOrEqual(word.masteryLevel, 3)
+    }
+
+    func testQuestionBankPassageKeyLookup() {
+        let p = QuestionBank.shared.getPassageForQuestion("q1") ?? ""
+        XCTAssertEqual(QuestionBank.shared.passageKey(matchingPassageText: p), "passage1")
+    }
 }

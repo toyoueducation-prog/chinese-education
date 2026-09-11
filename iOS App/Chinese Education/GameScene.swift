@@ -1,6 +1,38 @@
 import SpriteKit
 import AVFoundation
+#if os(iOS)
+import UIKit
+#endif
 
+/**
+ * GAME SCENE - Main Game World & Map
+ * 
+ * This is the primary game scene where players explore a 2D map, interact with NPCs (enemies),
+ * and navigate to different educational activities. The scene features:
+ * 
+ * - 21x20 grid-based map with various terrain types (grass, trees, water, stone walls)
+ * - Player movement system with camera following
+ * - Enemy/NPC spawning and patrol system
+ * - Mini-map showing player and enemy positions
+ * - Navigation buttons to access Progress, Vocabulary, and Report scenes
+ * - Claw machine mini-game access
+ * - Collision detection for enemy interactions (triggers ConversationScene)
+ * 
+ * Game Flow:
+ * 1. Player spawns on the map
+ * 2. Player can move around using touch controls
+ * 3. When player collides with an enemy, ConversationScene is triggered
+ * 4. After completing questions, player returns to this scene
+ * 5. Player can access various features via navigation buttons
+ * 
+ * Map Legend:
+ * - "S" = Stone Walls (boundaries and obstacles)
+ * - "." = Grass Paths (walkable)
+ * - "T" = Trees (obstacles)
+ * - "G" = Grass Areas (walkable)
+ * - "W" = Water (obstacles)
+ * - "P" = Player Spawn Point
+ */
 // MARK: - 🎮 MAIN GAME SCENE - Core Game World & Map
 class GameScene: SKScene, SKPhysicsContactDelegate {
     
@@ -31,11 +63,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // MARK: - 🎯 COLLISION & TRANSITION SYSTEM
     private var lastCollidedEnemy: SKNode?              // Tracks last touched enemy
+    private var lastCollidedEnemyIdentifier: String?    // Track enemy identifier for persistence
     private var transitionCooldown = false              // Prevents looping transition
     
     // MARK: - 🗺️ MAP SYSTEM
     private var treePositions: [CGPoint] = []           // Tree obstacle positions
-    private var hasGeneratedMap = false                 // Map generation flag
+    // ✅ Removed hasGeneratedMap - always using modern map system
     
     // MARK: - 🗺️ MINI-MAP SYSTEM
     private var miniMap: SKSpriteNode!                  // Mini-map background
@@ -47,11 +80,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private var hasSpawnedEnemies = false               // Enemy spawn flag
     private var hasSpawnedNPCs = false                  // NPC spawn flag
     
-    // MARK: - 🗺️ MODERN MAP SYSTEM (Parallel Implementation)
-    private var currentMapName: String = "level_1"      // Current map name
-    private var useModernMapSystem: Bool = false        // Toggle between old and new systems
+    // MARK: - 🗺️ MAP SYSTEM
+    private var hasGeneratedMap = false                 // Map generation flag
+    
+    // MARK: - 📖 First-run movement tutorial
+    private let gameMovementTutorialCompletedKey = "hasCompletedGameMovementTutorial"
+    private var movementTutorialRoot: SKNode?
+    private var movementTutorialStepIndex: Int = 0
+    private var movementTutorialMessageLabel: SKLabelNode?
     // MARK: - 🗺️ GAME MAP LAYOUT (21x20 Grid)
     // Map Legend: "S"=Stone Walls, "."=Grass Paths, "T"=Trees, "G"=Grass Areas, "W"=Water, "P"=Player Spawn
+    private var currentMapIndex = 0  // ✅ Track which map we're on
     private var mapLayout: [[Character]] = [
         ["S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S"], // Row 0: Top boundary
         ["S",".",".",".","T","G","G","G","T",".",".",".",".",".",".",".",".",".",".",".","S"], // Row 1: Forest area
@@ -69,17 +108,61 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         ["S","T",".","W","W",".",".",".","T","T",".",".",".","T",".",".",".",".",".",".","S"], // Row 13: Mixed terrain
         ["S","T",".","W","W",".",".",".","T","T",".",".",".","T",".",".",".",".",".",".","S"], // Row 14: Mixed terrain
         ["S",".",".",".",".","G","G",".",".",".","G","G",".",".",".",".",".",".",".",".","S"], // Row 15: Grass areas
-        ["S",".",".",".",".","G","G",".",".",".","G","G",".",".",".",".",".",".",".",".","S"], // Row 16: Grass areas
+        ["S",".",".",".",".","G","G",".",".",".","G","G",".","X",".",".",".",".",".",".","S"], // Row 16: Treasury box
         ["S",".",".",".",".","G","G",".",".",".","G","G",".","P",".",".",".",".",".",".","S"], // Row 17: Player spawn area
         ["S",".",".",".",".","G","G",".",".",".","G","G",".","P",".",".",".",".",".",".","S"], // Row 18: Player spawn area
         ["S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S"]  // Row 19: Bottom boundary
     ]
     
+    // ✅ Map 2: Forest Clearing - Large central clearing with trees, paths, bushes, rocks, and logs
+    private var mapLayout2: [[Character]] = [
+        ["S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S"], // Row 0: Top boundary (hedge)
+        ["S","T","T","G","G","G","G","G","G","G","G","G","G","G","G","G","G","G","T","T","S"], // Row 1: Trees + Grass
+        ["S","T","G","G",".",".","G","G","G","G","G","G","G","G","G",".",".","G","G","T","S"], // Row 2: Paths + Grass
+        ["S","G","G",".",".","B",".",".","G","G","G","G","G","G",".",".","B",".",".","G","S"], // Row 3: Paths + Bushes
+        ["S","G",".",".","T","G","G","G","T",".",".","G","G",".",".","T","G","G","G",".","S"], // Row 4: Trees + Paths
+        ["S","G",".","W","W","G","T","G","W","W","W","W","G","T","G","W","W",".",".","G","S"], // Row 5: Water streams + Trees
+        ["S","G",".","W","W","G","G","G","W","W","W","W","G","G","G","W","W",".",".","G","S"], // Row 6: Water streams
+        ["S","G","G",".",".","T","G","T",".",".","G","G",".",".","T","G","T",".",".","G","S"], // Row 7: Trees + Paths
+        ["S","G","G","G",".",".","G","G",".","R",".","R",".","G","G",".",".","G","G","G","S"], // Row 8: Rocks + Paths
+        ["S","G","T","G","G",".",".",".","G","G","G","G","G",".",".",".","G","G","T","G","S"], // Row 9: Trees + Clearing
+        ["S","G","T","G","G","G",".",".","G","T","T","T","G",".",".","G","G","G","T","G","S"], // Row 10: Trees + Clearing
+        ["S","G","G","G","G","G","G",".",".","G","G","G",".",".","G","G","G","G","G","G","S"], // Row 11: Large clearing
+        ["S","G","G","L","L","G","G","G",".",".",".",".",".","G","G","G","L","L","G","G","S"], // Row 12: Logs + Clearing
+        ["S","G","G","L","L","G","T","G","G",".",".",".","G","G","T","G","L","L","G","G","S"], // Row 13: Logs + Trees
+        ["S","G","G","G","G","G","T","G","G","G","B","G","G","G","T","G","G","G","G","G","S"], // Row 14: Bushes + Trees
+        ["S","G",".",".","G","G","G","G","G","G","G","G","G","G","G","G","G",".",".","G","S"], // Row 15: Paths + Clearing
+        ["S","G",".",".",".","G","T","G",".",".",".",".",".","G","T","G",".",".",".","G","S"], // Row 16: Paths + Trees
+        ["S","G","G","G","G","G","G","G","G","G","P","G","G","G","G","G","G","G","G","G","S"], // Row 17: Player spawn
+        ["S","G","G","G","G","G","G","G","G","X","G","G","G","G","G","G","G","G","G","G","S"], // Row 18: Treasury box
+        ["S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S"]  // Row 19: Bottom boundary (hedge)
+    ]
+    
+    // ✅ Array of all available maps
+    private var allMaps: [[[Character]]] {
+        return [mapLayout, mapLayout2]  // Add more maps here: mapLayout3, mapLayout4, etc.
+    }
     
     override func didMove(to view: SKView) {
-        backgroundColor = .green
+        backgroundColor = UIColor(red: 0.2, green: 0.5, blue: 0.2, alpha: 1.0)  // ✅ Darker green background
         physicsWorld.contactDelegate = self
         physicsWorld.gravity = .zero // Disable gravity for 2D movement
+        
+        // ✅ Listen for enemy completion notification
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleEnemyCompleted),
+            name: NSNotification.Name("EnemyCompleted"),
+            object: nil
+        )
+        
+        // ✅ Listen for level up notification
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleLevelUp),
+            name: NSNotification.Name("PlayerLevelUp"),
+            object: nil
+        )
 
         let isFreshStart = !UserDefaults.standard.bool(forKey: "hasSeenIntro")
 
@@ -89,33 +172,127 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             print("✅ Debug: Game restarted from scratch")
         }
         
-        // 🗺️ MODERN MAP SYSTEM - Check if enabled
-        useModernMapSystem = UserDefaults.standard.bool(forKey: "useModernMapSystem")
-        MapManager.shared.enableModernMapSystem(useModernMapSystem)
-        
-        if useModernMapSystem {
-            // Load saved level or default to level 1
-            currentMapName = UserDefaults.standard.string(forKey: "currentLevel") ?? "level_1"
-            loadModernMap()
-        } else {
-            // Original map system
-            if !hasGeneratedMap {
-                renderFixedMap()
-                hasGeneratedMap = true
+        // 🗺️ ORIGINAL MAP SYSTEM - Render fixed map
+        if !hasGeneratedMap {
+            // ✅ Use the current map index to select which map to render
+            if currentMapIndex < allMaps.count {
+                mapLayout = allMaps[currentMapIndex]
             }
+            renderFixedMap()
+            hasGeneratedMap = true
         }
 
         //setupObjects()
-        if !hasSpawnedEnemies {
-            if useModernMapSystem {
-                // Spawn enemies based on current level
-                if let mapInfo = MapManager.shared.getCurrentMapInfo() {
-                    NPC.shared.spawnEnemies(in: self, count: mapInfo.enemyCount)
-                }
-            } else {
-                NPC.shared.spawnEnemies(in: self, count: 2)
+        // ✅ FIRST: Remove all completed enemies from the array immediately
+        // ✅ This must happen before any other enemy processing
+        NPC.shared.enemyNodes = NPC.shared.enemyNodes.filter { enemy in
+            let enemyId = enemy.userData?["identifier"] as? String ?? ""
+            let isCompleted = NPC.shared.completedEnemyIdentifiers.contains(enemyId)
+            if isCompleted {
+                // ✅ Remove from scene if still attached
+                enemy.removeFromParent()
+                enemy.isHidden = true
+                print("🗑️ Removed completed enemy on scene load: \(enemyId)")
             }
+            return !isCompleted  // ✅ Only keep non-completed enemies
+        }
+        
+        // ✅ Clean up stale enemies (enemies not in this scene but not completed)
+        // ✅ IMPORTANT: Don't filter out enemies from old scenes - we need to re-add them to this scene
+        // ✅ Just remove enemies that are completed (already done above)
+        // ✅ Keep all non-completed enemies so we can re-add them to this scene
+        
+        // ✅ Remove completed enemies from scene (double-check)
+        removeCompletedEnemies()
+        
+        // ✅ Refresh minimap immediately after cleanup to remove dots for completed enemies
+        // ✅ Note: minimap will be set up later, but we'll refresh it then too
+        
+        // ✅ Count active (non-completed) enemies that are actually in the scene
+        var activeEnemyCount = NPC.shared.enemyNodes.filter { enemy in
+            let enemyId = enemy.userData?["identifier"] as? String ?? ""
+            return !NPC.shared.completedEnemyIdentifiers.contains(enemyId) && 
+                   enemy.parent != nil &&
+                   !enemy.isHidden
+        }.count
+        
+        print("📊 Enemy Status: \(activeEnemyCount) active, \(NPC.shared.enemyNodes.count) total in array, \(NPC.shared.completedEnemyIdentifiers.count) completed")
+        print("📊 Scene children count: \(children.count)")
+        
+        // ✅ Check if all enemies are completed
+        // ✅ Use activeEnemyCount == 0 AND we have completed enemies (meaning we've defeated them all)
+        let allEnemiesCompleted = activeEnemyCount == 0 && !NPC.shared.completedEnemyIdentifiers.isEmpty && NPC.shared.completedEnemyIdentifiers.count >= 2
+        
+        // ✅ Determine if we need to spawn enemies
+        // ✅ Spawn if we have fewer than 2 active enemies AND no enemies have been completed yet (first spawn)
+        // ✅ OR if we have some enemies but need to reach 2 total
+        let needsSpawn = activeEnemyCount < 2 && NPC.shared.completedEnemyIdentifiers.isEmpty
+        
+        // ✅ Only spawn/manage enemies if we haven't completed all of them
+        if allEnemiesCompleted {
+            // ✅ All enemies completed, will transition to new map (handled below)
+            print("✅ All enemies completed, will transition to new map")
+        } else if needsSpawn {
+            // ✅ Need to spawn enemies - calculate how many we need
+            let enemiesToSpawn = 2 - activeEnemyCount
+            print("🎯 Spawning \(enemiesToSpawn) enemy(ies) to reach 2 total. Current active: \(activeEnemyCount)")
+            NPC.shared.spawnEnemies(in: self, count: 2)  // ✅ spawnEnemies will calculate how many are actually needed
             hasSpawnedEnemies = true
+            
+            // ✅ Verify enemies were actually added to scene
+            let enemiesInScene = NPC.shared.enemyNodes.filter { $0.parent == self }
+            print("✅ Spawned enemies. Total in array: \(NPC.shared.enemyNodes.count), In scene: \(enemiesInScene.count)")
+            
+            // ✅ Immediately refresh minimap after spawning
+            DispatchQueue.main.async { [weak self] in
+                self?.refreshMiniMapDots()
+            }
+        } else {
+            // ✅ Already spawned - just ensure active enemies are in scene and patrolling
+            // ✅ DO NOT spawn new enemies - we want to keep the remaining enemy after one is removed
+            
+            // ✅ First, remove any completed enemies that might still be in the array
+            let completedEnemies = NPC.shared.enemyNodes.filter { enemy in
+                let enemyId = enemy.userData?["identifier"] as? String ?? ""
+                return NPC.shared.completedEnemyIdentifiers.contains(enemyId)
+            }
+            
+            for completedEnemy in completedEnemies {
+                completedEnemy.removeFromParent()
+                completedEnemy.isHidden = true
+                if let index = NPC.shared.enemyNodes.firstIndex(of: completedEnemy) {
+                    NPC.shared.enemyNodes.remove(at: index)
+                    print("✅ Removed completed enemy from array on return")
+                }
+            }
+            
+            // ✅ Now ensure only active enemies are in scene and patrolling
+            for enemy in NPC.shared.enemyNodes {
+                let enemyId = enemy.userData?["identifier"] as? String ?? ""
+                // ✅ Skip completed enemies (shouldn't happen after cleanup above, but double-check)
+                if NPC.shared.completedEnemyIdentifiers.contains(enemyId) {
+                    continue
+                }
+                
+                // ✅ If enemy is not in THIS scene (parent is nil or different scene), add it back
+                if enemy.parent !== self {
+                    // ✅ Remove from old scene if it has one
+                    if enemy.parent != nil {
+                        enemy.removeFromParent()
+                    }
+                    enemy.isHidden = false
+                    addChild(enemy)
+                    print("✅ Re-added active enemy to scene. ID: \(enemyId)")
+                    NPC.shared.restartPatrol(for: enemy, in: self)
+                } else if enemy.action(forKey: "patrol") == nil {
+                    // ✅ Enemy is in scene but not patrolling - restart patrol
+                    print("✅ Restarting patrol for active enemy. ID: \(enemyId)")
+                    NPC.shared.restartPatrol(for: enemy, in: self)
+                }
+            }
+            
+            // ✅ Refresh minimap after cleanup to ensure dots match active enemies
+            refreshMiniMapDots()
         }
         
         // ✅ Setup Player FIRST to avoid nil error
@@ -123,14 +300,54 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         setupCamera()
         setupUI()
-        setupMiniMap()  // ✅ Add Mini-Map
-        setupMapSystemToggle()  // Add toggle button for testing
-        updateUI()
+        setupMiniMap()  // ✅ Add Mini-Map (will be synced after enemies spawn)
+        setupNavigationButtons()  // ✅ Add navigation to Progress and Vocabulary scenes
+        updateUI()  // ✅ Update UI to show current level and XP
+        
+        // ✅ Listen for UI update notifications (e.g., when returning from ConversationScene)
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(updateUIFromNotification),
+            name: NSNotification.Name("UpdateGameUI"),
+            object: nil
+        )
 
+        // ✅ Refresh minimap AFTER enemies are spawned/processed to sync dots with actual enemies
+        // ✅ Use a small delay to ensure all enemy processing is complete
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            guard let self = self else { return }
+            self.refreshMiniMapDots()
+            let activeCount = NPC.shared.enemyNodes.filter { enemy in
+                let enemyId = enemy.userData?["identifier"] as? String ?? ""
+                return !NPC.shared.completedEnemyIdentifiers.contains(enemyId) && 
+                       enemy.parent != nil &&
+                       !enemy.isHidden
+            }.count
+            print("✅ Mini-map synced: \(self.npcDots.count) dots for \(activeCount) active enemies (out of \(NPC.shared.enemyNodes.count) total)")
+        }
+        
+        // ✅ Check if all enemies are completed - transition to new map BEFORE spawning new ones
+        // ✅ Recalculate active enemy count after removing completed enemies
+        activeEnemyCount = NPC.shared.enemyNodes.filter { enemy in
+            let enemyId = enemy.userData?["identifier"] as? String ?? ""
+            return !NPC.shared.completedEnemyIdentifiers.contains(enemyId) &&
+                   enemy.parent != nil &&
+                   !enemy.isHidden
+        }.count
+        
+        // ✅ Check if all enemies are completed (2 enemies defeated)
+        // ✅ Don't rely on hasSpawnedEnemies since it resets on new scene creation
+        // ✅ Instead check if we have 2 completed enemies and 0 active enemies
+        if activeEnemyCount == 0 && NPC.shared.completedEnemyIdentifiers.count >= 2 {
+            print("🎉 All enemies completed! (\(NPC.shared.completedEnemyIdentifiers.count) completed) Transitioning to new map...")
+            transitionToNewMap()
+            return
+        }
+        
         // ✅ Move player slightly away from enemy after returning
         if lastCollidedEnemy != nil {
                 print("🔄 Moving player slightly away from enemy after return")
-                PlayerManager.shared.playerImage?.position.x += 50  // ✅ Pushes player slightly to the right
+                PlayerManager.shared.playerCropNode?.position.x += 50  // ✅ Pushes player slightly to the right
             }
 
             // ✅ Activate Safe Zone (No Collision for 2 Seconds)
@@ -139,16 +356,65 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 self.transitionCooldown = false
                 print("✅ Collision re-enabled after safe zone")
             }
+        
+        // ✅ Refresh minimap dots after a short delay to ensure enemies are ready
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.refreshMiniMapDots()
+            print("✅ Mini-map refreshed: \(self.npcDots.count) dots for \(NPC.shared.enemyNodes.count) enemies")
+        }
 
-        print("✅ Debug: All Game Elements Initialized_v2 - Map System: \(useModernMapSystem ? "Modern" : "Original")")
+        print("✅ Debug: All Game Elements Initialized - Using Original Map System")
+        
+        #if DEBUG
+        let cov = QuestionBank.shared.buildCoverageReport()
+        print("📊 Question bank coverage: \(cov.totalQuestions) questions, \(cov.passageCount) passages | PIRLS \(cov.pirlsCountsDescription) | difficulties \(cov.difficultyHistogram)")
+        #endif
+        
+        setupMovementTutorialIfNeeded()
     }
 
     private func renderFixedMap() {
+        // ✅ Remove any existing background that might cover tiles
+        enumerateChildNodes(withName: "//background") { node, _ in
+            if node.zPosition == -1 {
+                node.removeFromParent()
+            }
+        }
+        
         let tileSize = CGSize(width: 64, height: 64)
         for (row, tiles) in mapLayout.enumerated() {
             for (col, symbol) in tiles.enumerated() {
                 let tileName = imageName(for: symbol)
-                let tileNode = SKSpriteNode(imageNamed: tileName)
+                
+                // ✅ Check if image exists using UIImage (more reliable than SKTexture)
+                let uiImage = UIImage(named: tileName)
+                let tileNode: SKSpriteNode
+                
+                if uiImage == nil {
+                    // ✅ Image doesn't exist - log detailed error
+                    let mapName = currentMapIndex == 1 ? "Map 2 (Forest)" : "Map 1"
+                    print("⚠️ [MAP TILE ERROR] Missing image for \(mapName):")
+                    print("   - Image name: '\(tileName)'")
+                    print("   - Symbol: '\(symbol)'")
+                    print("   - Position: Row \(row), Column \(col)")
+                    print("   - Map coordinates: (\(col), \(row))")
+                    print("   - Tile name: mapTile_\(row)_\(col)")
+                    
+                    // Use a fallback image
+                    let fallbackImage = UIImage(named: "forest_grass1")
+                    if fallbackImage != nil {
+                        tileNode = SKSpriteNode(texture: SKTexture(image: fallbackImage!))
+                        print("   - Using fallback: 'forest_grass1'")
+                    } else {
+                        // Ultimate fallback - create a colored square
+                        tileNode = SKSpriteNode(color: .gray, size: tileSize)
+                        print("   - Fallback image 'forest_grass1' also failed! Using gray placeholder")
+                    }
+                } else {
+                    // ✅ Image exists - create node normally
+                    tileNode = SKSpriteNode(imageNamed: tileName)
+                }
+                
                 tileNode.size = tileSize
                 tileNode.anchorPoint = CGPoint(x: 0, y: 1)
                 
@@ -156,14 +422,44 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 let yPos = size.height / 2 - CGFloat(row) * tileSize.height
                 tileNode.position = CGPoint(x: xPos, y: yPos)
                 tileNode.zPosition = -1
+                tileNode.name = "mapTile_\(row)_\(col)" // ✅ Add unique name for debugging
+                
+                // ✅ Rotate stone2 tiles if vertically aligned
+                if symbol == "S" {
+                    let isVerticallyAligned = isStoneVerticallyAligned(row: row, col: col)
+                    if isVerticallyAligned {
+                        tileNode.zRotation = .pi / 2  // Rotate 90 degrees
+                    }
+                }
+                
                 addChild(tileNode)
                 
                 if symbol == "P" {
-                    PlayerManager.shared.playerImage?.position = CGPoint(x: xPos, y: yPos)
+                    PlayerManager.shared.playerCropNode?.position = CGPoint(x: xPos, y: yPos)
+                }
+                
+                // ✅ Add treasury box with collision detection
+                if symbol == "X" {
+                    let treasuryBox = SKSpriteNode(imageNamed: "treasury")
+                    treasuryBox.size = tileSize
+                    treasuryBox.anchorPoint = CGPoint(x: 0, y: 1)
+                    treasuryBox.position = CGPoint(x: xPos, y: yPos)
+                    treasuryBox.zPosition = 5  // Above ground tiles
+                    treasuryBox.name = "treasuryBox"
+                    addChild(treasuryBox)
+                    
+                    // ✅ Add physics body for collision detection
+                    let bodySize = CGSize(width: tileSize.width, height: tileSize.height)
+                    treasuryBox.physicsBody = SKPhysicsBody(rectangleOf: bodySize, center: CGPoint(x: tileSize.width / 2, y: -tileSize.height / 2))
+                    treasuryBox.physicsBody?.isDynamic = false
+                    treasuryBox.physicsBody?.categoryBitMask = 0x1 << 3  // Treasury category
+                    treasuryBox.physicsBody?.collisionBitMask = 0x1 << 0  // Collide with player
+                    treasuryBox.physicsBody?.contactTestBitMask = 0x1 << 0  // Detect player contact
                 }
                 
                 // Add physics body to block player movement
-                if ["T", "W", "S"].contains(symbol) {
+                // Obstacles: Trees, Water, Stone walls, Bushes, Rocks, Logs
+                if ["T", "W", "S", "B", "R", "L"].contains(symbol) {
                     let bodySize = CGSize(width: tileSize.width, height: tileSize.height)
                     tileNode.physicsBody = SKPhysicsBody(rectangleOf: bodySize, center: CGPoint(x: tileSize.width / 2, y: -tileSize.height / 2))
                     tileNode.physicsBody?.isDynamic = false
@@ -174,20 +470,71 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             }
         }
     }
+    
+    // MARK: - Check if stone tile is vertically aligned (same column, adjacent rows)
+    private func isStoneVerticallyAligned(row: Int, col: Int) -> Bool {
+        // Check if there's a stone above or below this stone
+        let hasStoneAbove = row > 0 && mapLayout[row - 1][col] == "S"
+        let hasStoneBelow = row < mapLayout.count - 1 && mapLayout[row + 1][col] == "S"
+        return hasStoneAbove || hasStoneBelow
+    }
 
     private func imageName(for symbol: Character) -> String {
-        switch symbol {
-        case "G": return "grass2"
-        case "W": return "water"
-        case "S": return "stone2"
-        case "T": return "tree"
-        case ".", "P": return "path"
-        default: return "grass"
+        // Use forest-themed images for map 2, original images for map 1
+        if currentMapIndex == 1 {
+            // Map 2: Forest Clearing - use forest-themed assets
+            switch symbol {
+            case "G": 
+                // Randomly choose between forest grass variants for variety
+                // Note: forest_grass3 needs to be in an imageset folder to work properly
+                let variants = ["forest_grass1", "forest_grass2"]  // Removed forest_grass3 until it's in imageset
+                return variants.randomElement() ?? "forest_grass1"
+            case "W": return "water_stream"  // Use stream for forest
+            case "S": return "wall_hedge"  // Use hedge wall for forest theme
+            case "T": 
+                // Randomly choose between tree types
+                // Note: tree_oak has a double .png extension issue - using tree_pine and tree_birch for now
+                let treeTypes = ["tree_pine", "tree_birch"]  // Removed tree_oak until file is renamed
+                return treeTypes.randomElement() ?? "tree_pine"
+            case ".", "P": return "forest_path"  // Use forest path (will fallback if missing)
+            case "F": return "forest_grass1"  // Forest floor - using grass as fallback until forest_floor image is added
+            case "B": return "bush_berry"  // Berry bush
+            case "R": return "rock_large"  // Large rock
+            case "L": return "tree_log"  // Fallen log
+            case "M": return "mushroom"  // Mushroom (decorative)
+            case "X": return "treasury"  // Treasury box
+            default: return "forest_grass1"
+            }
+        } else {
+            // Map 1: Original theme
+            switch symbol {
+            case "G": return "grass2"
+            case "W": return "water"
+            case "S": return "stone2"
+            case "T": return "tree"
+                case ".", "P": return "grass3"
+                case "X": return "treasury"  // Treasury box
+                default: return "grass"
+            }
         }
     }
     
     private func setupMiniMap() {
         let mapScale: CGFloat = 0.15
+
+        // ✅ Clean up existing mini-map if it exists
+        if let existingMiniMap = camera?.childNode(withName: "miniMap") {
+            // ✅ Remove all dot nodes from the old minimap before removing it
+            existingMiniMap.enumerateChildNodes(withName: "npcDot") { node, _ in
+                node.removeFromParent()
+            }
+            existingMiniMap.removeFromParent()
+        }
+        // ✅ Clear and remove all existing dots
+        for dot in npcDots {
+            dot.removeFromParent()
+        }
+        npcDots.removeAll()  // ✅ Clear existing dots array
 
         // ✅ Mini-map background with transparency
         miniMap = SKSpriteNode(color: UIColor.white.withAlphaComponent(0.8),
@@ -215,13 +562,54 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         playerDot.position = CGPoint(x: miniMap.size.width / 2, y: miniMap.size.height / 2)
         miniMap.addChild(playerDot)
 
-        // ✅ NPC markers on mini-map
-        for _ in NPC.shared.enemyNodes {
+        // ✅ NPC markers on mini-map - don't create dots here, they'll be created by refreshMiniMapDots()
+        // ✅ Dots will be created based on actual active enemies after spawning
+    }
+    
+    // MARK: - Refresh Mini-Map Dots
+    /**
+     * Refreshes the minimap dots to match the current enemy count.
+     * Called when returning from ConversationScene to ensure dots are synced.
+     */
+    func refreshMiniMapDots() {
+        guard let miniMap = miniMap else {
+            print("⚠️ Cannot refresh minimap: miniMap is nil")
+            return
+        }
+        
+        // ✅ Get only active (non-completed) enemies that are in the scene
+        let activeEnemies = NPC.shared.enemyNodes.filter { enemy in
+            let enemyId = enemy.userData?["identifier"] as? String ?? ""
+            return !NPC.shared.completedEnemyIdentifiers.contains(enemyId) && 
+                   enemy.parent != nil &&
+                   !enemy.isHidden
+        }
+        
+        let currentEnemyCount = activeEnemies.count
+        print("🔄 Refreshing minimap: \(currentEnemyCount) active enemies (out of \(NPC.shared.enemyNodes.count) total), \(npcDots.count) dots")
+        
+        // ✅ Remove excess dots if we have more dots than active enemies
+        while npcDots.count > currentEnemyCount {
+            npcDots.last?.removeFromParent()
+            npcDots.removeLast()
+        }
+        
+        // ✅ Add missing dots if we have fewer dots than active enemies
+        while npcDots.count < currentEnemyCount {
             let npcDot = SKShapeNode(circleOfRadius: 3)
             npcDot.fillColor = .blue
             npcDot.zPosition = 22
+            npcDot.name = "npcDot"  // ✅ Give it a name for easier cleanup
+            npcDot.isHidden = true  // Initially hidden until position is calculated
             miniMap.addChild(npcDot)
             npcDots.append(npcDot)
+        }
+        
+        // ✅ Verify sync
+        if npcDots.count == currentEnemyCount {
+            print("✅ Mini-map synced: \(npcDots.count) dots for \(activeEnemies.count) active enemies")
+        } else {
+            print("⚠️ Mini-map sync issue: \(npcDots.count) dots vs \(currentEnemyCount) active enemies")
         }
     }
 
@@ -267,9 +655,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         var placedTrees: [CGPoint] = []
 
         for _ in 0..<totalClusters {
+            // ✅ Ensure valid range bounds (upperBound >= lowerBound)
+            let maxX = max(100, size.width - 100)
+            let maxY = max(100, size.height - 100)
+            
             let clusterCenter = CGPoint(
-                x: CGFloat.random(in: 100...(size.width - 100)),
-                y: CGFloat.random(in: 100...(size.height - 100))
+                x: CGFloat.random(in: 100...maxX),
+                y: CGFloat.random(in: 100...maxY)
             )
 
             let numTrees = Int.random(in: treesPerCluster)
@@ -307,7 +699,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     func setupCamera() {
         cameraNode = SKCameraNode()
         camera = cameraNode
-        cameraNode.position = PlayerManager.shared.playerImage.position // ✅ Start centered on player
+        cameraNode.position = PlayerManager.shared.playerCropNode.position // ✅ Start centered on player
         addChild(cameraNode)
     }
 
@@ -318,39 +710,155 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     override func update(_ currentTime: TimeInterval) {
         if isMoving {
-            PlayerManager.shared.playerImage.position.x += moveDirection.dx
-            PlayerManager.shared.playerImage.position.y += moveDirection.dy
-            PlayerManager.shared.playerVideoNode.position = PlayerManager.shared.playerImage.position
+            let newX = PlayerManager.shared.playerCropNode.position.x + moveDirection.dx
+            let newY = PlayerManager.shared.playerCropNode.position.y + moveDirection.dy
+            
+            // ✅ Original map boundaries: 21x20 grid, 64x64 tiles
+            // ✅ Map is rendered with col 0 at (-size.width/2) and col 20 at (20*64 - size.width/2)
+            let tileSize: CGFloat = 64
+            let mapColumns = 21
+            let mapRows = 20
+            let mapWidth = CGFloat(mapColumns) * tileSize  // 1344
+            let mapHeight = CGFloat(mapRows) * tileSize     // 1280
+            // ✅ Calculate actual map bounds based on tile positions
+            // ✅ First tile (col 0) is at: 0 * 64 - size.width / 2
+            // ✅ Last tile (col 20) is at: 20 * 64 - size.width / 2 = 1280 - size.width / 2
+            let mapBounds = (
+                minX: 0 * tileSize - size.width / 2 + 30,           // First column + margin
+                maxX: CGFloat(mapColumns - 1) * tileSize - size.width / 2 - 30,  // Last column - margin
+                minY: -(CGFloat(mapRows - 1) * tileSize) + size.height / 2 - 30,  // Last row - margin
+                maxY: 0 * tileSize + size.height / 2 - 30          // First row - margin
+            )
+            
+            // ✅ Clamp player position to map boundaries
+            let clampedX = max(mapBounds.minX, min(mapBounds.maxX, newX))
+            let clampedY = max(mapBounds.minY, min(mapBounds.maxY, newY))
+            
+            // ✅ Update cropNode position (main player node)
+            PlayerManager.shared.playerCropNode.position.x = clampedX
+            PlayerManager.shared.playerCropNode.position.y = clampedY
+            PlayerManager.shared.playerVideoNode.position = CGPoint.zero  // Relative to cropNode
 
             // ✅ Ensure camera follows the player
-            cameraNode.position = PlayerManager.shared.playerImage.position
+            cameraNode.position = PlayerManager.shared.playerCropNode.position
         }
 
-        guard let playerNode = PlayerManager.shared.playerImage else { return }
-        guard PlayerManager.shared.playerImage != nil else { return }
+        guard let playerNode = PlayerManager.shared.playerCropNode else { return }
         guard let miniMap = miniMap, let playerDot = playerDot else { return }
 
-        let _: CGFloat = 0.15
-        let miniMapX = (playerNode.position.x / (size.width * 2)) * miniMap.size.width
-        let miniMapY = (playerNode.position.y / (size.height * 2)) * miniMap.size.height
+        // ✅ Original map bounds for mini-map scaling: 21x20 grid, 64x64 tiles (same as player movement)
+        let tileSize: CGFloat = 64
+        let mapColumns = 21
+        let mapRows = 20
+        let margin: CGFloat = 30  // Same margin as player movement
+        // ✅ Match player movement bounds calculation
+        let mapBounds = (
+            width: CGFloat(mapColumns - 1) * tileSize - 2 * margin,
+            height: CGFloat(mapRows - 1) * tileSize - 2 * margin,
+            minX: 0 * tileSize - size.width / 2 + margin,
+            minY: -(CGFloat(mapRows - 1) * tileSize) + size.height / 2 - margin,
+            maxX: CGFloat(mapColumns - 1) * tileSize - size.width / 2 - margin,
+            maxY: 0 * tileSize + size.height / 2 - margin
+        )
+        
+        // ✅ Convert world position to mini-map position (0 to miniMap.size)
+        let normalizedX = (playerNode.position.x - mapBounds.minX) / mapBounds.width
+        let normalizedY = (playerNode.position.y - mapBounds.minY) / mapBounds.height
+        let miniMapX = normalizedX * miniMap.size.width
+        let miniMapY = normalizedY * miniMap.size.height
         playerDot.position = CGPoint(x: miniMapX, y: miniMapY)
         
-        // ✅ Update NPC positions on the mini-map
-        for (index, npc) in NPC.shared.enemyNodes.enumerated() {
-            if index < npcDots.count {
-                let npcMapX = (npc.position.x / (size.width * 2)) * miniMap.size.width
-                let npcMapY = (npc.position.y / (size.height * 2)) * miniMap.size.height
-                npcDots[index].position = CGPoint(x: npcMapX, y: npcMapY)
-            }
+        // ✅ Get only active (non-completed) enemies that are in the scene
+        let activeEnemies = NPC.shared.enemyNodes.filter { enemy in
+            let enemyId = enemy.userData?["identifier"] as? String ?? ""
+            return !NPC.shared.completedEnemyIdentifiers.contains(enemyId) && 
+                   enemy.parent != nil && 
+                   !enemy.isHidden
         }
-
-        // Update parallax background
-        updateParallax()
         
-        // Ensure orphaned NPC dots are removed
-        while npcDots.count > NPC.shared.enemyNodes.count {
+        let currentEnemyCount = activeEnemies.count
+        
+        // ✅ Sync npcDots array with active enemy count
+        while npcDots.count > currentEnemyCount {
             npcDots.last?.removeFromParent()
             npcDots.removeLast()
+        }
+        
+        while npcDots.count < currentEnemyCount {
+            let npcDot = SKShapeNode(circleOfRadius: 3)
+            npcDot.fillColor = .blue
+            npcDot.zPosition = 22
+            npcDot.isHidden = true
+            miniMap.addChild(npcDot)
+            npcDots.append(npcDot)
+        }
+        
+        // ✅ Sync npcDots array with active enemy count
+        while npcDots.count > currentEnemyCount {
+            npcDots.last?.removeFromParent()
+            npcDots.removeLast()
+        }
+        
+        while npcDots.count < currentEnemyCount {
+            let npcDot = SKShapeNode(circleOfRadius: 3)
+            npcDot.fillColor = .blue
+            npcDot.zPosition = 22
+            npcDot.isHidden = true
+            miniMap.addChild(npcDot)
+            npcDots.append(npcDot)
+        }
+        
+        // ✅ Update each active enemy's position on minimap in real-time
+        for (index, npc) in activeEnemies.enumerated() {
+            if index < npcDots.count {
+                // ✅ Check if enemy is within map bounds (use same calculation as player movement)
+                let tileSize: CGFloat = 64
+                let mapColumns = 21
+                let mapRows = 20
+                let margin: CGFloat = 30
+                let enemyMapBounds = (
+                    minX: 0 * tileSize - size.width / 2 + margin,
+                    maxX: CGFloat(mapColumns - 1) * tileSize - size.width / 2 - margin,
+                    minY: -(CGFloat(mapRows - 1) * tileSize) + size.height / 2 - margin,
+                    maxY: 0 * tileSize + size.height / 2 - margin
+                )
+                let isWithinBounds = npc.position.x >= enemyMapBounds.minX && 
+                                    npc.position.x <= enemyMapBounds.maxX &&
+                                    npc.position.y >= enemyMapBounds.minY && 
+                                    npc.position.y <= enemyMapBounds.maxY
+                
+                if isWithinBounds {
+                    // ✅ Show dot and update position in real-time
+                    npcDots[index].isHidden = false
+                    let boundsWidth = enemyMapBounds.maxX - enemyMapBounds.minX
+                    let boundsHeight = enemyMapBounds.maxY - enemyMapBounds.minY
+                    let npcNormalizedX = (npc.position.x - enemyMapBounds.minX) / boundsWidth
+                    let npcNormalizedY = (npc.position.y - enemyMapBounds.minY) / boundsHeight
+                    // ✅ Clamp normalized values to [0, 1] range
+                    let clampedX = max(0, min(1, npcNormalizedX))
+                    let clampedY = max(0, min(1, npcNormalizedY))
+                    let npcMapX = clampedX * miniMap.size.width
+                    let npcMapY = clampedY * miniMap.size.height
+                    
+                    // ✅ Update dot position in real-time as enemy moves
+                    npcDots[index].position = CGPoint(x: npcMapX, y: npcMapY)
+                } else {
+                    // ✅ Hide dot if enemy is outside bounds
+                    npcDots[index].isHidden = true
+                    // ✅ Clamp the enemy position back to bounds immediately
+                    let clampedPosition = CGPoint(
+                        x: max(enemyMapBounds.minX, min(enemyMapBounds.maxX, npc.position.x)),
+                        y: max(enemyMapBounds.minY, min(enemyMapBounds.maxY, npc.position.y))
+                    )
+                    npc.position = clampedPosition
+                    print("⚠️ Enemy \(index) was outside bounds, clamped to: \(clampedPosition)")
+                }
+            }
+        }
+        
+        // ✅ Hide any extra dots
+        for index in activeEnemies.count..<npcDots.count {
+            npcDots[index].isHidden = true
         }
 
         
@@ -367,45 +875,101 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     // MARK: - Handle Touch to Move Player
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
+        if handleMovementTutorialTouch(touch) { return }
         let location = touch.location(in: self)
+        
+        // ✅ Check camera nodes first (buttons are children of camera)
+        if let camera = camera {
+            let cameraLocation = touch.location(in: camera)
+            let cameraNode = camera.atPoint(cameraLocation)
+            
+            // ✅ Check if button or its child was tapped
+            if cameraNode.name == "progressButton" || cameraNode.parent?.name == "progressButton" {
+                print("✅ Progress button tapped")
+                let progressScene = ProgressScene(size: self.size)
+                progressScene.scaleMode = .aspectFill
+                let transition = SKTransition.fade(withDuration: 0.5)
+                self.view?.presentScene(progressScene, transition: transition)
+                return
+            }
+            
+            if cameraNode.name == "vocabularyButton" || cameraNode.parent?.name == "vocabularyButton" {
+                print("✅ Vocabulary button tapped")
+                let vocabularyScene = VocabularyScene(size: self.size)
+                vocabularyScene.scaleMode = .aspectFill
+                let transition = SKTransition.fade(withDuration: 0.5)
+                self.view?.presentScene(vocabularyScene, transition: transition)
+                return
+            }
+            
+            if cameraNode.name == "reportButton" || cameraNode.parent?.name == "reportButton" {
+                print("✅ Report button tapped")
+                ReportGenerator.shared.generatePDFReport { url in
+                    DispatchQueue.main.async {
+                        if let url = url {
+                            print("✅ Report generated at: \(url)")
+                            ReportGenerator.shared.exportReportToServer { success in
+                                print(success ? "✅ Report exported to server" : "❌ Failed to export report")
+                            }
+                        } else {
+                            print("❌ Failed to generate report")
+                        }
+                    }
+                }
+                return
+            }
+        }
+        
+        // ✅ Fallback: check scene nodes
         let touchedNode = atPoint(location)
         
-        // ✅ Detect Click on Clamping Button
-        if touchedNode.name == "clampingButton" {
+        // ✅ Detect Click on Navigation Buttons (fallback)
+        if touchedNode.name == "progressButton" || touchedNode.parent?.name == "progressButton" {
+            print("✅ Progress button tapped (fallback)")
+            let progressScene = ProgressScene(size: self.size)
+            progressScene.scaleMode = .aspectFill
+            let transition = SKTransition.fade(withDuration: 0.5)
+            self.view?.presentScene(progressScene, transition: transition)
+            return
+        }
+        
+        if touchedNode.name == "vocabularyButton" || touchedNode.parent?.name == "vocabularyButton" {
+            print("✅ Vocabulary button tapped (fallback)")
+            let vocabularyScene = VocabularyScene(size: self.size)
+            vocabularyScene.scaleMode = .aspectFill
+            let transition = SKTransition.fade(withDuration: 0.5)
+            self.view?.presentScene(vocabularyScene, transition: transition)
+            return
+        }
+        
+        if touchedNode.name == "reportButton" || touchedNode.parent?.name == "reportButton" {
+            print("✅ Report button tapped (fallback)")
+            ReportGenerator.shared.generatePDFReport { url in
+                DispatchQueue.main.async {
+                    if let url = url {
+                        print("✅ Report generated at: \(url)")
+                        ReportGenerator.shared.exportReportToServer { success in
+                            print(success ? "✅ Report exported to server" : "❌ Failed to export report")
+                        }
+                    } else {
+                        print("❌ Failed to generate report")
+                    }
+                }
+            }
+            return
+        }
+        
+        // ✅ Detect Click on Clamping Button (check both button and background)
+        if touchedNode.name == "clampingButton" || touchedNode.name == "clampingButtonBackground" {
             enterClampingMachine()
             return
         }
         
-        // 🗺️ MODERN MAP SYSTEM - Handle new button touches
-        if touchedNode.name == "mapSystemToggle" {
-            toggleMapSystem()
-            return
-        }
-        
-        if touchedNode.name == "levelSelectorButton" {
-            showLevelSelector()
-            return
-        }
-        
-        // Handle level selector overlay touches
-        if let overlay = camera?.childNode(withName: "levelSelectorOverlay") {
-            if touchedNode.name == "closeLevelSelector" {
-                overlay.removeFromParent()
-                return
-            }
-            
-            // Check for level selection
-            if let levelName = touchedNode.name?.replacingOccurrences(of: "level_", with: "") {
-                if MapManager.shared.getAvailableMaps().contains(where: { $0.name == levelName }) {
-                    handleLevelSelection(levelName)
-                    return
-                }
-            }
-        }
+        // Handle other touches
         
         isMoving = true
-        moveDirection = CGVector(dx: (location.x - PlayerManager.shared.playerImage.position.x) * 0.01,
-                                 dy: (location.y - PlayerManager.shared.playerImage.position.y) * 0.01)
+        moveDirection = CGVector(dx: (location.x - PlayerManager.shared.playerCropNode.position.x) * 0.01,
+                                 dy: (location.y - PlayerManager.shared.playerCropNode.position.y) * 0.01)
         
         // Switch to video node
         PlayerManager.shared.playerImage.isHidden = true
@@ -414,15 +978,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard movementTutorialRoot == nil else { return }
         guard let touch = touches.first else { return }
         let location = touch.location(in: self)
         
         // Update movement direction based on new touch location
-        moveDirection = CGVector(dx: (location.x - PlayerManager.shared.playerImage.position.x) * 0.01,
-                                 dy: (location.y - PlayerManager.shared.playerImage.position.y) * 0.01)
+        moveDirection = CGVector(dx: (location.x - PlayerManager.shared.playerCropNode.position.x) * 0.01,
+                                 dy: (location.y - PlayerManager.shared.playerCropNode.position.y) * 0.01)
     }
     
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if movementTutorialRoot != nil { return }
         isMoving = false
         moveDirection = CGVector(dx: 0, dy: 0)
         
@@ -459,8 +1025,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     func savePlayerPosition() {
         let positionDict: [String: CGFloat] = [
-            "x": PlayerManager.shared.playerImage.position.x,
-            "y": PlayerManager.shared.playerImage.position.y
+            "x": PlayerManager.shared.playerCropNode.position.x,
+            "y": PlayerManager.shared.playerCropNode.position.y
         ]
         UserDefaults.standard.set(positionDict, forKey: "playerPosition")
     }
@@ -470,58 +1036,266 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let bodyA = contact.bodyA.node
         let bodyB = contact.bodyB.node
 
-        let playerNode = PlayerManager.shared.playerImage
-        let enemyNode = bodyA == playerNode ? bodyB : bodyA  // ✅ Identify enemy
+        let playerNode = PlayerManager.shared.playerCropNode
+        // Determine which node is the enemy (the one that's not the player)
+        let enemyNode = (bodyA === playerNode) ? bodyB : bodyA  // ✅ Identify enemy node
 
             let firstBody = contact.bodyA.categoryBitMask
             let secondBody = contact.bodyB.categoryBitMask
 
         
-        if let enemy = enemyNode as? SKSpriteNode, enemy.name == "enemy" {
-            if transitionCooldown || lastCollidedEnemy == enemy {
-                print("❌ Collision ignored (cooldown active)")
+        // ✅ Check for treasury box collision
+        if let treasuryNode = (bodyA.name == "treasuryBox" ? bodyA : (bodyB.name == "treasuryBox" ? bodyB : nil)) {
+            if (bodyA === playerNode || bodyB === playerNode) && !transitionCooldown {
+                print("💰 Treasury box collision detected!")
+                transitionCooldown = true
+                transitionToTreasuryScene()
                 return
             }
-            
-            print("🚨 Collision Detected with Enemy!")
-            
-            
-            if (firstBody == PhysicsCategory.player && secondBody == PhysicsCategory.enemy) ||
-                (firstBody == PhysicsCategory.enemy && secondBody == PhysicsCategory.player) {
-                print("🚨 Collision Detected with Enemy!")
-                // ✅ Stop player movement
-                isMoving = false
-                moveDirection = CGVector(dx: 0, dy: 0)
-                
-                // ✅ Save player position on collision
-                savePlayerPosition()
-                
-                // ✅ Store last collided enemy
-                lastCollidedEnemy = enemyNode
-                
-                // ✅ Activate cooldown to prevent looping
-                transitionCooldown = true
-                
-                // Remove enemy from scene
-                enemy.removeFromParent()
-
-                // Find the index of the enemy
-                if let enemyIndex = NPC.shared.enemyNodes.firstIndex(of: enemy) {
-                    // Remove enemy from enemyNodes list
-                    NPC.shared.enemyNodes.remove(at: enemyIndex)
-
-                    // Remove corresponding NPC dot from minimap
-                    if npcDots.indices.contains(enemyIndex) {
-                        npcDots[enemyIndex].removeFromParent()
-                        npcDots.remove(at: enemyIndex)
-                    }
-                }
-                
-                // ✅ Transition to conversation scene
-                transitionToConversationScene()
-            }
         }
-
+        
+        guard let enemy = enemyNode, enemy.name == "enemy" else {
+            return
+        }
+        
+        if transitionCooldown || lastCollidedEnemy == enemy {
+            print("❌ Collision ignored (cooldown active)")
+            return
+        }
+        
+        print("🚨 Collision Detected with Enemy!")
+        
+        
+        if (firstBody == PhysicsCategory.player && secondBody == PhysicsCategory.enemy) ||
+            (firstBody == PhysicsCategory.enemy && secondBody == PhysicsCategory.player) {
+            print("🚨 Collision Detected with Enemy!")
+            // ✅ Stop player movement
+            isMoving = false
+            moveDirection = CGVector(dx: 0, dy: 0)
+            
+            // ✅ Save player position on collision
+            savePlayerPosition()
+            
+            // ✅ Store last collided enemy and its identifier
+            lastCollidedEnemy = enemy
+            lastCollidedEnemyIdentifier = enemy.userData?["identifier"] as? String
+            
+            // ✅ Mark this enemy as completed immediately
+            if let enemyId = lastCollidedEnemyIdentifier {
+                NPC.shared.completedEnemyIdentifiers.insert(enemyId)
+                print("✅ Marked enemy as completed immediately. ID: \(enemyId)")
+            }
+            
+            // ✅ Remove enemy immediately (not just hide it)
+            removeCompletedEnemy(enemy)
+            
+            // ✅ Activate cooldown to prevent looping
+            transitionCooldown = true
+            
+            print("🚨 Collided with enemy. Identifier: \(lastCollidedEnemyIdentifier ?? "unknown") - Removed immediately")
+            
+            // ✅ Transition to conversation scene
+            transitionToConversationScene()
+        }
+    }
+    
+    // MARK: - Remove Completed Enemies
+    func removeCompletedEnemies() {
+        // ✅ Remove all completed enemies
+        let enemiesToRemove = NPC.shared.enemyNodes.filter { enemy in
+            let enemyId = enemy.userData?["identifier"] as? String ?? ""
+            return NPC.shared.completedEnemyIdentifiers.contains(enemyId)
+        }
+        
+        for enemy in enemiesToRemove {
+            removeCompletedEnemy(enemy)
+        }
+    }
+    
+    // MARK: - Remove Completed Enemy
+    func removeCompletedEnemy(_ enemy: SKNode) {
+        let enemyId = enemy.userData?["identifier"] as? String ?? "unknown"
+        print("🗑️ Removing completed enemy: \(enemyId)")
+        
+        // ✅ Remove from scene
+        enemy.removeFromParent()
+        enemy.isHidden = true
+        
+        // ✅ Remove from enemyNodes list
+        if let enemyIndex = NPC.shared.enemyNodes.firstIndex(of: enemy) {
+            NPC.shared.enemyNodes.remove(at: enemyIndex)
+            print("✅ Removed enemy from enemyNodes array. Remaining: \(NPC.shared.enemyNodes.count)")
+        } else {
+            print("⚠️ Enemy not found in enemyNodes array")
+        }
+        
+        // ✅ Remove ALL minimap dots and recreate them based on active enemies
+        // ✅ This ensures dots are properly synced with remaining enemies
+        for dot in npcDots {
+            dot.removeFromParent()
+        }
+        npcDots.removeAll()
+        
+        // ✅ Immediately refresh minimap to sync dots with remaining active enemies
+        refreshMiniMapDots()
+        let activeCount = NPC.shared.enemyNodes.filter { enemy in
+            let id = enemy.userData?["identifier"] as? String ?? ""
+            return !NPC.shared.completedEnemyIdentifiers.contains(id) && enemy.parent != nil
+        }.count
+        print("✅ Refreshed minimap after enemy removal. Active enemies: \(activeCount), Dots: \(npcDots.count)")
+    }
+    
+    // MARK: - Handle Enemy Completion Notification
+    @objc func handleEnemyCompleted() {
+        if let enemyId = lastCollidedEnemyIdentifier {
+            NPC.shared.completedEnemyIdentifiers.insert(enemyId)
+            print("✅ Marked enemy as completed via notification. ID: \(enemyId)")
+        }
+    }
+    
+    // MARK: - First-run tutorial
+    private var movementTutorialNextLabel: SKLabelNode?
+    
+    private func setupMovementTutorialIfNeeded() {
+        guard !UserDefaults.standard.bool(forKey: gameMovementTutorialCompletedKey) else { return }
+        guard movementTutorialRoot == nil, let cam = camera else { return }
+        movementTutorialStepIndex = 0
+        
+        let root = SKNode()
+        root.zPosition = 500
+        root.name = "movementTutorialRoot"
+        
+        let panelW = min(size.width - 48, 360)
+        let panelH: CGFloat = 240
+        let bg = SKShapeNode(rectOf: CGSize(width: panelW, height: panelH), cornerRadius: 16)
+        bg.fillColor = UIColor.black.withAlphaComponent(0.85)
+        bg.strokeColor = UIColor.white.withAlphaComponent(0.4)
+        bg.lineWidth = 2
+        bg.position = .zero
+        root.addChild(bg)
+        
+        let title = SKLabelNode(text: "新手指引")
+        title.fontName = "AvenirNext-Bold"
+        title.fontSize = 22
+        title.fontColor = .white
+        title.position = CGPoint(x: 0, y: panelH / 2 - 38)
+        root.addChild(title)
+        
+        let msg = SKLabelNode(fontNamed: "AvenirNext-Medium")
+        msg.fontSize = 17
+        msg.fontColor = .white
+        msg.numberOfLines = 0
+        msg.preferredMaxLayoutWidth = panelW - 36
+        msg.verticalAlignmentMode = .center
+        msg.horizontalAlignmentMode = .center
+        msg.position = CGPoint(x: 0, y: 8)
+        movementTutorialMessageLabel = msg
+        root.addChild(msg)
+        
+        let nextBg = SKShapeNode(rectOf: CGSize(width: 150, height: 46), cornerRadius: 10)
+        nextBg.fillColor = UIColor.systemBlue
+        nextBg.strokeColor = .clear
+        nextBg.position = CGPoint(x: 0, y: -panelH / 2 + 44)
+        nextBg.name = "movementTutorialNext"
+        root.addChild(nextBg)
+        
+        let nextLbl = SKLabelNode(text: "下一步")
+        nextLbl.fontName = "AvenirNext-Bold"
+        nextLbl.fontSize = 18
+        nextLbl.fontColor = .white
+        nextLbl.verticalAlignmentMode = .center
+        nextLbl.horizontalAlignmentMode = .center
+        nextLbl.position = nextBg.position
+        nextLbl.name = "movementTutorialNext"
+        root.addChild(nextLbl)
+        movementTutorialNextLabel = nextLbl
+        
+        root.position = CGPoint(x: 0, y: 0)
+        cam.addChild(root)
+        movementTutorialRoot = root
+        applyMovementTutorialStepContent()
+    }
+    
+    private func applyMovementTutorialStepContent() {
+        let steps = [
+            "用手指在畫面上拖曳，角色會往你的方向移動；放開手指就會停下來。",
+            "地圖上的圓形角色是閱讀守護者，碰到他們就會進入文章與題目。",
+            "左上角顯示等級與經驗值。上方藍色按鈕可開啟「進度」與「詞彙」頁面。",
+            "還有夾娃娃機可以收集獎勵。祝你學習愉快！"
+        ]
+        guard movementTutorialStepIndex < steps.count else { return }
+        movementTutorialMessageLabel?.text = steps[movementTutorialStepIndex]
+        let isLast = movementTutorialStepIndex == steps.count - 1
+        movementTutorialNextLabel?.text = isLast ? "開始遊戲" : "下一步"
+    }
+    
+    private func advanceMovementTutorial() {
+        let totalSteps = 4
+        if movementTutorialStepIndex >= totalSteps - 1 {
+            dismissMovementTutorial()
+            return
+        }
+        movementTutorialStepIndex += 1
+        applyMovementTutorialStepContent()
+    }
+    
+    private func dismissMovementTutorial() {
+        movementTutorialRoot?.removeFromParent()
+        movementTutorialRoot = nil
+        movementTutorialMessageLabel = nil
+        movementTutorialNextLabel = nil
+        UserDefaults.standard.set(true, forKey: gameMovementTutorialCompletedKey)
+    }
+    
+    private func handleMovementTutorialTouch(_ touch: UITouch) -> Bool {
+        guard movementTutorialRoot != nil, let cam = camera else { return false }
+        let loc = touch.location(in: cam)
+        var node: SKNode? = cam.atPoint(loc)
+        while let n = node {
+            if n.name == "movementTutorialNext" {
+                advanceMovementTutorial()
+                return true
+            }
+            node = n.parent
+        }
+        return true
+    }
+    
+    // MARK: - Cleanup
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    // MARK: - Transition to New Map
+    func transitionToNewMap() {
+        // ✅ Reset enemy tracking
+        hasSpawnedEnemies = false
+        NPC.shared.completedEnemyIdentifiers.removeAll()
+        lastCollidedEnemy = nil
+        lastCollidedEnemyIdentifier = nil
+        NPC.shared.enemyNodes.removeAll()
+        
+        // ✅ Reset player position to center (will be set to spawn point in new map)
+        PlayerManager.shared.playerCropNode?.position = CGPoint(x: 0, y: 0)
+        
+        // ✅ Clear saved player position so new map can set spawn point
+        UserDefaults.standard.removeObject(forKey: "playerPosition")
+        
+        // ✅ Cycle to next map
+        currentMapIndex = (currentMapIndex + 1) % allMaps.count
+        mapLayout = allMaps[currentMapIndex]
+        
+        // ✅ Reset map generation flag to generate new map
+        hasGeneratedMap = false
+        
+        // ✅ Create new scene with the new map
+        let newGameScene = GameScene(size: self.size)
+        newGameScene.currentMapIndex = self.currentMapIndex  // ✅ Pass the map index
+        newGameScene.scaleMode = .aspectFill
+        let transition = SKTransition.fade(withDuration: 1.5)
+        self.view?.presentScene(newGameScene, transition: transition)
+        
+        print("🎉 Transitioned to map \(currentMapIndex + 1) of \(allMaps.count)!")
     }
     
     // MARK: - Transition to Conversation Scene on Collision
@@ -532,6 +1306,34 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let transition = SKTransition.fade(withDuration: 2.0)
         self.view?.presentScene(transitionScene, transition: transition)
 
+    }
+    
+    // MARK: - Transition to Treasury Scene
+    func transitionToTreasuryScene() {
+        // ✅ Reset cooldown after a delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            self?.transitionCooldown = false
+        }
+        
+        let treasuryScene = TreasuryScene(size: self.size)
+        treasuryScene.scaleMode = .aspectFill
+        let transition = SKTransition.fade(withDuration: 1.0)
+        self.view?.presentScene(treasuryScene, transition: transition)
+    }
+    
+    // MARK: - Handle Level Up
+    @objc func handleLevelUp(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let newLevel = userInfo["newLevel"] as? Int else {
+            return
+        }
+        
+        // ✅ Transition to level up scene
+        let levelUpScene = LevelUpScene(size: self.size)
+        levelUpScene.newLevel = newLevel
+        levelUpScene.scaleMode = .aspectFill
+        let transition = SKTransition.fade(withDuration: 1.0)
+        self.view?.presentScene(levelUpScene, transition: transition)
     }
     
     // MARK: - 🎮 Setup UI Elements - Enhanced Gaming HUD
@@ -665,6 +1467,39 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         return button
     }
     
+    // MARK: - 🧭 Navigation Buttons Setup
+    func setupNavigationButtons() {
+        // Progress Dashboard Button (moved to the left)
+        let progressButton = createNavigationButton(text: "📊 進度", name: "progressButton", position: CGPoint(x: size.width / 2 - 150, y: -size.height / 2 + 50))  // ✅ Moved left (from -100 to -150)
+        camera?.addChild(progressButton)
+        
+        // Vocabulary Button (moved to the left to fit on screen)
+        let vocabularyButton = createNavigationButton(text: "📖 詞彙", name: "vocabularyButton", position: CGPoint(x: size.width / 2 - 50, y: -size.height / 2 + 50))  // ✅ Moved left (from center to -50)
+        camera?.addChild(vocabularyButton)
+        
+        // Report Button (moved to the left)
+        let reportButton = createNavigationButton(text: "📄 報告", name: "reportButton", position: CGPoint(x: size.width / 2 + 50, y: -size.height / 2 + 50))  // ✅ Moved left (from +100 to +50)
+        camera?.addChild(reportButton)
+    }
+    
+    func createNavigationButton(text: String, name: String, position: CGPoint) -> SKNode {
+        let buttonBackground = SKShapeNode(rectOf: CGSize(width: 80, height: 40), cornerRadius: 8)
+        buttonBackground.fillColor = UIColor.systemBlue.withAlphaComponent(0.8)
+        buttonBackground.strokeColor = UIColor.white
+        buttonBackground.lineWidth = 2
+        buttonBackground.position = position
+        buttonBackground.name = name
+        buttonBackground.zPosition = 20
+        
+        let buttonLabel = SKLabelNode(text: text)
+        buttonLabel.fontSize = 16
+        buttonLabel.fontColor = .white
+        buttonLabel.position = CGPoint(x: 0, y: -8)
+        buttonBackground.addChild(buttonLabel)
+        
+        return buttonBackground
+    }
+    
     // MARK: - 🎮 Update UI - Enhanced Stats Display
     func updateUI() {
         // ✅ Update stats with icons and improved formatting
@@ -688,6 +1523,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             crystalCoinLabel.fontColor = UIColor.systemPurple
         }
     }
+    
+    // ✅ Update UI from notification (called when returning from other scenes)
+    @objc func updateUIFromNotification() {
+        updateUI()
+    }
 
     
     // MARK: - Handle Correct Answer
@@ -703,273 +1543,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
            // PlayerProgress.shared.unlockBadge("Level 5 Master!")
         }
     }
+    // MARK: - Enter Clamping Machine
     func enterClampingMachine() {
-        
-    }
-    
-    // MARK: - 🗺️ MODERN MAP SYSTEM FUNCTIONS (Parallel Implementation)
-    
-    // MARK: - Load Modern Map
-    private func loadModernMap() {
-        print("🗺️ Loading modern map: \(currentMapName)")
-        
-        guard let tileMap = MapManager.shared.loadMap(named: currentMapName, in: self) else {
-            print("❌ Failed to load modern map, falling back to original system")
-            useModernMapSystem = false
-            UserDefaults.standard.set(false, forKey: "useModernMapSystem")
-            if !hasGeneratedMap {
-                renderFixedMap()
-                hasGeneratedMap = true
-            }
-            return
-        }
-        
-        // Position the tile map
-        tileMap.position = CGPoint(x: 0, y: 0)
-        tileMap.zPosition = -10
-        addChild(tileMap)
-        
-        // Setup parallax background
-        setupParallaxBackground()
-        
-        // Setup collision from modern map
-        setupModernMapCollision()
-        
-        // Position player at spawn point
-        let spawnPoint = MapManager.shared.getPlayerSpawnPoint()
-        PlayerManager.shared.playerImage?.position = spawnPoint
-        
-        print("✅ Modern map loaded successfully")
-    }
-    
-    // MARK: - Setup Modern Map Collision
-    private func setupModernMapCollision() {
-        let collisionNodes = MapManager.shared.getCollidableTiles()
-        
-        for collisionNode in collisionNodes {
-            addChild(collisionNode)
-        }
-        
-        print("✅ Modern map collision setup complete: \(collisionNodes.count) collision areas")
-    }
-    
-    // MARK: - Map System Toggle UI
-    private func setupMapSystemToggle() {
-        let toggleButton = SKLabelNode(text: useModernMapSystem ? "🗺️ 現代地圖" : "🗺️ 原始地圖")
-        toggleButton.fontSize = 16
-        toggleButton.fontColor = .white
-        toggleButton.fontName = "AvenirNext-Bold"
-        toggleButton.position = CGPoint(x: size.width / 2 - 200, y: size.height / 2 - 250)
-        toggleButton.zPosition = 17
-        toggleButton.name = "mapSystemToggle"
-        
-        // Add background
-        let bgNode = SKSpriteNode(color: UIColor.black.withAlphaComponent(0.7), size: CGSize(width: 120, height: 30))
-        bgNode.position = toggleButton.position
-        bgNode.zPosition = 16
-        bgNode.name = "mapSystemToggleBG"
-        
-        camera?.addChild(bgNode)
-        camera?.addChild(toggleButton)
-        
-        // Add level selector if modern system is enabled
-        if useModernMapSystem {
-            setupLevelSelector()
-        }
-    }
-    
-    // MARK: - Level Selector UI
-    private func setupLevelSelector() {
-        let levelButton = SKLabelNode(text: "🎮 選擇關卡")
-        levelButton.fontSize = 16
-        levelButton.fontColor = .white
-        levelButton.fontName = "AvenirNext-Bold"
-        levelButton.position = CGPoint(x: size.width / 2 - 200, y: size.height / 2 - 290)
-        levelButton.zPosition = 17
-        levelButton.name = "levelSelectorButton"
-        
-        // Add background
-        let bgNode = SKSpriteNode(color: UIColor.systemBlue.withAlphaComponent(0.7), size: CGSize(width: 120, height: 30))
-        bgNode.position = levelButton.position
-        bgNode.zPosition = 16
-        bgNode.name = "levelSelectorBG"
-        
-        camera?.addChild(bgNode)
-        camera?.addChild(levelButton)
-    }
-    
-    // MARK: - Level Transition
-    func transitionToLevel(_ levelName: String) {
-        guard useModernMapSystem else {
-            print("⚠️ Modern map system not enabled")
-            return
-        }
-        
-        print("🔄 Transitioning to level: \(levelName)")
-        
-        // Save current level
-        UserDefaults.standard.set(levelName, forKey: "currentLevel")
-        
-        // Fade out
-        let fadeOut = SKAction.fadeOut(withDuration: 0.5)
-        camera?.run(fadeOut) {
-            // Load new map
-            self.currentMapName = levelName
-            self.loadModernMap()
-            
-            // Respawn enemies for new level
-            NPC.shared.enemyNodes.forEach { $0.removeFromParent() }
-            NPC.shared.enemyNodes.removeAll()
-            
-            if let mapInfo = MapManager.shared.getCurrentMapInfo() {
-                NPC.shared.spawnEnemies(in: self, count: mapInfo.enemyCount)
-            }
-            
-            // Update UI
-            self.updateMapSystemUI()
-            
-            // Fade in
-            let fadeIn = SKAction.fadeIn(withDuration: 0.5)
-            self.camera?.run(fadeIn)
-        }
-    }
-    
-    // MARK: - Update Map System UI
-    private func updateMapSystemUI() {
-        // Update toggle button text
-        if let toggleButton = camera?.childNode(withName: "mapSystemToggle") as? SKLabelNode {
-            toggleButton.text = useModernMapSystem ? "🗺️ 現代地圖" : "🗺️ 原始地圖"
-        }
-        
-        // Update level selector if modern system is enabled
-        if useModernMapSystem {
-            if let levelButton = camera?.childNode(withName: "levelSelectorButton") as? SKLabelNode {
-                if let mapInfo = MapManager.shared.getCurrentMapInfo() {
-                    levelButton.text = "🎮 \(mapInfo.displayName)"
-                }
-            }
-        }
-    }
-    
-    // MARK: - Setup Parallax Background
-    private func setupParallaxBackground() {
-        guard useModernMapSystem else { return }
-        
-        // Create background layers for depth
-        let bgLayers = [
-            ("Morning_Forest_Background", 0.1, -100),
-            ("Background2", 0.3, -50)
-        ]
-        
-        for (imageName, scrollFactor, zPos) in bgLayers {
-            let bg = SKSpriteNode(imageNamed: imageName)
-            bg.position = CGPoint(x: 0, y: 0)
-            bg.zPosition = CGFloat(zPos)
-            bg.name = "\(imageName)_layer"
-            bg.size = CGSize(width: size.width * 2, height: size.height * 2)
-            addChild(bg)
-            
-            // Store scroll factor in userData
-            bg.userData = ["scrollFactor": scrollFactor]
-        }
-    }
-    
-    // MARK: - Update Parallax
-    private func updateParallax() {
-        guard useModernMapSystem else { return }
-        
-        enumerateChildNodes(withName: "//*_layer") { node, _ in
-            if let scrollFactor = node.userData?["scrollFactor"] as? CGFloat {
-                node.position.x = -cameraNode.position.x * scrollFactor
-                node.position.y = -cameraNode.position.y * scrollFactor * 0.5
-            }
-        }
-    }
-    
-    // MARK: - Toggle Map System
-    private func toggleMapSystem() {
-        useModernMapSystem.toggle()
-        UserDefaults.standard.set(useModernMapSystem, forKey: "useModernMapSystem")
-        MapManager.shared.enableModernMapSystem(useModernMapSystem)
-        
-        print("🔄 Toggled map system to: \(useModernMapSystem ? "Modern" : "Original")")
-        
-        // Restart the scene to apply changes
-        let transition = SKTransition.fade(withDuration: 1.0)
-        if let newScene = GameScene(fileNamed: "GameScene") {
-            newScene.scaleMode = .aspectFill
-            self.view?.presentScene(newScene, transition: transition)
-        }
-    }
-    
-    // MARK: - Show Level Selector
-    private func showLevelSelector() {
-        guard useModernMapSystem else { return }
-        
-        let availableMaps = MapManager.shared.getAvailableMaps()
-        let currentLevel = PlayerProgress.shared.level
-        
-        // Create level selection overlay
-        let overlay = SKSpriteNode(color: UIColor.black.withAlphaComponent(0.8), size: size)
-        overlay.position = CGPoint(x: size.width / 2, y: size.height / 2)
-        overlay.zPosition = 100
-        overlay.name = "levelSelectorOverlay"
-        camera?.addChild(overlay)
-        
-        // Add title
-        let title = SKLabelNode(text: "選擇關卡")
-        title.fontSize = 24
-        title.fontColor = .white
-        title.fontName = "AvenirNext-Bold"
-        title.position = CGPoint(x: 0, y: 100)
-        title.zPosition = 101
-        overlay.addChild(title)
-        
-        // Add level buttons
-        for (index, mapInfo) in availableMaps.enumerated() {
-            let isUnlocked = currentLevel >= mapInfo.unlockLevel
-            let buttonText = isUnlocked ? mapInfo.displayName : "🔒 \(mapInfo.displayName)"
-            
-            let levelButton = SKLabelNode(text: buttonText)
-            levelButton.fontSize = 18
-            levelButton.fontColor = isUnlocked ? .white : .gray
-            levelButton.fontName = "AvenirNext-Bold"
-            levelButton.position = CGPoint(x: 0, y: 50 - (index * 40))
-            levelButton.zPosition = 101
-            levelButton.name = "level_\(mapInfo.name)"
-            levelButton.isUserInteractionEnabled = isUnlocked
-            overlay.addChild(levelButton)
-            
-            // Add background for button
-            let bgNode = SKSpriteNode(color: isUnlocked ? UIColor.systemBlue.withAlphaComponent(0.7) : UIColor.gray.withAlphaComponent(0.3), size: CGSize(width: 200, height: 35))
-            bgNode.position = levelButton.position
-            bgNode.zPosition = 100
-            bgNode.name = "level_bg_\(mapInfo.name)"
-            overlay.addChild(bgNode)
-        }
-        
-        // Add close button
-        let closeButton = SKLabelNode(text: "❌ 關閉")
-        closeButton.fontSize = 18
-        closeButton.fontColor = .white
-        closeButton.fontName = "AvenirNext-Bold"
-        closeButton.position = CGPoint(x: 0, y: -150)
-        closeButton.zPosition = 101
-        closeButton.name = "closeLevelSelector"
-        overlay.addChild(closeButton)
-    }
-    
-    // MARK: - Handle Level Selection
-    private func handleLevelSelection(_ levelName: String) {
-        // Remove overlay
-        camera?.childNode(withName: "levelSelectorOverlay")?.removeFromParent()
-        
-        // Transition to selected level
-        transitionToLevel(levelName)
-    }
-    
-    // MARK: - Enter Clamping Machine (Complete Implementation)
-    func enterClampingMachineComplete() {
         if GameStats.shared.crystalCoins >= 3 {  // ✅ Use stored value directly
             print("✅ Entering Clamping Scene")
             let clampingScene = ClampingScene(size: self.size)
@@ -978,13 +1553,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             self.view?.presentScene(clampingScene, transition: transition)
         } else {
             print("❌ Not enough crystals (Requires 3)")
+            // ✅ Show feedback to user (optional: add a label or alert)
         }
     }
-
-struct PhysicsCategory {
-    static let none: UInt32 = 0
-    static let player: UInt32 = 0x1 << 0
-    static let enemy: UInt32 = 0x1 << 1
-}
-
 }

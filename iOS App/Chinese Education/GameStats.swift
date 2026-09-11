@@ -3,10 +3,11 @@ import Foundation
 // MARK: - 💰 GAME STATS MANAGER - Score & Currency System
 class GameStats {
     static let shared = GameStats()  // Singleton pattern
-    
+
     // MARK: - 🔑 USER DEFAULTS KEYS
     private let scoreKey = "gameScore"        // Key for storing game score
     private let crystalCoinKey = "crystalCoins"  // Key for storing crystal coins
+    private let collectedDollsKey = "collectedDolls"  // Key for storing collected dolls/stars
 
     private init() {}  // Private initializer for singleton
 
@@ -31,6 +32,16 @@ class GameStats {
             return storedValue == 0 ? 3 : storedValue  // ✅ Default to 3 if uninitialized
         }
         set { UserDefaults.standard.set(newValue, forKey: crystalCoinKey) }
+    }
+    
+    // MARK: - Collected Dolls/Stars Handling
+    var collectedDolls: Int {
+        get { UserDefaults.standard.integer(forKey: collectedDollsKey) }
+        set { UserDefaults.standard.set(newValue, forKey: collectedDollsKey) }
+    }
+    
+    func addCollectedDoll() {
+        collectedDolls += 1
     }
 
 

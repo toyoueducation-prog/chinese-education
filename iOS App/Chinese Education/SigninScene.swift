@@ -13,6 +13,8 @@ class SignInScene: SKScene, UITextFieldDelegate {
     private var signInButtonBackground: SKShapeNode!        // Button background
     private var resetButton: SKLabelNode!                   // "重新開始" button
     private var resetButtonBackground: SKShapeNode!         // Reset button background
+    private var teacherButton: SKLabelNode!                  // "教師登入" button
+    private var teacherButtonBackground: SKShapeNode!        // Teacher button background
     
     // MARK: - 📝 TEXT INPUT FIELDS
     private var usernameTextField: UITextField!             // Username input field
@@ -23,12 +25,18 @@ class SignInScene: SKScene, UITextFieldDelegate {
     private var enteredPassword: String = ""                // Stored password
     
     override func didMove(to view: SKView) {
+        // ✅ CRITICAL: Re-enable user interaction when scene is shown again
+        // This fixes the issue where teacher button doesn't work the second time
+        view.isUserInteractionEnabled = true
+        print("✅ SignInScene didMove - user interaction enabled")
+        
         setupBackground()
         setupGameTitle()  // ✅ Add Game Title
         setupManualSignIn()
     }
     
     override func willMove(from view: SKView) {
+        print("⚠️ SignInScene willMove called - cleaning up")
         // Clean up text fields when leaving the scene
         usernameTextField?.removeFromSuperview()
         passwordTextField?.removeFromSuperview()
@@ -142,7 +150,7 @@ class SignInScene: SKScene, UITextFieldDelegate {
         let resetButtonY = signInButtonY - (buttonHeight + 20)
         resetButtonBackground.position = CGPoint(x: size.width / 2, y: resetButtonY)
         addChild(resetButtonBackground)
-        
+
         resetButton = SKLabelNode(text: "重新開始")
         resetButton.fontSize = 24
         resetButton.fontColor = .white
@@ -150,6 +158,25 @@ class SignInScene: SKScene, UITextFieldDelegate {
         resetButton.position = resetButtonBackground.position
         resetButton.name = "resetButton"
         addChild(resetButton)
+        
+        // Teacher Login Button positioned at the bottom
+        let teacherButtonWidth: CGFloat = 200
+        let teacherButtonHeight: CGFloat = 50
+        self.teacherButtonBackground = SKShapeNode(rectOf: CGSize(width: teacherButtonWidth, height: teacherButtonHeight), cornerRadius: 12)
+        self.teacherButtonBackground.fillColor = UIColor.systemPurple
+        self.teacherButtonBackground.strokeColor = UIColor.systemPurple
+        self.teacherButtonBackground.lineWidth = 2
+        self.teacherButtonBackground.position = CGPoint(x: size.width / 2, y: 50)
+        self.teacherButtonBackground.name = "teacherLoginButton"
+        addChild(self.teacherButtonBackground)
+        
+        self.teacherButton = SKLabelNode(text: "教師登入")
+        self.teacherButton.fontSize = 20
+        self.teacherButton.fontColor = .white
+        self.teacherButton.fontName = "AvenirNext-Bold"
+        self.teacherButton.position = self.teacherButtonBackground.position
+        self.teacherButton.name = "teacherLoginButton"
+        addChild(self.teacherButton)
 
     }
     
@@ -163,16 +190,12 @@ class SignInScene: SKScene, UITextFieldDelegate {
                 // ✅ Change colors when pressed
                 signInButtonBackground.fillColor = UIColor.systemBlue.withAlphaComponent(0.7)
                 manualSignInButton.fontColor = .white
-                
-                // Get values from text fields
-                enteredUsername = usernameTextField.text ?? ""
-                enteredPassword = passwordTextField.text ?? ""
-                
-                authenticateWithUsernamePassword()
             } else if touchedNode.name == "resetButton" {  // ✅ Handle Reset Progress
                 resetButtonBackground.fillColor = UIColor.systemGray.withAlphaComponent(0.7)
                 resetButton.fontColor = .white
-                resetProgress()
+            } else if touchedNode.name == "teacherLoginButton" {  // ✅ Handle Teacher Login
+                teacherButtonBackground.fillColor = UIColor.systemPurple.withAlphaComponent(0.7)
+                teacherButton.fontColor = .lightGray
             }
         }
     }
@@ -214,6 +237,7 @@ class SignInScene: SKScene, UITextFieldDelegate {
 
             // ✅ Reset all user progress
             UserDefaults.standard.set(false, forKey: "hasSeenIntro")  // ✅ Mark intro as unseen
+            UserDefaults.standard.set(false, forKey: "hasCompletedGameMovementTutorial")
             UserDefaults.standard.set(0, forKey: "gameScore")
             UserDefaults.standard.set(0, forKey: "crystalCoins")
             UserDefaults.standard.synchronize()  // ✅ Ensure settings are saved immediately
@@ -228,12 +252,43 @@ class SignInScene: SKScene, UITextFieldDelegate {
 
     }
     
+    // MARK: - Transition to Teacher Dashboard
+    func transitionToTeacherDashboard() {
+        print("✅ Transitioning to TeacherDashboardScene...")
+        print("✅ Current scene: \(String(describing: type(of: self)))")
+        
+        // ✅ Use NotificationCenter to notify SwiftUI to show teacher dashboard
+        // This avoids conflicts with SwiftUI's view lifecycle
+        NotificationCenter.default.post(name: NSNotification.Name("ShowTeacherDashboard"), object: nil)
+        
+        print("✅ TeacherDashboardScene notification posted")
+    }
+    
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        // ✅ Restore original colors after press is released
+        guard let touch = touches.first else { return }
+        let location = touch.location(in: self)
+        let touchedNode = atPoint(location)
+        
+        // ✅ Restore original colors
         signInButtonBackground.fillColor = UIColor.systemBlue
         manualSignInButton.fontColor = .white
         resetButtonBackground.fillColor = UIColor.systemGray
         resetButton.fontColor = .white
+        teacherButtonBackground.fillColor = UIColor.systemPurple
+        teacherButton.fontColor = .white
+        
+        // ✅ Handle actions on touch end (not touch begin) to prevent accidental triggers
+        if touchedNode.name == "manualSignInButton" {
+            // Get values from text fields
+            enteredUsername = usernameTextField.text ?? ""
+            enteredPassword = passwordTextField.text ?? ""
+            authenticateWithUsernamePassword()
+        } else if touchedNode.name == "resetButton" {
+            resetProgress()
+        } else if touchedNode.name == "teacherLoginButton" {
+            // ✅ Transition to teacher dashboard on touch end
+            transitionToTeacherDashboard()
+        }
     }
     
     
@@ -262,6 +317,13 @@ class SignInScene: SKScene, UITextFieldDelegate {
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
                 DispatchQueue.main.async {
                     print("Login Success")
+                    let name = self.usernameTextField.text ?? self.enteredUsername
+                    StudentProfile.shared.studentName = name.isEmpty ? StudentProfile.shared.studentName : name
+                    if !name.isEmpty {
+                        UserDefaults.standard.set(name, forKey: "studentName")
+                    }
+                    StudentProfile.shared.saveProfile()
+                    ClassManager.shared.addOrUpdateStudentFromCurrentProfile(displayName: name.isEmpty ? nil : name)
                     self.hideLoginUI()
                     self.transitionToGameScene()
                 }

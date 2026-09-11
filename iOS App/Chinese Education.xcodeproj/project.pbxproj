@@ -7,6 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		290655382EFBEDC000E4AA08 /* doll2.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 290655372EFBEDC000E4AA08 /* doll2.mp4 */; };
+		290655392EFBEDC000E4AA08 /* doll2.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 290655372EFBEDC000E4AA08 /* doll2.mp4 */; };
+		2906553A2EFBEDC000E4AA08 /* doll2.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 290655372EFBEDC000E4AA08 /* doll2.mp4 */; };
+		2906553C2EFBEEB400E4AA08 /* doll1.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 2906553B2EFBEEB400E4AA08 /* doll1.mp4 */; };
+		2906553D2EFBEEB400E4AA08 /* doll1.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 2906553B2EFBEEB400E4AA08 /* doll1.mp4 */; };
+		2906553E2EFBEEB400E4AA08 /* doll1.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 2906553B2EFBEEB400E4AA08 /* doll1.mp4 */; };
 		290655B32DB1E83500FA06C0 /* correct.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 290655B22DB1E83500FA06C0 /* correct.mp4 */; };
 		290655B52DB1E83D00FA06C0 /* incorrect.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 290655B42DB1E83D00FA06C0 /* incorrect.mp4 */; };
 		2916463F2D524BC200EF15E4 /* Chinese_EducationApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2916463E2D524BC200EF15E4 /* Chinese_EducationApp.swift */; };
@@ -26,6 +32,13 @@
 		291646762D525A0100EF15E4 /* GameScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 291646752D525A0100EF15E4 /* GameScene.swift */; };
 		291646772D525A0100EF15E4 /* GameScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 291646752D525A0100EF15E4 /* GameScene.swift */; };
 		291646782D525A0100EF15E4 /* GameScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 291646752D525A0100EF15E4 /* GameScene.swift */; };
+		294405AF2F06B0BA000E9171 /* TeacherDashboardScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 294405AE2F06B0BA000E9171 /* TeacherDashboardScene.swift */; };
+		294405B02F06B0BA000E9171 /* TeacherDashboardScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 294405AE2F06B0BA000E9171 /* TeacherDashboardScene.swift */; };
+		294405B12F06B0BA000E9171 /* TeacherDashboardScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 294405AE2F06B0BA000E9171 /* TeacherDashboardScene.swift */; };
+		A2CLASSMB2F070001000E9171 /* ClassManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2CLASSMF2F070001000E9171 /* ClassManager.swift */; };
+		29699A222F1C84C7004D611D /* Move2.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 29699A212F1C84C7004D611D /* Move2.mp4 */; };
+		29699A232F1C84C7004D611D /* Move2.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 29699A212F1C84C7004D611D /* Move2.mp4 */; };
+		29699A242F1C84C7004D611D /* Move2.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 29699A212F1C84C7004D611D /* Move2.mp4 */; };
 		2984CBF32D61DD39008D19C0 /* ConversationScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2984CBF22D61DD39008D19C0 /* ConversationScene.swift */; };
 		2984CBF72D61FA20008D19C0 /* Water.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 2984CBF62D61F7F4008D19C0 /* Water.mp4 */; };
 		2984CBF82D61FA22008D19C0 /* Water.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 2984CBF62D61F7F4008D19C0 /* Water.mp4 */; };
@@ -49,12 +62,25 @@
 		299653EC2D637D300038E8B1 /* SigninScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 299653EA2D637D300038E8B1 /* SigninScene.swift */; };
 		299653ED2D637D300038E8B1 /* SigninScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 299653EA2D637D300038E8B1 /* SigninScene.swift */; };
 		299ECD602D68BFFF001A6647 /* cartoon_fast_music.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 299ECD5F2D68BFFF001A6647 /* cartoon_fast_music.mp3 */; };
+		29A1B2C32D90C8A100C81CE8 /* PIRLSFramework.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A1B2C22D90C8A100C81CE8 /* PIRLSFramework.swift */; };
+		29A1B2C52D90C8A200C81CE8 /* VocabularyWord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A1B2C42D90C8A200C81CE8 /* VocabularyWord.swift */; };
+		29A1B2C72D90C8A300C81CE8 /* VocabularyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A1B2C62D90C8A300C81CE8 /* VocabularyManager.swift */; };
+		29A1B2C92D90C8A400C81CE8 /* StudentProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A1B2C82D90C8A400C81CE8 /* StudentProfile.swift */; };
+		A3AHISTMB2F080001000E9171 /* AnswerHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3AHISTMF2F080001000E9171 /* AnswerHistoryStore.swift */; };
+		29A1B2CB2D90C8A500C81CE8 /* PIRLSAnalytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A1B2CA2D90C8A500C81CE8 /* PIRLSAnalytics.swift */; };
+		29A1B2CD2D90C8A600C81CE8 /* DifficultyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A1B2CC2D90C8A600C81CE8 /* DifficultyManager.swift */; };
+		29A1B2CF2D90C8A700C81CE8 /* ProgressDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A1B2CE2D90C8A700C81CE8 /* ProgressDashboard.swift */; };
+		29A1B2D12D90C8A800C81CE8 /* ProgressScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A1B2D02D90C8A800C81CE8 /* ProgressScene.swift */; };
+		29A1B2D32D90C8A900C81CE8 /* ReportGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A1B2D22D90C8A900C81CE8 /* ReportGenerator.swift */; };
+		29A1B2D52D90C8AA00C81CE8 /* VocabularyScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A1B2D42D90C8AA00C81CE8 /* VocabularyScene.swift */; };
+		29A1B2D72D90C8AB00C81CE8 /* DataSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A1B2D62D90C8AB00C81CE8 /* DataSyncManager.swift */; };
 		29F8129B2D86C95900C81CE7 /* GradientBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F8129A2D86C95800C81CE7 /* GradientBackground.swift */; };
 		29F8129D2D87123100C81CE7 /* IntroductionScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F8129C2D87123100C81CE7 /* IntroductionScene.swift */; };
 		29F8129F2D8714A800C81CE7 /* intro.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 29F8129E2D8713AD00C81CE7 /* intro.mp4 */; };
 		29F812A12D8E3FDA00C81CE7 /* MazeScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F812A02D8E3FDA00C81CE7 /* MazeScene.swift */; };
 		29F812A32D90C41800C81CE7 /* WelcomeBackScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F812A22D90C41800C81CE7 /* WelcomeBackScene.swift */; };
 		29F812A52D90C7BE00C81CE7 /* welcomeback.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 29F812A42D90C7BE00C81CE7 /* welcomeback.mp4 */; };
+		29F812A72D90C8A000C81CE7 /* MapManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F812A62D90C8A000C81CE7 /* MapManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -75,6 +101,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		290655372EFBEDC000E4AA08 /* doll2.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = doll2.mp4; sourceTree = "<group>"; };
+		2906553B2EFBEEB400E4AA08 /* doll1.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = doll1.mp4; sourceTree = "<group>"; };
 		290655B22DB1E83500FA06C0 /* correct.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = correct.mp4; sourceTree = "<group>"; };
 		290655B42DB1E83D00FA06C0 /* incorrect.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = incorrect.mp4; sourceTree = "<group>"; };
 		2916463B2D524BC200EF15E4 /* Chinese Education.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Chinese Education.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -91,6 +119,8 @@
 		2916466D2D524D6E00EF15E4 /* SKScene.sks */ = {isa = PBXFileReference; lastKnownFileType = file.sks; path = SKScene.sks; sourceTree = "<group>"; };
 		291646712D5259DD00EF15E4 /* GameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameView.swift; sourceTree = "<group>"; };
 		291646752D525A0100EF15E4 /* GameScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameScene.swift; sourceTree = "<group>"; };
+		294405AE2F06B0BA000E9171 /* TeacherDashboardScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeacherDashboardScene.swift; sourceTree = "<group>"; };
+		29699A212F1C84C7004D611D /* Move2.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = Move2.mp4; sourceTree = "<group>"; };
 		2984CBF22D61DD39008D19C0 /* ConversationScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationScene.swift; sourceTree = "<group>"; };
 		2984CBF62D61F7F4008D19C0 /* Water.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = Water.mp4; sourceTree = "<group>"; };
 		298508F12D75EB0100AECD23 /* moving.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = moving.mp4; sourceTree = "<group>"; };
@@ -110,12 +140,26 @@
 		299653E82D636DAB0038E8B1 /* ClampingScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClampingScene.swift; sourceTree = "<group>"; };
 		299653EA2D637D300038E8B1 /* SigninScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SigninScene.swift; sourceTree = "<group>"; };
 		299ECD5F2D68BFFF001A6647 /* cartoon_fast_music.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = cartoon_fast_music.mp3; sourceTree = "<group>"; };
+		29A1B2C22D90C8A100C81CE8 /* PIRLSFramework.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PIRLSFramework.swift; sourceTree = "<group>"; };
+		29A1B2C42D90C8A200C81CE8 /* VocabularyWord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabularyWord.swift; sourceTree = "<group>"; };
+		29A1B2C62D90C8A300C81CE8 /* VocabularyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabularyManager.swift; sourceTree = "<group>"; };
+		29A1B2C82D90C8A400C81CE8 /* StudentProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudentProfile.swift; sourceTree = "<group>"; };
+		A3AHISTMF2F080001000E9171 /* AnswerHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnswerHistoryStore.swift; sourceTree = "<group>"; };
+		29A1B2CA2D90C8A500C81CE8 /* PIRLSAnalytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PIRLSAnalytics.swift; sourceTree = "<group>"; };
+		29A1B2CC2D90C8A600C81CE8 /* DifficultyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DifficultyManager.swift; sourceTree = "<group>"; };
+		29A1B2CE2D90C8A700C81CE8 /* ProgressDashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressDashboard.swift; sourceTree = "<group>"; };
+		29A1B2D02D90C8A800C81CE8 /* ProgressScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressScene.swift; sourceTree = "<group>"; };
+		29A1B2D22D90C8A900C81CE8 /* ReportGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportGenerator.swift; sourceTree = "<group>"; };
+		29A1B2D42D90C8AA00C81CE8 /* VocabularyScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabularyScene.swift; sourceTree = "<group>"; };
+		29A1B2D62D90C8AB00C81CE8 /* DataSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataSyncManager.swift; sourceTree = "<group>"; };
 		29F8129A2D86C95800C81CE7 /* GradientBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradientBackground.swift; sourceTree = "<group>"; };
 		29F8129C2D87123100C81CE7 /* IntroductionScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroductionScene.swift; sourceTree = "<group>"; };
 		29F8129E2D8713AD00C81CE7 /* intro.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = intro.mp4; sourceTree = "<group>"; };
 		29F812A02D8E3FDA00C81CE7 /* MazeScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MazeScene.swift; sourceTree = "<group>"; };
 		29F812A22D90C41800C81CE7 /* WelcomeBackScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeBackScene.swift; sourceTree = "<group>"; };
 		29F812A42D90C7BE00C81CE7 /* welcomeback.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = welcomeback.mp4; sourceTree = "<group>"; };
+		29F812A62D90C8A000C81CE7 /* MapManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapManager.swift; sourceTree = "<group>"; };
+		A2CLASSMF2F070001000E9171 /* ClassManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClassManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -168,24 +212,40 @@
 			children = (
 				2916463E2D524BC200EF15E4 /* Chinese_EducationApp.swift */,
 				291646422D524BC500EF15E4 /* Assets.xcassets */,
+				2906553B2EFBEEB400E4AA08 /* doll1.mp4 */,
 				2916466D2D524D6E00EF15E4 /* SKScene.sks */,
 				291646472D524BC500EF15E4 /* Persistence.swift */,
 				291646492D524BC600EF15E4 /* Chinese_Education.xcdatamodeld */,
 				299ECD5F2D68BFFF001A6647 /* cartoon_fast_music.mp3 */,
 				298508F12D75EB0100AECD23 /* moving.mp4 */,
+				29699A212F1C84C7004D611D /* Move2.mp4 */,
 				290655B22DB1E83500FA06C0 /* correct.mp4 */,
 				290655B42DB1E83D00FA06C0 /* incorrect.mp4 */,
 				29F812A42D90C7BE00C81CE7 /* welcomeback.mp4 */,
 				29F8129E2D8713AD00C81CE7 /* intro.mp4 */,
 				2984CBF62D61F7F4008D19C0 /* Water.mp4 */,
+				290655372EFBEDC000E4AA08 /* doll2.mp4 */,
 				298508F32D78820700AECD23 /* Custom_Button.swift */,
 				291646442D524BC500EF15E4 /* Preview Content */,
 				291646712D5259DD00EF15E4 /* GameView.swift */,
 				298CE73E2D6AA79700762889 /* Scene */,
 				298B28632D6CAC780035F5DA /* Player */,
 				298B28642D6CAC9F0035F5DA /* Question */,
+				29A1B2C12D90C8A000C81CE8 /* Vocabulary */,
+				29A1B2C72D90C8A300C81CE9 /* Analytics */,
+				29A1B2CB2D90C8A500C81CE9 /* Adaptive */,
+				29A1B2CD2D90C8A600C81CE9 /* Sync */,
+				A2TEACHGRP2F070001000E9171 /* Teacher */,
 			);
 			path = "Chinese Education";
+			sourceTree = "<group>";
+		};
+		A2TEACHGRP2F070001000E9171 /* Teacher */ = {
+			isa = PBXGroup;
+			children = (
+				A2CLASSMF2F070001000E9171 /* ClassManager.swift */,
+			);
+			path = Teacher;
 			sourceTree = "<group>";
 		};
 		291646442D524BC500EF15E4 /* Preview Content */ = {
@@ -230,6 +290,7 @@
 				298CE7362D6AA2DD00762889 /* QuestionBank.swift */,
 				298CE73A2D6AA30500762889 /* TeacherQuestionManager.swift */,
 				298CE73C2D6AA33000762889 /* QuestionSyncManager.swift */,
+				29A1B2C22D90C8A100C81CE8 /* PIRLSFramework.swift */,
 			);
 			path = Question;
 			sourceTree = "<group>";
@@ -245,13 +306,54 @@
 				298508F52D7D845A00AECD23 /* HintScene.swift */,
 				298CE7322D6A143200762889 /* StoryScene.swift */,
 				299653EA2D637D300038E8B1 /* SigninScene.swift */,
+				294405AE2F06B0BA000E9171 /* TeacherDashboardScene.swift */,
 				29F8129C2D87123100C81CE7 /* IntroductionScene.swift */,
 				29F812A22D90C41800C81CE7 /* WelcomeBackScene.swift */,
 				291646752D525A0100EF15E4 /* GameScene.swift */,
 				298CE7342D6A1A2800762889 /* NewWorldScene.swift */,
 				2985090E2D6D333300A50896 /* BadgeScene.swift */,
+				29F812A62D90C8A000C81CE7 /* MapManager.swift */,
 			);
 			name = Scene;
+			sourceTree = "<group>";
+		};
+		29A1B2C12D90C8A000C81CE8 /* Vocabulary */ = {
+			isa = PBXGroup;
+			children = (
+				29A1B2C42D90C8A200C81CE8 /* VocabularyWord.swift */,
+				29A1B2C62D90C8A300C81CE8 /* VocabularyManager.swift */,
+				29A1B2D42D90C8AA00C81CE8 /* VocabularyScene.swift */,
+			);
+			path = Vocabulary;
+			sourceTree = "<group>";
+		};
+		29A1B2C72D90C8A300C81CE9 /* Analytics */ = {
+			isa = PBXGroup;
+			children = (
+				29A1B2C82D90C8A400C81CE8 /* StudentProfile.swift */,
+				A3AHISTMF2F080001000E9171 /* AnswerHistoryStore.swift */,
+				29A1B2CA2D90C8A500C81CE8 /* PIRLSAnalytics.swift */,
+				29A1B2CE2D90C8A700C81CE8 /* ProgressDashboard.swift */,
+				29A1B2D02D90C8A800C81CE8 /* ProgressScene.swift */,
+				29A1B2D22D90C8A900C81CE8 /* ReportGenerator.swift */,
+			);
+			path = Analytics;
+			sourceTree = "<group>";
+		};
+		29A1B2CB2D90C8A500C81CE9 /* Adaptive */ = {
+			isa = PBXGroup;
+			children = (
+				29A1B2CC2D90C8A600C81CE8 /* DifficultyManager.swift */,
+			);
+			path = Adaptive;
+			sourceTree = "<group>";
+		};
+		29A1B2CD2D90C8A600C81CE9 /* Sync */ = {
+			isa = PBXGroup;
+			children = (
+				29A1B2D62D90C8AB00C81CE8 /* DataSyncManager.swift */,
+			);
+			path = Sync;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -358,9 +460,12 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				29699A242F1C84C7004D611D /* Move2.mp4 in Resources */,
 				291646462D524BC500EF15E4 /* Preview Assets.xcassets in Resources */,
 				29F8129F2D8714A800C81CE7 /* intro.mp4 in Resources */,
+				2906553A2EFBEDC000E4AA08 /* doll2.mp4 in Resources */,
 				298508F22D75EB0100AECD23 /* moving.mp4 in Resources */,
+				2906553D2EFBEEB400E4AA08 /* doll1.mp4 in Resources */,
 				290655B52DB1E83D00FA06C0 /* incorrect.mp4 in Resources */,
 				29F812A52D90C7BE00C81CE7 /* welcomeback.mp4 in Resources */,
 				291646432D524BC500EF15E4 /* Assets.xcassets in Resources */,
@@ -375,7 +480,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2906553C2EFBEEB400E4AA08 /* doll1.mp4 in Resources */,
+				290655382EFBEDC000E4AA08 /* doll2.mp4 in Resources */,
 				2916466F2D524D6E00EF15E4 /* SKScene.sks in Resources */,
+				29699A232F1C84C7004D611D /* Move2.mp4 in Resources */,
 				2984CBF82D61FA22008D19C0 /* Water.mp4 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -384,7 +492,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2906553E2EFBEEB400E4AA08 /* doll1.mp4 in Resources */,
+				290655392EFBEDC000E4AA08 /* doll2.mp4 in Resources */,
 				291646702D524D6E00EF15E4 /* SKScene.sks in Resources */,
+				29699A222F1C84C7004D611D /* Move2.mp4 in Resources */,
 				2984CBF92D61FA23008D19C0 /* Water.mp4 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -398,11 +509,10 @@
 			files = (
 				298CE73D2D6AA33000762889 /* QuestionSyncManager.swift in Sources */,
 				291646762D525A0100EF15E4 /* GameScene.swift in Sources */,
-				29F812A12D8E3FDA00C81CE7 /* MazeScene.swift in Sources */,
+				29F812A72D90C8A000C81CE7 /* MapManager.swift in Sources */,
 				2984CBF32D61DD39008D19C0 /* ConversationScene.swift in Sources */,
 				29F812A32D90C41800C81CE7 /* WelcomeBackScene.swift in Sources */,
 				298CE7422D6AC56200762889 /* GameStats.swift in Sources */,
-				298CE7352D6A1A2800762889 /* NewWorldScene.swift in Sources */,
 				29F8129D2D87123100C81CE7 /* IntroductionScene.swift in Sources */,
 				29F8129B2D86C95900C81CE7 /* GradientBackground.swift in Sources */,
 				299653EB2D637D300038E8B1 /* SigninScene.swift in Sources */,
@@ -418,9 +528,22 @@
 				299653E92D636DAB0038E8B1 /* ClampingScene.swift in Sources */,
 				298508F62D7D845A00AECD23 /* HintScene.swift in Sources */,
 				298508F42D78820700AECD23 /* Custom_Button.swift in Sources */,
-				298CE7332D6A143300762889 /* StoryScene.swift in Sources */,
 				2916463F2D524BC200EF15E4 /* Chinese_EducationApp.swift in Sources */,
 				298B28662D6CAD4A0035F5DA /* TransitionScene.swift in Sources */,
+				29A1B2C32D90C8A100C81CE8 /* PIRLSFramework.swift in Sources */,
+				29A1B2C52D90C8A200C81CE8 /* VocabularyWord.swift in Sources */,
+				29A1B2C72D90C8A300C81CE8 /* VocabularyManager.swift in Sources */,
+				29A1B2C92D90C8A400C81CE8 /* StudentProfile.swift in Sources */,
+				A3AHISTMB2F080001000E9171 /* AnswerHistoryStore.swift in Sources */,
+				29A1B2CB2D90C8A500C81CE8 /* PIRLSAnalytics.swift in Sources */,
+				29A1B2CD2D90C8A600C81CE8 /* DifficultyManager.swift in Sources */,
+				294405B12F06B0BA000E9171 /* TeacherDashboardScene.swift in Sources */,
+				A2CLASSMB2F070001000E9171 /* ClassManager.swift in Sources */,
+				29A1B2CF2D90C8A700C81CE8 /* ProgressDashboard.swift in Sources */,
+				29A1B2D12D90C8A800C81CE8 /* ProgressScene.swift in Sources */,
+				29A1B2D32D90C8A900C81CE8 /* ReportGenerator.swift in Sources */,
+				29A1B2D52D90C8AA00C81CE8 /* VocabularyScene.swift in Sources */,
+				29A1B2D72D90C8AB00C81CE8 /* DataSyncManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -432,6 +555,7 @@
 				291646732D5259DD00EF15E4 /* GameView.swift in Sources */,
 				299653EC2D637D300038E8B1 /* SigninScene.swift in Sources */,
 				291646552D524BC600EF15E4 /* Chinese_EducationTests.swift in Sources */,
+				294405B02F06B0BA000E9171 /* TeacherDashboardScene.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -439,6 +563,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				294405AF2F06B0BA000E9171 /* TeacherDashboardScene.swift in Sources */,
 				2916465F2D524BC600EF15E4 /* Chinese_EducationUITests.swift in Sources */,
 				291646742D5259DD00EF15E4 /* GameView.swift in Sources */,
 				291646782D525A0100EF15E4 /* GameScene.swift in Sources */,
@@ -585,7 +710,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Chinese Education/Preview Content\"";
-				DEVELOPMENT_TEAM = U9QUV3822W;
+				DEVELOPMENT_TEAM = 9UTB88G57U;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -614,7 +739,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Chinese Education/Preview Content\"";
-				DEVELOPMENT_TEAM = U9QUV3822W;
+				DEVELOPMENT_TEAM = 9UTB88G57U;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -642,7 +767,6 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = U9QUV3822W;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
 				MARKETING_VERSION = 1.0;
@@ -662,7 +786,6 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = U9QUV3822W;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
 				MARKETING_VERSION = 1.0;
@@ -681,7 +804,6 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = U9QUV3822W;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "JS-Corp.Chinese-EducationUITests";
@@ -699,7 +821,6 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = U9QUV3822W;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "JS-Corp.Chinese-EducationUITests";

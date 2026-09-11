@@ -1,3 +1,4 @@
+// Legacy scene — not wired from SignInScene / GameScene (kept for reference).
 import SpriteKit
 import AVFoundation
 
@@ -98,8 +99,13 @@ class NewWorldScene: SKScene, SKPhysicsContactDelegate {
         for _ in 0..<5 {
             let tree = SKSpriteNode(texture: treeTexture)
             tree.size = CGSize(width: 60, height: 60)
-            tree.position = CGPoint(x: CGFloat.random(in: 100...size.width - 100),
-                                    y: CGFloat.random(in: 100...size.height - 100))
+            
+            // ✅ Ensure valid range bounds (upperBound >= lowerBound)
+            let maxX = max(100, size.width - 100)
+            let maxY = max(100, size.height - 100)
+            
+            tree.position = CGPoint(x: CGFloat.random(in: 100...maxX),
+                                    y: CGFloat.random(in: 100...maxY))
             tree.physicsBody = SKPhysicsBody(rectangleOf: tree.size)
             tree.physicsBody?.isDynamic = false
             tree.physicsBody?.categoryBitMask = 0x1 << 2

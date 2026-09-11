@@ -22,12 +22,14 @@ final class Chinese_EducationUITests: XCTestCase {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
     }
 
-    func testExample() throws {
-        // UI tests must launch the application that they test.
+    /// Verifies the app reaches the sign-in shell (SpriteKit login adds `UITextField`s for username/password).
+    func testLaunchShowsSignInFields() throws {
         let app = XCUIApplication()
         app.launch()
-
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
+        XCTAssertEqual(app.state, .runningForeground)
+        let usernameField = app.textFields.element(boundBy: 0)
+        XCTAssertTrue(usernameField.waitForExistence(timeout: 10), "Expected SignInScene username UITextField")
+        XCTAssertTrue(app.secureTextFields.element(boundBy: 0).waitForExistence(timeout: 5), "Expected password field")
     }
 
     func testLaunchPerformance() throws {
