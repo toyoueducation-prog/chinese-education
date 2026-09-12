@@ -681,10 +681,10 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         let location = touch.location(in: self)
         let touchedNode = atPoint(location)
         
-        // ✅ Exit button
+        // ✅ Exit button — leave mid-quiz without defeating the guardian
         if touchedNode.name == "exitButton" {
             exitButtonBackground.fillColor = UIColor.systemRed.withAlphaComponent(0.8)
-            transitionToGameScene()
+            abandonQuizAndReturnToGame()
             return
         }
         
@@ -1003,11 +1003,30 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         
         ClassManager.shared.addOrUpdateStudentFromCurrentProfile(displayName: nil)
         
+        // ✅ Quiz finished (with some incorrect) — mark guardian defeated before HintScene
+        NPC.shared.completePendingEncounter()
+        NotificationCenter.default.post(name: NSNotification.Name("EnemyCompleted"), object: nil)
+        
         let hintScene = HintScene(size: self.size)
         hintScene.incorrectQuestions = incorrectQuestionKeys
         hintScene.scaleMode = .aspectFill
         let transition = SKTransition.fade(withDuration: 1.0)
         self.view?.presentScene(hintScene, transition: transition)
+    }
+    
+    /// Mid-quiz exit: do not award XP or remove the guardian.
+    func abandonQuizAndReturnToGame() {
+        synthesizer.stopSpeaking(at: .immediate)
+        doll1AVPlayer?.pause()
+        doll2AVPlayer?.pause()
+        
+        NPC.shared.abandonPendingEncounter()
+        NotificationCenter.default.post(name: NSNotification.Name("UpdateGameUI"), object: nil)
+        
+        let gameScene = GameScene(size: self.size)
+        gameScene.scaleMode = .aspectFill
+        let transition = SKTransition.fade(withDuration: 1.0)
+        self.view?.presentScene(gameScene, transition: transition)
     }
     
     func transitionToGameScene() {
@@ -1049,7 +1068,8 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
             }
         }
         
-        // ✅ Post notification that enemy is completed (all questions finished)
+        // ✅ Defeat guardian only after successful quiz completion (before presenting GameScene)
+        NPC.shared.completePendingEncounter()
         NotificationCenter.default.post(name: NSNotification.Name("EnemyCompleted"), object: nil)
         
         // ✅ Post notification to update UI when returning to GameScene

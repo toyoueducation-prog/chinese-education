@@ -8,8 +8,9 @@ class PlayerManager {
     // MARK: - 🎮 PLAYER VISUAL COMPONENTS
     var playerImage: SKSpriteNode!       // Main player sprite (Doll1 texture)
     var playerCropNode: SKCropNode!      // ✅ Crop node for oval/circular shape
-    var playerVideoNode: SKVideoNode!    // Animated player video (Move2.mp4 with transparent background)
-    var avPlayer: AVPlayer!              // Video player for animations
+    /// Optional walk animation. Nil when Move2/moving.mp4 are absent (root `.gitignore` ignores `*.mp4`).
+    var playerVideoNode: SKVideoNode?
+    var avPlayer: AVPlayer?
 
     private init() {}  // Private initializer for singleton
 
@@ -17,7 +18,7 @@ class PlayerManager {
     func setupPlayer(in scene: SKScene) {
         let playerSize = CGSize(width: 60, height: 60)
 
-        // ✅ Create player image with oval/circular shape
+        // ✅ Create player image with oval/circular shape (always available via Assets.xcassets/Doll1)
         let originalImage = SKSpriteNode(imageNamed: "Doll1")
         originalImage.size = playerSize
         
@@ -45,45 +46,52 @@ class PlayerManager {
         playerImage.position = CGPoint.zero  // Relative to cropNode
         scene.addChild(playerCropNode)
 
-        // Setup video node (using Move2.mp4 with transparent background support)
-        guard let videoURL = Bundle.main.url(forResource: "Move2", withExtension: "mp4") else {
+        // Optional walk video: Move2.mp4 → moving.mp4 → Doll1 sprite only (never crash).
+        // Packaging: add Move2.mp4 / moving.mp4 locally under the app target; they are gitignored as `*.mp4`.
+        if let videoURL = Bundle.main.url(forResource: "Move2", withExtension: "mp4") {
+            setupVideoPlayer(url: videoURL)
+        } else if let fallbackURL = Bundle.main.url(forResource: "moving", withExtension: "mp4") {
             print("⚠️ Move2.mp4 not found, falling back to moving.mp4")
-            guard let fallbackURL = Bundle.main.url(forResource: "moving", withExtension: "mp4") else {
-                fatalError("Video file not found")
-            }
             setupVideoPlayer(url: fallbackURL)
-            return
+        } else {
+            print("⚠️ Move2.mp4 and moving.mp4 not found — using Doll1 sprite only")
+            playerVideoNode = nil
+            avPlayer = nil
         }
-        setupVideoPlayer(url: videoURL)
+        
+        setupPlayerPhysics(playerSize: playerSize)
     }
     
     // MARK: - Setup Video Player (with transparent background support)
     private func setupVideoPlayer(url: URL) {
-        let playerSize = CGSize(width: 60, height: 60)  // ✅ Define player size
+        let playerSize = CGSize(width: 60, height: 60)
         
         avPlayer = AVPlayer(url: url)
-        avPlayer.actionAtItemEnd = .none
+        avPlayer?.actionAtItemEnd = .none
         NotificationCenter.default.addObserver(
             forName: .AVPlayerItemDidPlayToEndTime,
-            object: avPlayer.currentItem,
+            object: avPlayer?.currentItem,
             queue: .main
-        ) { _ in
-            self.avPlayer.seek(to: CMTime.zero)
-            self.avPlayer.play()
+        ) { [weak self] _ in
+            self?.avPlayer?.seek(to: CMTime.zero)
+            self?.avPlayer?.play()
         }
 
-        playerVideoNode = SKVideoNode(avPlayer: avPlayer)
-        playerVideoNode.size = playerSize
-        playerVideoNode.position = CGPoint.zero  // Relative to cropNode
-        playerVideoNode.zPosition = playerImage.zPosition
-        playerVideoNode.isHidden = true
+        let videoNode = SKVideoNode(avPlayer: avPlayer!)
+        videoNode.size = playerSize
+        videoNode.position = CGPoint.zero  // Relative to cropNode
+        videoNode.zPosition = playerImage.zPosition
+        videoNode.isHidden = true
+        playerVideoNode = videoNode
         
         // ✅ For transparent background video, the video file itself needs to have alpha channel
         // SpriteKit's SKVideoNode will respect the video's alpha channel if present
         // Note: The video file (move2.mp4) should be encoded with alpha channel (e.g., ProRes 4444 or HEVC with alpha)
-        playerCropNode.addChild(playerVideoNode)
-
-        // Setup player physics on cropNode
+        playerCropNode.addChild(videoNode)
+    }
+    
+    // MARK: - Setup Player Physics
+    private func setupPlayerPhysics(playerSize: CGSize) {
         // ✅ Use circular physics body for oval/circular collision
         let radius = min(playerSize.width, playerSize.height) / 2
         playerCropNode.physicsBody = SKPhysicsBody(circleOfRadius: radius)
@@ -97,10 +105,26 @@ class PlayerManager {
 
     // MARK: - Save Player Position
     func savePlayerPosition() {
+        guard let cropNode = playerCropNode else { return }
         let positionDict: [String: CGFloat] = [
-            "x": playerCropNode.position.x,
-            "y": playerCropNode.position.y
+            "x": cropNode.position.x,
+            "y": cropNode.position.y
         ]
         UserDefaults.standard.set(positionDict, forKey: "playerPosition")
+    }
+    
+    /// Show walk animation when video assets exist; otherwise keep Doll1 visible.
+    func setWalking(_ walking: Bool) {
+        guard let videoNode = playerVideoNode, let player = avPlayer else {
+            playerImage?.isHidden = false
+            return
+        }
+        playerImage?.isHidden = walking
+        videoNode.isHidden = !walking
+        if walking {
+            player.play()
+        } else {
+            player.pause()
+        }
     }
 }
