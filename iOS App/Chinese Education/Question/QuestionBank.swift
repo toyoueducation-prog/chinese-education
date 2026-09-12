@@ -179,6 +179,15 @@ class QuestionBank: ObservableObject {
         return passageSets.values.first(where: { $0.passageKey == passageKey })
     }
     
+    /// Stable offline catalog of local passage sets (sorted by `passageKey`).
+    func getAllPassageSets() -> [PassageQuestionSet] {
+        passageSets.values.sorted { $0.passageKey < $1.passageKey }
+    }
+    
+    func getAllPassageKeys() -> [String] {
+        getAllPassageSets().map { $0.passageKey }
+    }
+    
     func getAllQuestions() -> [Question] {
         return Array(localQuestions.values)
     }

@@ -49,4 +49,97 @@ final class Chinese_EducationTests: XCTestCase {
         let p = QuestionBank.shared.getPassageForQuestion("q1") ?? ""
         XCTAssertEqual(QuestionBank.shared.passageKey(matchingPassageText: p), "passage1")
     }
+
+    func testAdaptiveEncounterUsesLocalBankOffline() {
+        let encounter = LearningPathManager.shared.selectNextEncounter(
+            profile: StudentProfile.shared,
+            completedPassageTexts: [],
+            questionCount: 4
+        )
+        XCTAssertNotNil(encounter)
+        XCTAssertFalse(encounter!.questions.isEmpty)
+        XCTAssertEqual(QuestionBank.shared.getPassageSet(for: encounter!.passageKey)?.passage, encounter!.passageText)
+        XCTAssertGreaterThanOrEqual(encounter!.targetDifficulty, 1)
+        XCTAssertLessThanOrEqual(encounter!.targetDifficulty, 6)
+    }
+
+    func testAdaptiveSelectionBiasesTowardWeakInferring() {
+        let profile = StudentProfile.shared
+        let savedAssessment = profile.pirlsAssessment
+        let savedLevel = profile.currentLevel
+        defer {
+            profile.pirlsAssessment = savedAssessment
+            profile.currentLevel = savedLevel
+            profile.saveProfile()
+        }
+
+        profile.currentLevel = 3
+        for process in PIRLSProcess.allCases {
+            var perf = PIRLSProcessPerformance(process: process)
+            if process == .inferring {
+                perf.totalQuestions = 8
+                perf.correctAnswers = 1
+                perf.masteryLevel = 0.2
+            } else {
+                perf.totalQuestions = 8
+                perf.correctAnswers = 7
+                perf.masteryLevel = 0.85
+            }
+            profile.pirlsAssessment.processPerformance[process] = perf
+        }
+        profile.pirlsAssessment.updateOverallScore()
+
+        let weak = LearningPathManager.shared.getWeakProcesses(profile)
+        XCTAssertTrue(weak.contains(.inferring))
+        XCTAssertFalse(weak.contains(.retrieving))
+
+        let needs = InterventionEngine.shared.identifyStrugglingAreas(profile)
+        XCTAssertTrue(needs.contains { $0.type == .process && $0.target == PIRLSProcess.inferring.rawValue })
+
+        let interventionPassages = Set(
+            InterventionEngine.shared.getProcessInterventionStrategy(.inferring).passages
+        )
+        let encounter = LearningPathManager.shared.selectNextEncounter(
+            profile: profile,
+            completedPassageTexts: [],
+            questionCount: 4
+        )
+        XCTAssertNotNil(encounter)
+        XCTAssertTrue(encounter!.focusProcesses.contains(.inferring))
+        XCTAssertTrue(
+            interventionPassages.contains(encounter!.passageKey),
+            "Expected inferring-focused passage among \(interventionPassages), got \(encounter!.passageKey). Reason: \(encounter!.selectionReason)"
+        )
+        XCTAssertTrue(encounter!.questions.contains { $0.pirlsProcess == .inferring })
+    }
+
+    func testAdaptiveSelectionSkipsCompletedPassages() {
+        let profile = StudentProfile.shared
+        let allSets = QuestionBank.shared.getAllPassageSets()
+        XCTAssertGreaterThanOrEqual(allSets.count, 2)
+
+        let completedTexts = allSets.dropLast().map { $0.passage }
+        let remainingKey = allSets.last!.passageKey
+
+        let encounter = LearningPathManager.shared.selectNextEncounter(
+            profile: profile,
+            completedPassageTexts: completedTexts,
+            questionCount: 4
+        )
+        XCTAssertNotNil(encounter)
+        XCTAssertEqual(encounter!.passageKey, remainingKey)
+    }
+
+    func testColdStartDoesNotFlagAllProcessesAsWeak() {
+        let profile = StudentProfile.shared
+        let saved = profile.pirlsAssessment
+        defer {
+            profile.pirlsAssessment = saved
+            profile.saveProfile()
+        }
+        profile.pirlsAssessment = PIRLSAssessment(studentLevel: 1)
+        XCTAssertTrue(LearningPathManager.shared.getWeakProcesses(profile).isEmpty)
+        let processNeeds = InterventionEngine.shared.identifyStrugglingAreas(profile).filter { $0.type == .process }
+        XCTAssertTrue(processNeeds.isEmpty)
+    }
 }

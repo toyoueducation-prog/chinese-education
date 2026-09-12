@@ -69,6 +69,9 @@
 		A3AHISTMB2F080001000E9171 /* AnswerHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3AHISTMF2F080001000E9171 /* AnswerHistoryStore.swift */; };
 		29A1B2CB2D90C8A500C81CE8 /* PIRLSAnalytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A1B2CA2D90C8A500C81CE8 /* PIRLSAnalytics.swift */; };
 		29A1B2CD2D90C8A600C81CE8 /* DifficultyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A1B2CC2D90C8A600C81CE8 /* DifficultyManager.swift */; };
+		A4ADAPTLM2F090001000E9171 /* LearningPathManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4ADAPTLP2F090001000E9171 /* LearningPathManager.swift */; };
+		A4ADAPTIB2F090001000E9171 /* InterventionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4ADAPTIE2F090001000E9171 /* InterventionEngine.swift */; };
+		A4ADAPTRB2F090001000E9171 /* ReadingPurposeTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4ADAPTRP2F090001000E9171 /* ReadingPurposeTracker.swift */; };
 		29A1B2CF2D90C8A700C81CE8 /* ProgressDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A1B2CE2D90C8A700C81CE8 /* ProgressDashboard.swift */; };
 		29A1B2D12D90C8A800C81CE8 /* ProgressScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A1B2D02D90C8A800C81CE8 /* ProgressScene.swift */; };
 		29A1B2D32D90C8A900C81CE8 /* ReportGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A1B2D22D90C8A900C81CE8 /* ReportGenerator.swift */; };
@@ -147,6 +150,9 @@
 		A3AHISTMF2F080001000E9171 /* AnswerHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnswerHistoryStore.swift; sourceTree = "<group>"; };
 		29A1B2CA2D90C8A500C81CE8 /* PIRLSAnalytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PIRLSAnalytics.swift; sourceTree = "<group>"; };
 		29A1B2CC2D90C8A600C81CE8 /* DifficultyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DifficultyManager.swift; sourceTree = "<group>"; };
+		A4ADAPTLP2F090001000E9171 /* LearningPathManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearningPathManager.swift; sourceTree = "<group>"; };
+		A4ADAPTIE2F090001000E9171 /* InterventionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterventionEngine.swift; sourceTree = "<group>"; };
+		A4ADAPTRP2F090001000E9171 /* ReadingPurposeTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingPurposeTracker.swift; sourceTree = "<group>"; };
 		29A1B2CE2D90C8A700C81CE8 /* ProgressDashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressDashboard.swift; sourceTree = "<group>"; };
 		29A1B2D02D90C8A800C81CE8 /* ProgressScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressScene.swift; sourceTree = "<group>"; };
 		29A1B2D22D90C8A900C81CE8 /* ReportGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportGenerator.swift; sourceTree = "<group>"; };
@@ -333,6 +339,7 @@
 				29A1B2C82D90C8A400C81CE8 /* StudentProfile.swift */,
 				A3AHISTMF2F080001000E9171 /* AnswerHistoryStore.swift */,
 				29A1B2CA2D90C8A500C81CE8 /* PIRLSAnalytics.swift */,
+				A4ADAPTRP2F090001000E9171 /* ReadingPurposeTracker.swift */,
 				29A1B2CE2D90C8A700C81CE8 /* ProgressDashboard.swift */,
 				29A1B2D02D90C8A800C81CE8 /* ProgressScene.swift */,
 				29A1B2D22D90C8A900C81CE8 /* ReportGenerator.swift */,
@@ -344,6 +351,8 @@
 			isa = PBXGroup;
 			children = (
 				29A1B2CC2D90C8A600C81CE8 /* DifficultyManager.swift */,
+				A4ADAPTLP2F090001000E9171 /* LearningPathManager.swift */,
+				A4ADAPTIE2F090001000E9171 /* InterventionEngine.swift */,
 			);
 			path = Adaptive;
 			sourceTree = "<group>";
@@ -537,6 +546,9 @@
 				A3AHISTMB2F080001000E9171 /* AnswerHistoryStore.swift in Sources */,
 				29A1B2CB2D90C8A500C81CE8 /* PIRLSAnalytics.swift in Sources */,
 				29A1B2CD2D90C8A600C81CE8 /* DifficultyManager.swift in Sources */,
+				A4ADAPTLM2F090001000E9171 /* LearningPathManager.swift in Sources */,
+				A4ADAPTIB2F090001000E9171 /* InterventionEngine.swift in Sources */,
+				A4ADAPTRB2F090001000E9171 /* ReadingPurposeTracker.swift in Sources */,
 				294405B12F06B0BA000E9171 /* TeacherDashboardScene.swift in Sources */,
 				A2CLASSMB2F070001000E9171 /* ClassManager.swift in Sources */,
 				29A1B2CF2D90C8A700C81CE8 /* ProgressDashboard.swift in Sources */,

@@ -125,44 +125,62 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         // ✅ Get completed passages to avoid showing the same one
         let completedPassages = UserDefaults.standard.stringArray(forKey: "completedPassages") ?? []
         
-        // ✅ Get all available passages
-        let allQuestions = QuestionBank.shared.getAllQuestions()
-        var availablePassages: [String: [Question]] = [:]
-        
-        for question in allQuestions {
-            if let passage = QuestionBank.shared.getPassageForQuestion(question.key) {
-                if availablePassages[passage] == nil {
-                    availablePassages[passage] = []
-                }
-                availablePassages[passage]?.append(question)
+        // ✅ Adaptive selection: DifficultyManager + LearningPathManager + InterventionEngine
+        //    informed by StudentProfile / AnswerHistoryStore (local QuestionBank only).
+        if let encounter = LearningPathManager.shared.selectNextEncounter(
+            profile: StudentProfile.shared,
+            completedPassageTexts: completedPassages,
+            questionCount: 4
+        ), !encounter.questions.isEmpty {
+            // If the bank was fully completed, recycle by clearing the completion list.
+            let allPassageTexts = QuestionBank.shared.getAllPassageSets().map {
+                $0.passage.trimmingCharacters(in: .whitespacesAndNewlines)
             }
-        }
-        
-        // ✅ Find a passage that hasn't been completed yet
-        var selectedPassage: String? = nil
-        for (passage, _) in availablePassages {
-            if !completedPassages.contains(passage) {
-                selectedPassage = passage
-                break
+            let completedSet = Set(completedPassages.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) })
+            if !allPassageTexts.isEmpty && allPassageTexts.allSatisfy({ completedSet.contains($0) }) {
+                UserDefaults.standard.removeObject(forKey: "completedPassages")
             }
-        }
-        
-        // ✅ If all passages completed, reset and use first one
-        if selectedPassage == nil && !availablePassages.isEmpty {
-            UserDefaults.standard.removeObject(forKey: "completedPassages")
-            selectedPassage = availablePassages.keys.first
-        }
-        
-        // ✅ Use selected passage or fallback
-        if let passage = selectedPassage, let passageQuestions = availablePassages[passage] {
-            passageText = passage
-            questions = passageQuestions
-            currentPassageKey = QuestionBank.shared.passageKey(matchingPassageText: passage) ?? "unknown"
+            
+            passageText = encounter.passageText
+            questions = encounter.questions
+            currentPassageKey = encounter.passageKey
+            print("🎯 Adaptive encounter: \(encounter.selectionReason)")
         } else {
-            // ✅ Fallback
-            passageText = "這是一個測試段落。請仔細閱讀並回答問題。"
-            questions = allQuestions.prefix(4).map { $0 }
-            currentPassageKey = "fallback"
+            // ✅ Fallback: sequential incomplete passage from local bank
+            let allQuestions = QuestionBank.shared.getAllQuestions()
+            var availablePassages: [String: [Question]] = [:]
+            
+            for question in allQuestions {
+                if let passage = QuestionBank.shared.getPassageForQuestion(question.key) {
+                    if availablePassages[passage] == nil {
+                        availablePassages[passage] = []
+                    }
+                    availablePassages[passage]?.append(question)
+                }
+            }
+            
+            var selectedPassage: String? = nil
+            for (passage, _) in availablePassages {
+                if !completedPassages.contains(passage) {
+                    selectedPassage = passage
+                    break
+                }
+            }
+            
+            if selectedPassage == nil && !availablePassages.isEmpty {
+                UserDefaults.standard.removeObject(forKey: "completedPassages")
+                selectedPassage = availablePassages.keys.first
+            }
+            
+            if let passage = selectedPassage, let passageQuestions = availablePassages[passage] {
+                passageText = passage
+                questions = passageQuestions
+                currentPassageKey = QuestionBank.shared.passageKey(matchingPassageText: passage) ?? "unknown"
+            } else {
+                passageText = "這是一個測試段落。請仔細閱讀並回答問題。"
+                questions = allQuestions.prefix(4).map { $0 }
+                currentPassageKey = "fallback"
+            }
         }
         
         // ✅ Extract vocabulary from the passage

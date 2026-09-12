@@ -1,11 +1,9 @@
 import Foundation
-import SpriteKit
 
 /**
  * READING PURPOSE TRACKER - Balance and Performance Analysis
  * 
  * Features:
- * - Visual pie chart showing literary vs informational balance
  * - Recommendations for balanced reading
  * - Purpose-specific performance metrics
  * - Content suggestions to improve balance

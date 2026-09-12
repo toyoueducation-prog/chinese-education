@@ -23,20 +23,19 @@ class InterventionEngine {
      */
     func identifyStrugglingAreas(_ profile: StudentProfile) -> [InterventionNeed] {
         var needs: [InterventionNeed] = []
-        let analytics = PIRLSAnalytics.shared
         
-        // Check PIRLS processes
+        // Check PIRLS processes (ignore cold-start: no attempts yet)
         for process in PIRLSProcess.allCases {
-            if let performance = profile.pirlsAssessment.processPerformance[process] {
-                if performance.masteryLevel < 0.5 {
-                    needs.append(InterventionNeed(
-                        type: .process,
-                        target: process.rawValue,
-                        severity: performance.masteryLevel < 0.3 ? .high : .medium,
-                        currentLevel: performance.masteryLevel,
-                        targetLevel: 0.7
-                    ))
-                }
+            if let performance = profile.pirlsAssessment.processPerformance[process],
+               performance.totalQuestions > 0,
+               performance.masteryLevel < 0.5 {
+                needs.append(InterventionNeed(
+                    type: .process,
+                    target: process.rawValue,
+                    severity: performance.masteryLevel < 0.3 ? .high : .medium,
+                    currentLevel: performance.masteryLevel,
+                    targetLevel: 0.7
+                ))
             }
         }
         
