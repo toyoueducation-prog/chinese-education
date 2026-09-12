@@ -12,7 +12,7 @@ enum VocabularyGlossary {
         let meaning: String
     }
 
-    /// Key vocabulary drawn from the nine local passages (Traditional Chinese glosses).
+    /// Key vocabulary drawn from the local passages (Traditional Chinese glosses).
     static let entries: [String: Entry] = [
         // Passage 1 — 小兔子的派對
         "派對": Entry(pinyin: "pài duì", meaning: "聚會慶祝的活動"),
@@ -151,7 +151,65 @@ enum VocabularyGlossary {
         "地球": Entry(pinyin: "dì qiú", meaning: "我們居住的行星"),
         "耐心": Entry(pinyin: "nài xīn", meaning: "不急躁、能持續努力"),
         "規則": Entry(pinyin: "guī zé", meaning: "大家共同遵守的約定"),
-        "產品": Entry(pinyin: "chǎn pǐn", meaning: "製造出來的物品")
+        "產品": Entry(pinyin: "chǎn pǐn", meaning: "製造出來的物品"),
+
+        // Passage 10 — 阿美的雨天日記
+        "日記": Entry(pinyin: "rì jì", meaning: "把每天發生的事寫下來的記錄"),
+        "細雨": Entry(pinyin: "xì yǔ", meaning: "小小的雨"),
+        "彩虹": Entry(pinyin: "cǎi hóng", meaning: "雨後天空出現的彩色弧光"),
+        "彩色筆": Entry(pinyin: "cǎi sè bǐ", meaning: "可以畫出多種顏色的筆"),
+
+        // Passage 11 — 操場上的接力賽
+        "接力賽": Entry(pinyin: "jiē lì sài", meaning: "隊友輪流傳棒奔跑的比賽"),
+        "終點": Entry(pinyin: "zhōng diǎn", meaning: "比賽結束的地方"),
+        "鼓掌": Entry(pinyin: "gǔ zhǎng", meaning: "拍手表示稱讚或鼓勵"),
+        "放棄": Entry(pinyin: "fàng qì", meaning: "不再繼續做某事"),
+
+        // Passage 12 — 認識地圖與方向
+        "地圖": Entry(pinyin: "dì tú", meaning: "標示地方與方向的圖"),
+        "方向": Entry(pinyin: "fāng xiàng", meaning: "東、南、西、北等方位"),
+        "圖例": Entry(pinyin: "tú lì", meaning: "用地圖符號說明意思的對照"),
+        "比例尺": Entry(pinyin: "bǐ lì chǐ", meaning: "圖上距離與實際距離的對照"),
+        "捷運": Entry(pinyin: "jié yùn", meaning: "城市裡快速的軌道交通"),
+
+        // Passage 13 — 爺爺的故事盒
+        "回憶": Entry(pinyin: "huí yì", meaning: "記起過去發生的事"),
+        "照片": Entry(pinyin: "zhào piàn", meaning: "用相機拍下的影像"),
+        "筆記": Entry(pinyin: "bǐ jì", meaning: "寫下來的記錄"),
+        "延續": Entry(pinyin: "yán xù", meaning: "繼續下去、不中斷"),
+
+        // Passage 14 — 水的循環
+        "循環": Entry(pinyin: "xún huán", meaning: "周而復始、不斷重複"),
+        "蒸發": Entry(pinyin: "zhēng fā", meaning: "水變成水蒸氣升到空中"),
+        "凝結": Entry(pinyin: "níng jié", meaning: "水蒸氣變成小水滴"),
+        "降水": Entry(pinyin: "jiàng shuǐ", meaning: "雨或雪落到地面"),
+        "淡水": Entry(pinyin: "dàn shuǐ", meaning: "含鹽很少、可供使用的水"),
+
+        // Passage 15 — 搬家的那天
+        "搬家": Entry(pinyin: "bān jiā", meaning: "換到另一個地方住"),
+        "公寓": Entry(pinyin: "gōng yù", meaning: "一棟樓裡分戶居住的房子"),
+        "鄰居": Entry(pinyin: "lín jū", meaning: "住在附近的人"),
+        "離別": Entry(pinyin: "lí bié", meaning: "分開、離開"),
+
+        // Passage 16 — 蜜蜂與授粉
+        "蜜蜂": Entry(pinyin: "mì fēng", meaning: "會採花蜜、幫助授粉的昆蟲"),
+        "授粉": Entry(pinyin: "shòu fěn", meaning: "把花粉傳到花的雌蕊上"),
+        "花粉": Entry(pinyin: "huā fěn", meaning: "花藥上細小的粉狀物質"),
+        "農藥": Entry(pinyin: "nóng yào", meaning: "用來防治病蟲害的藥劑"),
+        "蜜源": Entry(pinyin: "mì yuán", meaning: "能提供花蜜的植物來源"),
+
+        // Passage 17 — 夜空下的約定
+        "夜空": Entry(pinyin: "yè kōng", meaning: "夜晚的天空"),
+        "約定": Entry(pinyin: "yuē dìng", meaning: "彼此商量後共同遵守的決定"),
+        "觀星": Entry(pinyin: "guān xīng", meaning: "觀察星星與夜空"),
+        "夢想": Entry(pinyin: "mèng xiǎng", meaning: "希望將來實現的理想"),
+
+        // Passage 18 — 地震安全須知
+        "地震": Entry(pinyin: "dì zhèn", meaning: "地面突然震動的自然現象"),
+        "疏散": Entry(pinyin: "shū sàn", meaning: "有秩序地離開到安全處"),
+        "演習": Entry(pinyin: "yǎn xí", meaning: "事先練習緊急應變"),
+        "急救包": Entry(pinyin: "jí jiù bāo", meaning: "裝有緊急救護用品的包包"),
+        "冷靜": Entry(pinyin: "lěng jìng", meaning: "遇到事情不慌亂")
     ]
 
     static func lookup(_ word: String) -> Entry? {

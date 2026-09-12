@@ -29,11 +29,57 @@ final class Chinese_EducationTests: XCTestCase {
 
     func testQuestionBankCoverageReport() {
         let report = QuestionBank.shared.buildCoverageReport()
-        XCTAssertEqual(report.totalQuestions, 36)
-        XCTAssertEqual(report.passageCount, 9)
-        XCTAssertEqual(report.pirlsCounts.values.reduce(0, +), 36)
+        XCTAssertEqual(report.totalQuestions, 72)
+        XCTAssertEqual(report.passageCount, 18)
+        XCTAssertEqual(report.pirlsCounts.values.reduce(0, +), 72)
         for p in PIRLSProcess.allCases {
             XCTAssertGreaterThanOrEqual(report.pirlsCounts[p] ?? 0, 1, "Expected at least one question per PIRLS process: \(p)")
+        }
+        // Rough balance: each PIRLS process should remain well represented after expansion.
+        for p in PIRLSProcess.allCases {
+            XCTAssertGreaterThanOrEqual(report.pirlsCounts[p] ?? 0, 12, "Expected thicker coverage for \(p)")
+        }
+        XCTAssertGreaterThanOrEqual(report.readingPurposeCounts[.literary] ?? 0, 24)
+        XCTAssertGreaterThanOrEqual(report.readingPurposeCounts[.informational] ?? 0, 24)
+        for level in 1...6 {
+            XCTAssertGreaterThanOrEqual(report.difficultyHistogram[level] ?? 0, 1, "Expected questions at difficulty \(level)")
+        }
+    }
+
+    func testQuestionBankPassageKeysStayCoherent() {
+        let keys = QuestionBank.shared.getAllPassageKeys()
+        XCTAssertEqual(keys.count, 18)
+        for i in 1...18 {
+            let key = "passage\(i)"
+            XCTAssertTrue(keys.contains(key), "Missing \(key)")
+            let set = QuestionBank.shared.getPassageSet(for: key)
+            XCTAssertNotNil(set)
+            XCTAssertEqual(set?.questionKeys.count, 4)
+            for qKey in set!.questionKeys {
+                XCTAssertNotNil(QuestionBank.shared.getQuestion(forKey: qKey))
+                XCTAssertEqual(QuestionBank.shared.getPassageForQuestion(qKey), set?.passage)
+            }
+        }
+    }
+
+    func testEvaluatingItemsPreferTextSupportedJudgments() {
+        let evaluatingKeys = QuestionBank.shared.getAllQuestions()
+            .filter { $0.pirlsProcess == .evaluating }
+            .map { $0.key }
+        XCTAssertGreaterThanOrEqual(evaluatingKeys.count, 12)
+        for key in evaluatingKeys {
+            guard let q = QuestionBank.shared.getQuestion(forKey: key) else {
+                XCTFail("Missing question \(key)")
+                continue
+            }
+            let stem = q.question
+            let looksTextSupported =
+                stem.contains("根據") ||
+                stem.contains("文中") ||
+                stem.contains("文章") ||
+                stem.contains("故事") ||
+                stem.contains("日記")
+            XCTAssertTrue(looksTextSupported, "Evaluating item \(key) should cue text-supported judgment, got: \(stem)")
         }
     }
 
@@ -52,6 +98,14 @@ final class Chinese_EducationTests: XCTestCase {
         XCTAssertTrue(empty.isPracticeReady)
         XCTAssertFalse(empty.meaning.isEmpty)
         XCTAssertFalse(empty.pinyin.isEmpty)
+
+        var rainDiary = VocabularyWord(word: "日記")
+        rainDiary.applyGlossaryIfNeeded()
+        XCTAssertTrue(rainDiary.isPracticeReady)
+
+        var quake = VocabularyWord(word: "地震")
+        quake.applyGlossaryIfNeeded()
+        XCTAssertTrue(quake.isPracticeReady)
 
         let unknown = VocabularyWord(word: "𠀀未收錄詞")
         XCTAssertFalse(unknown.isPracticeReady)

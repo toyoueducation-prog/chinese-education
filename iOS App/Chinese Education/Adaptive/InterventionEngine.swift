@@ -107,7 +107,7 @@ class InterventionEngine {
                 ],
                 practiceTypes: ["檢索練習", "關鍵詞識別", "快速定位"],
                 estimatedTime: "每天15-20分鐘",
-                passages: ["passage1", "passage2", "passage4"]
+                passages: ["passage1", "passage2", "passage4", "passage10", "passage11"]
             ),
             .inferring: InterventionStrategy(
                 process: process,
@@ -118,7 +118,7 @@ class InterventionEngine {
                 ],
                 practiceTypes: ["推論練習", "線索識別", "資訊連接"],
                 estimatedTime: "每天20-25分鐘",
-                passages: ["passage3", "passage5", "passage6"]
+                passages: ["passage3", "passage5", "passage6", "passage13", "passage14"]
             ),
             .interpreting: InterventionStrategy(
                 process: process,
@@ -129,7 +129,7 @@ class InterventionEngine {
                 ],
                 practiceTypes: ["詮釋練習", "整體理解", "概念解釋"],
                 estimatedTime: "每天25-30分鐘",
-                passages: ["passage6", "passage7", "passage8"]
+                passages: ["passage6", "passage7", "passage8", "passage15", "passage17"]
             ),
             .evaluating: InterventionStrategy(
                 process: process,
@@ -140,7 +140,7 @@ class InterventionEngine {
                 ],
                 practiceTypes: ["評價練習", "批判思考", "觀點比較"],
                 estimatedTime: "每天25-30分鐘",
-                passages: ["passage7", "passage8"]
+                passages: ["passage7", "passage8", "passage16", "passage18"]
             )
         ]
         
@@ -161,7 +161,7 @@ class InterventionEngine {
         // Get vocabulary from passages that test this process
         var relevantWords: [VocabularyWord] = []
         
-        let allPassageKeys = ["passage1", "passage2", "passage3", "passage4", "passage5", "passage6", "passage7", "passage8", "passage9"]
+        let allPassageKeys = QuestionBank.shared.getAllPassageKeys()
         
         for passageKey in allPassageKeys {
             if let passageSet = QuestionBank.shared.getPassageSet(for: passageKey) {

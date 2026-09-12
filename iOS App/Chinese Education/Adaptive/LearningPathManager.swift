@@ -371,10 +371,13 @@ class LearningPathManager {
         
         // Simple unlocking: level 1-2 get early passages, mid levels expand, 5-6 unlock all
         if level >= 1 {
-            unlockedContent.append(contentsOf: allPassageKeys.filter { ["passage1", "passage2", "passage9"].contains($0) })
+            unlockedContent.append(contentsOf: allPassageKeys.filter { ["passage1", "passage2", "passage9", "passage10", "passage11", "passage12"].contains($0) })
         }
         if level >= 3 {
-            unlockedContent.append(contentsOf: allPassageKeys.filter { ["passage3", "passage4", "passage5"].contains($0) })
+            unlockedContent.append(contentsOf: allPassageKeys.filter { ["passage3", "passage4", "passage5", "passage13", "passage14"].contains($0) })
+        }
+        if level >= 4 {
+            unlockedContent.append(contentsOf: allPassageKeys.filter { ["passage6", "passage8", "passage15", "passage16"].contains($0) })
         }
         if level >= 5 {
             unlockedContent.append(contentsOf: allPassageKeys)

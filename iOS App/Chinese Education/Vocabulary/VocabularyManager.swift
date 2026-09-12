@@ -197,7 +197,7 @@ class VocabularyManager {
     func getVocabularyByReadingPurpose(_ purpose: ReadingPurpose) -> [VocabularyWord] {
         // Get vocabulary from passages matching the reading purpose
         var relevantWords: [VocabularyWord] = []
-        let allPassageKeys = ["passage1", "passage2", "passage3", "passage4", "passage5", "passage6", "passage7", "passage8", "passage9"]
+        let allPassageKeys = QuestionBank.shared.getAllPassageKeys()
         
         for passageKey in allPassageKeys {
             if let passageSet = QuestionBank.shared.getPassageSet(for: passageKey) {
@@ -225,19 +225,28 @@ class VocabularyManager {
     func getVocabularyForLevel(_ level: Int) -> [VocabularyWord] {
         // Get vocabulary from passages appropriate for this level
         var relevantWords: [VocabularyWord] = []
-        let allPassageKeys = ["passage1", "passage2", "passage3", "passage4", "passage5", "passage6", "passage7", "passage8", "passage9"]
+        let allPassageKeys = QuestionBank.shared.getAllPassageKeys()
         
         // Map passage keys to approximate difficulty levels based on known passage structure
         let passageLevelMap: [String: Int] = [
-            "passage1": 1,  // 小兔子的派對 (P1-P2)
-            "passage2": 2,  // 四季變化 (P2-P3)
-            "passage3": 3,  // 小鳥的遷徙 (P3-P4)
-            "passage4": 2,  // 小貓咪的冒險 (P2-P3)
-            "passage5": 3,  // 植物的生長 (P3-P4)
-            "passage6": 4,  // 小明的圖書館之旅 (P4-P5)
-            "passage7": 5,  // 太陽系的行星 (P5-P6)
-            "passage8": 4,  // 傳統節日 (P4-P5)
-            "passage9": 2   // 學校的回收日 (P2-P3)
+            "passage1": 1,   // 小兔子的派對 (P1-P2)
+            "passage2": 2,   // 四季變化 (P2-P3)
+            "passage3": 3,   // 小鳥的遷徙 (P3-P4)
+            "passage4": 2,   // 小貓咪的冒險 (P2-P3)
+            "passage5": 3,   // 植物的生長 (P3-P4)
+            "passage6": 4,   // 小明的圖書館之旅 (P4-P5)
+            "passage7": 5,   // 太陽系的行星 (P5-P6)
+            "passage8": 4,   // 傳統節日 (P4-P5)
+            "passage9": 2,   // 學校的回收日 (P2-P3)
+            "passage10": 1,  // 阿美的雨天日記 (P1)
+            "passage11": 2,  // 操場上的接力賽 (P2)
+            "passage12": 2,  // 認識地圖與方向 (P2-P3)
+            "passage13": 3,  // 爺爺的故事盒 (P3)
+            "passage14": 3,  // 水的循環 (P3-P4)
+            "passage15": 4,  // 搬家的那天 (P4)
+            "passage16": 4,  // 蜜蜂與授粉 (P4-P5)
+            "passage17": 5,  // 夜空下的約定 (P5-P6)
+            "passage18": 5   // 地震安全須知 (P5-P6)
         ]
         
         for passageKey in allPassageKeys {
