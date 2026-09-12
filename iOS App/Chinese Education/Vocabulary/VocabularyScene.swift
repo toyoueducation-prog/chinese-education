@@ -12,7 +12,9 @@ class VocabularyScene: SKScene {
     override func didMove(to view: SKView) {
         // ✅ Professional gradient background
         setupProfessionalBackground()
-        
+
+        // Ensure practice-ready glosses exist before listing / enabling practice
+        _ = VocabularyManager.shared.getPracticeVocabulary(limit: 1)
         loadVocabulary()
         setupUI()
         displayVocabulary()
@@ -82,10 +84,45 @@ class VocabularyScene: SKScene {
         
         // Statistics
         displayStatistics()
+
+        // Practice entry — reachable from 詞彙 map flow
+        setupPracticeButton()
+    }
+
+    // MARK: - Practice Button
+    func setupPracticeButton() {
+        childNode(withName: "practiceButton")?.removeFromParent()
+        childNode(withName: "practiceButtonBg")?.removeFromParent()
+
+        let practiceReady = VocabularyManager.shared.getPracticeVocabulary(limit: 1)
+        let enabled = !practiceReady.isEmpty
+
+        let bg = SKShapeNode(rectOf: CGSize(width: 160, height: 40), cornerRadius: 10)
+        bg.fillColor = enabled ? UIColor.systemBlue : UIColor.systemGray4
+        bg.strokeColor = .clear
+        bg.position = CGPoint(x: size.width - 100, y: size.height - 50)
+        bg.name = "practiceButtonBg"
+        bg.zPosition = 100
+        addChild(bg)
+
+        let label = SKLabelNode(text: "開始練習")
+        label.fontSize = 18
+        label.fontColor = .white
+        label.fontName = "AvenirNext-DemiBold"
+        label.verticalAlignmentMode = .center
+        label.position = bg.position
+        label.name = "practiceButton"
+        label.zPosition = 101
+        label.alpha = enabled ? 1.0 : 0.7
+        addChild(label)
     }
     
     // MARK: - Setup Filter Buttons
     func setupFilterButtons() {
+        for child in children where child.name?.hasPrefix("filter_") == true {
+            child.removeFromParent()
+        }
+
         let filterY = size.height - 100
         let buttonWidth: CGFloat = 80
         let spacing: CGFloat = 10
@@ -114,6 +151,7 @@ class VocabularyScene: SKScene {
         label.fontSize = 16
         label.fontColor = masteryFilter == level ? .white : .label
         label.position = CGPoint(x: 0, y: -8)
+        label.name = "filter_\(level?.description ?? "all")"
         button.addChild(label)
         
         return button
@@ -182,33 +220,45 @@ class VocabularyScene: SKScene {
         wordLabel.fontSize = 24
         wordLabel.fontColor = .label
         wordLabel.horizontalAlignmentMode = .left
-        wordLabel.position = CGPoint(x: -size.width / 2 + 30, y: 10)
+        wordLabel.position = CGPoint(x: -size.width / 2 + 30, y: 12)
         container.addChild(wordLabel)
-        
-        // Pinyin (if available)
-        if !word.pinyin.isEmpty {
-            let pinyinLabel = SKLabelNode(text: word.pinyin)
-            pinyinLabel.fontSize = 16
-            pinyinLabel.fontColor = .secondaryLabel
-            pinyinLabel.horizontalAlignmentMode = .left
-            pinyinLabel.position = CGPoint(x: -size.width / 2 + 30, y: -10)
-            container.addChild(pinyinLabel)
+
+        // Pinyin / meaning (honest: show gloss when available)
+        let detail: String
+        if word.isPracticeReady {
+            if !word.pinyin.isEmpty {
+                detail = "\(word.pinyin) · \(word.meaning)"
+            } else {
+                detail = word.meaning
+            }
+        } else if !word.pinyin.isEmpty {
+            detail = word.pinyin
+        } else {
+            detail = "尚無釋義（不列入練習）"
         }
-        
+        let detailLabel = SKLabelNode(text: detail)
+        detailLabel.fontSize = 14
+        detailLabel.fontColor = .secondaryLabel
+        detailLabel.horizontalAlignmentMode = .left
+        detailLabel.preferredMaxLayoutWidth = size.width - 180
+        detailLabel.numberOfLines = 1
+        detailLabel.position = CGPoint(x: -size.width / 2 + 30, y: -14)
+        container.addChild(detailLabel)
+
         // Mastery level
         let masteryLabel = SKLabelNode(text: word.masteryDescription)
         masteryLabel.fontSize = 16
         masteryLabel.fontColor = .label
         masteryLabel.horizontalAlignmentMode = .right
-        masteryLabel.position = CGPoint(x: size.width / 2 - 30, y: 0)
+        masteryLabel.position = CGPoint(x: size.width / 2 - 30, y: 8)
         container.addChild(masteryLabel)
-        
+
         // Encounters
         let encountersLabel = SKLabelNode(text: "遇到: \(word.encounters)次")
         encountersLabel.fontSize = 14
         encountersLabel.fontColor = .secondaryLabel
         encountersLabel.horizontalAlignmentMode = .right
-        encountersLabel.position = CGPoint(x: size.width / 2 - 30, y: -20)
+        encountersLabel.position = CGPoint(x: size.width / 2 - 30, y: -16)
         container.addChild(encountersLabel)
         
         return container
@@ -237,6 +287,12 @@ class VocabularyScene: SKScene {
             gameScene.scaleMode = .aspectFill
             let transition = SKTransition.fade(withDuration: 0.5)
             self.view?.presentScene(gameScene, transition: transition)
+        } else if touchedNode.name == "practiceButton" || touchedNode.name == "practiceButtonBg" {
+            let practiceReady = VocabularyManager.shared.getPracticeVocabulary(limit: 1)
+            guard !practiceReady.isEmpty else { return }
+            let practiceScene = VocabularyPracticeScene(size: self.size)
+            practiceScene.scaleMode = .aspectFill
+            self.view?.presentScene(practiceScene, transition: SKTransition.fade(withDuration: 0.5))
         } else if let nodeName = touchedNode.name, nodeName.hasPrefix("filter_") {
             // Handle filter selection
             let filterStr = String(nodeName.dropFirst(7))
@@ -247,7 +303,8 @@ class VocabularyScene: SKScene {
             }
             loadVocabulary()
             displayVocabulary()
-            setupFilterButtons()  // Update button colors
+            setupFilterButtons()
+            setupPracticeButton()
         }
     }
 }

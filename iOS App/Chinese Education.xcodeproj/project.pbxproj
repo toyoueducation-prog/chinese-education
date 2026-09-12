@@ -76,6 +76,8 @@
 		29A1B2D12D90C8A800C81CE8 /* ProgressScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A1B2D02D90C8A800C81CE8 /* ProgressScene.swift */; };
 		29A1B2D32D90C8A900C81CE8 /* ReportGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A1B2D22D90C8A900C81CE8 /* ReportGenerator.swift */; };
 		29A1B2D52D90C8AA00C81CE8 /* VocabularyScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A1B2D42D90C8AA00C81CE8 /* VocabularyScene.swift */; };
+		A5VOCGLMB2F120001000E9171 /* VocabularyGlossary.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5VOCGLMF2F120001000E9171 /* VocabularyGlossary.swift */; };
+		A5VOCPRSB2F120001000E9171 /* VocabularyPracticeScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5VOCPRSF2F120001000E9171 /* VocabularyPracticeScene.swift */; };
 		29A1B2D72D90C8AB00C81CE8 /* DataSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A1B2D62D90C8AB00C81CE8 /* DataSyncManager.swift */; };
 		29F8129B2D86C95900C81CE7 /* GradientBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F8129A2D86C95800C81CE7 /* GradientBackground.swift */; };
 		29F8129D2D87123100C81CE7 /* IntroductionScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F8129C2D87123100C81CE7 /* IntroductionScene.swift */; };
@@ -157,6 +159,8 @@
 		29A1B2D02D90C8A800C81CE8 /* ProgressScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressScene.swift; sourceTree = "<group>"; };
 		29A1B2D22D90C8A900C81CE8 /* ReportGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportGenerator.swift; sourceTree = "<group>"; };
 		29A1B2D42D90C8AA00C81CE8 /* VocabularyScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabularyScene.swift; sourceTree = "<group>"; };
+		A5VOCGLMF2F120001000E9171 /* VocabularyGlossary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabularyGlossary.swift; sourceTree = "<group>"; };
+		A5VOCPRSF2F120001000E9171 /* VocabularyPracticeScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabularyPracticeScene.swift; sourceTree = "<group>"; };
 		29A1B2D62D90C8AB00C81CE8 /* DataSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataSyncManager.swift; sourceTree = "<group>"; };
 		29F8129A2D86C95800C81CE7 /* GradientBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradientBackground.swift; sourceTree = "<group>"; };
 		29F8129C2D87123100C81CE7 /* IntroductionScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroductionScene.swift; sourceTree = "<group>"; };
@@ -328,7 +332,9 @@
 			children = (
 				29A1B2C42D90C8A200C81CE8 /* VocabularyWord.swift */,
 				29A1B2C62D90C8A300C81CE8 /* VocabularyManager.swift */,
+				A5VOCGLMF2F120001000E9171 /* VocabularyGlossary.swift */,
 				29A1B2D42D90C8AA00C81CE8 /* VocabularyScene.swift */,
+				A5VOCPRSF2F120001000E9171 /* VocabularyPracticeScene.swift */,
 			);
 			path = Vocabulary;
 			sourceTree = "<group>";
@@ -555,6 +561,8 @@
 				29A1B2D12D90C8A800C81CE8 /* ProgressScene.swift in Sources */,
 				29A1B2D32D90C8A900C81CE8 /* ReportGenerator.swift in Sources */,
 				29A1B2D52D90C8AA00C81CE8 /* VocabularyScene.swift in Sources */,
+				A5VOCGLMB2F120001000E9171 /* VocabularyGlossary.swift in Sources */,
+				A5VOCPRSB2F120001000E9171 /* VocabularyPracticeScene.swift in Sources */,
 				29A1B2D72D90C8AB00C81CE8 /* DataSyncManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -45,6 +45,44 @@ final class Chinese_EducationTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(word.masteryLevel, 3)
     }
 
+    func testVocabularyGlossaryMakesWordsPracticeReady() {
+        var empty = VocabularyWord(word: "派對")
+        XCTAssertFalse(empty.isPracticeReady)
+        empty.applyGlossaryIfNeeded()
+        XCTAssertTrue(empty.isPracticeReady)
+        XCTAssertFalse(empty.meaning.isEmpty)
+        XCTAssertFalse(empty.pinyin.isEmpty)
+
+        let unknown = VocabularyWord(word: "𠀀未收錄詞")
+        XCTAssertFalse(unknown.isPracticeReady)
+    }
+
+    func testPracticeVocabularyExcludesEmptyMeanings() {
+        let manager = VocabularyManager.shared
+        // Extraction may create empty-gloss bigrams; practice list must only include glossed words.
+        if let passage = QuestionBank.shared.getPassageSet(for: "passage1")?.passage {
+            _ = manager.extractVocabulary(from: passage, maxWords: 15)
+        }
+        let practice = manager.getPracticeVocabulary(limit: 20)
+        XCTAssertFalse(practice.isEmpty)
+        XCTAssertTrue(practice.allSatisfy { $0.isPracticeReady })
+        XCTAssertTrue(practice.allSatisfy { !$0.meaning.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })
+    }
+
+    func testHonestMasteryTrackingDistinguishesCorrectAndIncorrect() {
+        let word = "花園"
+        let before = VocabularyManager.shared.getVocabularyWord(word)
+        let beforeEncounters = before?.encounters ?? 0
+        let beforeCorrect = before?.correctUses ?? 0
+
+        VocabularyManager.shared.trackWordEncounter(word, isCorrect: true)
+        VocabularyManager.shared.trackWordEncounter(word, isCorrect: false)
+
+        let after = VocabularyManager.shared.getVocabularyWord(word)
+        XCTAssertEqual(after?.encounters, beforeEncounters + 2)
+        XCTAssertEqual(after?.correctUses, beforeCorrect + 1)
+    }
+
     func testQuestionBankPassageKeyLookup() {
         let p = QuestionBank.shared.getPassageForQuestion("q1") ?? ""
         XCTAssertEqual(QuestionBank.shared.passageKey(matchingPassageText: p), "passage1")
