@@ -59,6 +59,18 @@ final class AnswerHistoryStore {
         allRecords().filter { $0.studentID == id }
     }
     
+    /// Recent per-process miss counts from local answer log (offline), used to bias adaptive selection.
+    func recentProcessMissCounts(forStudentID id: String, limit: Int = 40) -> [PIRLSProcess: Int] {
+        let recent = Array(records(forStudentID: id).suffix(limit))
+        var misses: [PIRLSProcess: Int] = [:]
+        for record in recent where !record.isCorrect {
+            guard let raw = record.pirlsProcessRaw,
+                  let process = PIRLSProcess(rawValue: raw) else { continue }
+            misses[process, default: 0] += 1
+        }
+        return misses
+    }
+    
     /// CSV with header; fields quoted when needed.
     func buildCSV() -> String {
         let records = allRecords()

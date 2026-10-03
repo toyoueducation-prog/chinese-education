@@ -119,15 +119,13 @@ class ProcessPracticeScene: SKScene {
         selectedProcess = process
         processQuestions = []
         
-        // Get all questions from QuestionBank
-        let allQuestionKeys = ["q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15", "q16", "q17", "q18", "q19", "q20", "q21", "q22", "q23", "q24", "q25", "q26", "q27", "q28", "q29", "q30", "q31", "q32"]
+        // Get all questions from QuestionBank (offline catalog)
+        let allQuestions = QuestionBank.shared.getAllQuestions()
         
-        for key in allQuestionKeys {
-            if let question = QuestionBank.shared.getQuestion(forKey: key) {
-                let enriched = QuestionBank.shared.enrichQuestionWithPIRLS(question, passageText: "")
-                if enriched.pirlsProcess == process {
-                    processQuestions.append(enriched)
-                }
+        for question in allQuestions {
+            let enriched = QuestionBank.shared.enrichQuestionWithPIRLS(question, passageText: "")
+            if enriched.pirlsProcess == process {
+                processQuestions.append(enriched)
             }
         }
         

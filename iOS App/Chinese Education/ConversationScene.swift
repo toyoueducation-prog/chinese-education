@@ -125,44 +125,62 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         // ✅ Get completed passages to avoid showing the same one
         let completedPassages = UserDefaults.standard.stringArray(forKey: "completedPassages") ?? []
         
-        // ✅ Get all available passages
-        let allQuestions = QuestionBank.shared.getAllQuestions()
-        var availablePassages: [String: [Question]] = [:]
-        
-        for question in allQuestions {
-            if let passage = QuestionBank.shared.getPassageForQuestion(question.key) {
-                if availablePassages[passage] == nil {
-                    availablePassages[passage] = []
-                }
-                availablePassages[passage]?.append(question)
+        // ✅ Adaptive selection: DifficultyManager + LearningPathManager + InterventionEngine
+        //    informed by StudentProfile / AnswerHistoryStore (local QuestionBank only).
+        if let encounter = LearningPathManager.shared.selectNextEncounter(
+            profile: StudentProfile.shared,
+            completedPassageTexts: completedPassages,
+            questionCount: 4
+        ), !encounter.questions.isEmpty {
+            // If the bank was fully completed, recycle by clearing the completion list.
+            let allPassageTexts = QuestionBank.shared.getAllPassageSets().map {
+                $0.passage.trimmingCharacters(in: .whitespacesAndNewlines)
             }
-        }
-        
-        // ✅ Find a passage that hasn't been completed yet
-        var selectedPassage: String? = nil
-        for (passage, _) in availablePassages {
-            if !completedPassages.contains(passage) {
-                selectedPassage = passage
-                break
+            let completedSet = Set(completedPassages.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) })
+            if !allPassageTexts.isEmpty && allPassageTexts.allSatisfy({ completedSet.contains($0) }) {
+                UserDefaults.standard.removeObject(forKey: "completedPassages")
             }
-        }
-        
-        // ✅ If all passages completed, reset and use first one
-        if selectedPassage == nil && !availablePassages.isEmpty {
-            UserDefaults.standard.removeObject(forKey: "completedPassages")
-            selectedPassage = availablePassages.keys.first
-        }
-        
-        // ✅ Use selected passage or fallback
-        if let passage = selectedPassage, let passageQuestions = availablePassages[passage] {
-            passageText = passage
-            questions = passageQuestions
-            currentPassageKey = QuestionBank.shared.passageKey(matchingPassageText: passage) ?? "unknown"
+            
+            passageText = encounter.passageText
+            questions = encounter.questions
+            currentPassageKey = encounter.passageKey
+            print("🎯 Adaptive encounter: \(encounter.selectionReason)")
         } else {
-            // ✅ Fallback
-            passageText = "這是一個測試段落。請仔細閱讀並回答問題。"
-            questions = allQuestions.prefix(4).map { $0 }
-            currentPassageKey = "fallback"
+            // ✅ Fallback: sequential incomplete passage from local bank
+            let allQuestions = QuestionBank.shared.getAllQuestions()
+            var availablePassages: [String: [Question]] = [:]
+            
+            for question in allQuestions {
+                if let passage = QuestionBank.shared.getPassageForQuestion(question.key) {
+                    if availablePassages[passage] == nil {
+                        availablePassages[passage] = []
+                    }
+                    availablePassages[passage]?.append(question)
+                }
+            }
+            
+            var selectedPassage: String? = nil
+            for (passage, _) in availablePassages {
+                if !completedPassages.contains(passage) {
+                    selectedPassage = passage
+                    break
+                }
+            }
+            
+            if selectedPassage == nil && !availablePassages.isEmpty {
+                UserDefaults.standard.removeObject(forKey: "completedPassages")
+                selectedPassage = availablePassages.keys.first
+            }
+            
+            if let passage = selectedPassage, let passageQuestions = availablePassages[passage] {
+                passageText = passage
+                questions = passageQuestions
+                currentPassageKey = QuestionBank.shared.passageKey(matchingPassageText: passage) ?? "unknown"
+            } else {
+                passageText = "這是一個測試段落。請仔細閱讀並回答問題。"
+                questions = allQuestions.prefix(4).map { $0 }
+                currentPassageKey = "fallback"
+            }
         }
         
         // ✅ Extract vocabulary from the passage
@@ -681,10 +699,10 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         let location = touch.location(in: self)
         let touchedNode = atPoint(location)
         
-        // ✅ Exit button
+        // ✅ Exit button — leave mid-quiz without defeating the guardian
         if touchedNode.name == "exitButton" {
             exitButtonBackground.fillColor = UIColor.systemRed.withAlphaComponent(0.8)
-            transitionToGameScene()
+            abandonQuizAndReturnToGame()
             return
         }
         
@@ -1003,11 +1021,30 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         
         ClassManager.shared.addOrUpdateStudentFromCurrentProfile(displayName: nil)
         
+        // ✅ Quiz finished (with some incorrect) — mark guardian defeated before HintScene
+        NPC.shared.completePendingEncounter()
+        NotificationCenter.default.post(name: NSNotification.Name("EnemyCompleted"), object: nil)
+        
         let hintScene = HintScene(size: self.size)
         hintScene.incorrectQuestions = incorrectQuestionKeys
         hintScene.scaleMode = .aspectFill
         let transition = SKTransition.fade(withDuration: 1.0)
         self.view?.presentScene(hintScene, transition: transition)
+    }
+    
+    /// Mid-quiz exit: do not award XP or remove the guardian.
+    func abandonQuizAndReturnToGame() {
+        synthesizer.stopSpeaking(at: .immediate)
+        doll1AVPlayer?.pause()
+        doll2AVPlayer?.pause()
+        
+        NPC.shared.abandonPendingEncounter()
+        NotificationCenter.default.post(name: NSNotification.Name("UpdateGameUI"), object: nil)
+        
+        let gameScene = GameScene(size: self.size)
+        gameScene.scaleMode = .aspectFill
+        let transition = SKTransition.fade(withDuration: 1.0)
+        self.view?.presentScene(gameScene, transition: transition)
     }
     
     func transitionToGameScene() {
@@ -1049,7 +1086,8 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
             }
         }
         
-        // ✅ Post notification that enemy is completed (all questions finished)
+        // ✅ Defeat guardian only after successful quiz completion (before presenting GameScene)
+        NPC.shared.completePendingEncounter()
         NotificationCenter.default.post(name: NSNotification.Name("EnemyCompleted"), object: nil)
         
         // ✅ Post notification to update UI when returning to GameScene

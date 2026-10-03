@@ -181,22 +181,23 @@ class TransitionScene: SKScene, AVSpeechSynthesizerDelegate {
     
     // MARK: - Setup Background (Video or Image)
     func setupBackground() {
-        if shouldPlayVideo {
+        if shouldPlayVideo,
+           let videoURL = Bundle.main.url(forResource: "transition_video", withExtension: "mp4") {
             // ✅ Play a full-screen video before transitioning
-            guard let videoURL = Bundle.main.url(forResource: "transition_video", withExtension: "mp4") else {
-                fatalError("Transition video file not found")
-            }
-
             let player = AVPlayer(url: videoURL)
             videoNode = SKVideoNode(avPlayer: player)
             videoNode?.position = CGPoint(x: size.width / 2, y: size.height / 2)
             videoNode?.size = size
             videoNode?.zPosition = -1
-            addChild(videoNode!)
-
+            if let videoNode = videoNode {
+                addChild(videoNode)
+            }
             player.play()
         } else {
-            // ✅ Show a full-screen image instead
+            if shouldPlayVideo {
+                print("⚠️ transition_video.mp4 not found — using Transition_Image fallback")
+            }
+            // ✅ Show a full-screen image instead (also soft-fallback when video is missing)
             let backgroundImage = SKSpriteNode(imageNamed: "Transition_Image")
             backgroundImage.position = CGPoint(x: size.width / 2, y: size.height / 2)
             backgroundImage.size = size

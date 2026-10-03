@@ -41,6 +41,39 @@ class NPC {
     // MARK: - 🎯 ENEMY MANAGEMENT
     var enemyNodes: [SKNode] = []  // Array of spawned enemy nodes (can be SKSpriteNode or SKCropNode)
     var completedEnemyIdentifiers: Set<String> = []  // Track completed enemies by identifier
+    /// Enemy currently in a quiz encounter. Cleared on success or abandon; never means "defeated".
+    var pendingEncounterEnemyId: String?
+    
+    private static let pendingEncounterKey = "pendingEncounterEnemyId"
+    
+    /// Begin a quiz encounter without marking the guardian defeated.
+    func beginEncounter(enemyId: String) {
+        pendingEncounterEnemyId = enemyId
+        UserDefaults.standard.set(enemyId, forKey: Self.pendingEncounterKey)
+    }
+    
+    /// Mark the pending (or given) enemy defeated only after a successful quiz completion.
+    func completePendingEncounter(enemyId: String? = nil) {
+        let id = enemyId ?? pendingEncounterEnemyId ?? UserDefaults.standard.string(forKey: Self.pendingEncounterKey)
+        if let id = id {
+            completedEnemyIdentifiers.insert(id)
+            print("✅ Marked enemy defeated after quiz success. ID: \(id)")
+        }
+        clearPendingEncounter()
+    }
+    
+    /// Player left mid-quiz — guardian remains available.
+    func abandonPendingEncounter() {
+        if let id = pendingEncounterEnemyId ?? UserDefaults.standard.string(forKey: Self.pendingEncounterKey) {
+            print("↩️ Abandoned quiz; guardian remains. ID: \(id)")
+        }
+        clearPendingEncounter()
+    }
+    
+    private func clearPendingEncounter() {
+        pendingEncounterEnemyId = nil
+        UserDefaults.standard.removeObject(forKey: Self.pendingEncounterKey)
+    }
 
     // ✅ Spawn enemies only once
     func spawnEnemies(in scene: SKScene, count: Int) {
@@ -51,12 +84,10 @@ class NPC {
         }
         
         // ✅ Calculate how many enemies we need to spawn
-        // ✅ Only count enemies that are in the current scene and not completed
+        // ✅ Count living (non-completed) guardians even if detached from a prior scene
         let currentActiveCount = enemyNodes.filter { enemy in
             let enemyId = enemy.userData?["identifier"] as? String ?? ""
-            return !completedEnemyIdentifiers.contains(enemyId) && 
-                   enemy.parent === scene &&  // ✅ Must be in current scene
-                   !enemy.isHidden
+            return !completedEnemyIdentifiers.contains(enemyId)
         }.count
         
         let enemiesToSpawn = max(0, count - currentActiveCount)

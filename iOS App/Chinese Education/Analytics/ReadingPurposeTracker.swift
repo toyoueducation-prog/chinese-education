@@ -1,11 +1,9 @@
 import Foundation
-import SpriteKit
 
 /**
  * READING PURPOSE TRACKER - Balance and Performance Analysis
  * 
  * Features:
- * - Visual pie chart showing literary vs informational balance
  * - Recommendations for balanced reading
  * - Purpose-specific performance metrics
  * - Content suggestions to improve balance
@@ -86,18 +84,28 @@ class ReadingPurposeTracker {
         
         if balance.literary < 0.4 {
             // Need more literary content
-            suggestions.append("passage1")  // 小兔子的派對 (Literary)
-            suggestions.append("passage4")  // 小貓咪的冒險 (Literary)
-            suggestions.append("passage6")  // 小明的圖書館之旅 (Literary)
+            suggestions.append("passage1")   // 小兔子的派對 (Literary)
+            suggestions.append("passage4")   // 小貓咪的冒險 (Literary)
+            suggestions.append("passage6")   // 小明的圖書館之旅 (Literary)
+            suggestions.append("passage10")  // 阿美的雨天日記 (Literary)
+            suggestions.append("passage11")  // 操場上的接力賽 (Literary)
+            suggestions.append("passage13")  // 爺爺的故事盒 (Literary)
+            suggestions.append("passage15")  // 搬家的那天 (Literary)
+            suggestions.append("passage17")  // 夜空下的約定 (Literary)
         }
         
         if balance.informational < 0.4 {
             // Need more informational content
-            suggestions.append("passage2")  // 四季變化 (Informational)
-            suggestions.append("passage3")  // 小鳥的遷徙 (Informational)
-            suggestions.append("passage5")  // 植物的生長 (Informational)
-            suggestions.append("passage7")  // 太陽系的行星 (Informational)
-            suggestions.append("passage8")  // 傳統節日 (Informational)
+            suggestions.append("passage2")   // 四季變化 (Informational)
+            suggestions.append("passage3")   // 小鳥的遷徙 (Informational)
+            suggestions.append("passage5")   // 植物的生長 (Informational)
+            suggestions.append("passage7")   // 太陽系的行星 (Informational)
+            suggestions.append("passage8")   // 傳統節日 (Informational)
+            suggestions.append("passage9")   // 學校的回收日 (Informational)
+            suggestions.append("passage12")  // 認識地圖與方向 (Informational)
+            suggestions.append("passage14")  // 水的循環 (Informational)
+            suggestions.append("passage16")  // 蜜蜂與授粉 (Informational)
+            suggestions.append("passage18")  // 地震安全須知 (Informational)
         }
         
         return suggestions

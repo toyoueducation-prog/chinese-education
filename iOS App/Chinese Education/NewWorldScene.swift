@@ -4,8 +4,8 @@ import AVFoundation
 
 class NewWorldScene: SKScene, SKPhysicsContactDelegate {
     private var playerImage: SKSpriteNode!
-    private var playerVideoNode: SKVideoNode!
-    private var avPlayer: AVPlayer!
+    private var playerVideoNode: SKVideoNode?
+    private var avPlayer: AVPlayer?
     private var enemy: SKSpriteNode!
     private var cameraNode: SKCameraNode!
     private var isMoving = false
@@ -59,28 +59,31 @@ class NewWorldScene: SKScene, SKPhysicsContactDelegate {
         playerImage.name = "player"
         addChild(playerImage)
         
-        // Setup video node
-        guard let videoURL = Bundle.main.url(forResource: "Water", withExtension: "mp4") else {
-            fatalError("Video file not found")
+        // Optional video — soft-fail when missing (do not crash)
+        if let videoURL = Bundle.main.url(forResource: "Water", withExtension: "mp4") {
+            avPlayer = AVPlayer(url: videoURL)
+            avPlayer?.actionAtItemEnd = .none // Loop the video
+            NotificationCenter.default.addObserver(
+                forName: .AVPlayerItemDidPlayToEndTime,
+                object: avPlayer?.currentItem,
+                queue: .main
+            ) { [weak self] _ in
+                self?.avPlayer?.seek(to: CMTime.zero)
+                self?.avPlayer?.play()
+            }
+            
+            let videoNode = SKVideoNode(avPlayer: avPlayer!)
+            videoNode.size = playerSize
+            videoNode.position = playerImage.position
+            videoNode.zPosition = playerImage.zPosition
+            videoNode.isHidden = true
+            playerVideoNode = videoNode
+            addChild(videoNode)
+        } else {
+            print("⚠️ Water.mp4 not found — using Doll2 sprite only in NewWorldScene")
+            playerVideoNode = nil
+            avPlayer = nil
         }
-        
-        avPlayer = AVPlayer(url: videoURL)
-        avPlayer.actionAtItemEnd = .none // Loop the video
-        NotificationCenter.default.addObserver(
-            forName: .AVPlayerItemDidPlayToEndTime,
-            object: avPlayer.currentItem,
-            queue: .main
-        ) { _ in
-            self.avPlayer.seek(to: CMTime.zero)
-            self.avPlayer.play()
-        }
-        
-        playerVideoNode = SKVideoNode(avPlayer: avPlayer)
-        playerVideoNode.size = playerSize
-        playerVideoNode.position = playerImage.position
-        playerVideoNode.zPosition = playerImage.zPosition
-        playerVideoNode.isHidden = true
-        addChild(playerVideoNode)
         
         // Setup player physics (no gravity, 2D movement)
         playerImage.physicsBody = SKPhysicsBody(rectangleOf: playerImage.size)
@@ -125,7 +128,7 @@ class NewWorldScene: SKScene, SKPhysicsContactDelegate {
         if isMoving {
             playerImage.position.x += moveDirection.dx
             playerImage.position.y += moveDirection.dy
-            playerVideoNode.position = playerImage.position
+            playerVideoNode?.position = playerImage.position
             cameraNode.position = playerImage.position
         }
     }
@@ -139,10 +142,12 @@ class NewWorldScene: SKScene, SKPhysicsContactDelegate {
         moveDirection = CGVector(dx: (location.x - playerImage.position.x) * 0.01,
                                  dy: (location.y - playerImage.position.y) * 0.01)
         
-        // Switch to video node
-        playerImage.isHidden = true
-        playerVideoNode.isHidden = false
-        avPlayer.play()
+        // Switch to video node when available
+        if let videoNode = playerVideoNode, let player = avPlayer {
+            playerImage.isHidden = true
+            videoNode.isHidden = false
+            player.play()
+        }
     }
     
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -160,8 +165,8 @@ class NewWorldScene: SKScene, SKPhysicsContactDelegate {
         
         // Switch back to static image
         playerImage.isHidden = false
-        playerVideoNode.isHidden = true
-        avPlayer.pause()
+        playerVideoNode?.isHidden = true
+        avPlayer?.pause()
     }
     
     // MARK: - Setup Enemy

@@ -91,6 +91,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     // MARK: - 🗺️ GAME MAP LAYOUT (21x20 Grid)
     // Map Legend: "S"=Stone Walls, "."=Grass Paths, "T"=Trees, "G"=Grass Areas, "W"=Water, "P"=Player Spawn
     private var currentMapIndex = 0  // ✅ Track which map we're on
+    private static let mapIndexKey = "currentMapIndex"
     private var mapLayout: [[Character]] = [
         ["S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S"], // Row 0: Top boundary
         ["S",".",".",".","T","G","G","G","T",".",".",".",".",".",".",".",".",".",".",".","S"], // Row 1: Forest area
@@ -169,7 +170,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         if isFreshStart {
             GameStats.shared.resetScore()  // ✅ Reset scores
             GameStats.shared.crystalCoins = 0
+            UserDefaults.standard.set(0, forKey: Self.mapIndexKey)
+            currentMapIndex = 0
             print("✅ Debug: Game restarted from scratch")
+        } else {
+            // ✅ Restore map across Conversation / Hint / Treasury / etc. scene recreations
+            currentMapIndex = UserDefaults.standard.integer(forKey: Self.mapIndexKey)
         }
         
         // 🗺️ ORIGINAL MAP SYSTEM - Render fixed map
@@ -208,25 +214,25 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // ✅ Refresh minimap immediately after cleanup to remove dots for completed enemies
         // ✅ Note: minimap will be set up later, but we'll refresh it then too
         
-        // ✅ Count active (non-completed) enemies that are actually in the scene
-        var activeEnemyCount = NPC.shared.enemyNodes.filter { enemy in
+        // ✅ Count active (non-completed) enemies — include those detached from the previous scene
+        // so returning mid-quiz does not re-spawn duplicates.
+        let nonCompletedEnemies = NPC.shared.enemyNodes.filter { enemy in
             let enemyId = enemy.userData?["identifier"] as? String ?? ""
-            return !NPC.shared.completedEnemyIdentifiers.contains(enemyId) && 
-                   enemy.parent != nil &&
-                   !enemy.isHidden
+            return !NPC.shared.completedEnemyIdentifiers.contains(enemyId)
+        }
+        var activeEnemyCount = nonCompletedEnemies.filter { enemy in
+            return enemy.parent != nil && !enemy.isHidden
         }.count
         
-        print("📊 Enemy Status: \(activeEnemyCount) active, \(NPC.shared.enemyNodes.count) total in array, \(NPC.shared.completedEnemyIdentifiers.count) completed")
+        print("📊 Enemy Status: \(activeEnemyCount) active in-scene, \(nonCompletedEnemies.count) non-completed, \(NPC.shared.enemyNodes.count) total in array, \(NPC.shared.completedEnemyIdentifiers.count) completed")
         print("📊 Scene children count: \(children.count)")
         
         // ✅ Check if all enemies are completed
-        // ✅ Use activeEnemyCount == 0 AND we have completed enemies (meaning we've defeated them all)
-        let allEnemiesCompleted = activeEnemyCount == 0 && !NPC.shared.completedEnemyIdentifiers.isEmpty && NPC.shared.completedEnemyIdentifiers.count >= 2
+        // ✅ Use non-completed count == 0 AND we have completed enemies (meaning we've defeated them all)
+        let allEnemiesCompleted = nonCompletedEnemies.isEmpty && !NPC.shared.completedEnemyIdentifiers.isEmpty && NPC.shared.completedEnemyIdentifiers.count >= 2
         
-        // ✅ Determine if we need to spawn enemies
-        // ✅ Spawn if we have fewer than 2 active enemies AND no enemies have been completed yet (first spawn)
-        // ✅ OR if we have some enemies but need to reach 2 total
-        let needsSpawn = activeEnemyCount < 2 && NPC.shared.completedEnemyIdentifiers.isEmpty
+        // ✅ Spawn only when we have fewer than 2 living guardians and none defeated yet (fresh map)
+        let needsSpawn = nonCompletedEnemies.count < 2 && NPC.shared.completedEnemyIdentifiers.isEmpty
         
         // ✅ Only spawn/manage enemies if we haven't completed all of them
         if allEnemiesCompleted {
@@ -281,6 +287,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                         enemy.removeFromParent()
                     }
                     enemy.isHidden = false
+                    // Restore contact after a mid-quiz abandon (disabled on collision)
+                    enemy.physicsBody?.contactTestBitMask = PhysicsCategory.player
+                    enemy.physicsBody?.categoryBitMask = PhysicsCategory.enemy
                     addChild(enemy)
                     print("✅ Re-added active enemy to scene. ID: \(enemyId)")
                     NPC.shared.restartPatrol(for: enemy, in: self)
@@ -737,7 +746,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             // ✅ Update cropNode position (main player node)
             PlayerManager.shared.playerCropNode.position.x = clampedX
             PlayerManager.shared.playerCropNode.position.y = clampedY
-            PlayerManager.shared.playerVideoNode.position = CGPoint.zero  // Relative to cropNode
+            PlayerManager.shared.playerVideoNode?.position = CGPoint.zero  // Relative to cropNode
 
             // ✅ Ensure camera follows the player
             cameraNode.position = PlayerManager.shared.playerCropNode.position
@@ -886,6 +895,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             // ✅ Check if button or its child was tapped
             if cameraNode.name == "progressButton" || cameraNode.parent?.name == "progressButton" {
                 print("✅ Progress button tapped")
+                saveCurrentMapIndex()
                 let progressScene = ProgressScene(size: self.size)
                 progressScene.scaleMode = .aspectFill
                 let transition = SKTransition.fade(withDuration: 0.5)
@@ -895,6 +905,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             
             if cameraNode.name == "vocabularyButton" || cameraNode.parent?.name == "vocabularyButton" {
                 print("✅ Vocabulary button tapped")
+                saveCurrentMapIndex()
                 let vocabularyScene = VocabularyScene(size: self.size)
                 vocabularyScene.scaleMode = .aspectFill
                 let transition = SKTransition.fade(withDuration: 0.5)
@@ -926,6 +937,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // ✅ Detect Click on Navigation Buttons (fallback)
         if touchedNode.name == "progressButton" || touchedNode.parent?.name == "progressButton" {
             print("✅ Progress button tapped (fallback)")
+            saveCurrentMapIndex()
             let progressScene = ProgressScene(size: self.size)
             progressScene.scaleMode = .aspectFill
             let transition = SKTransition.fade(withDuration: 0.5)
@@ -935,6 +947,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         if touchedNode.name == "vocabularyButton" || touchedNode.parent?.name == "vocabularyButton" {
             print("✅ Vocabulary button tapped (fallback)")
+            saveCurrentMapIndex()
             let vocabularyScene = VocabularyScene(size: self.size)
             vocabularyScene.scaleMode = .aspectFill
             let transition = SKTransition.fade(withDuration: 0.5)
@@ -971,10 +984,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         moveDirection = CGVector(dx: (location.x - PlayerManager.shared.playerCropNode.position.x) * 0.01,
                                  dy: (location.y - PlayerManager.shared.playerCropNode.position.y) * 0.01)
         
-        // Switch to video node
-        PlayerManager.shared.playerImage.isHidden = true
-        PlayerManager.shared.playerVideoNode.isHidden = false
-        PlayerManager.shared.avPlayer.play()
+        // Switch to video node when walk clips exist; otherwise keep Doll1
+        PlayerManager.shared.setWalking(true)
     }
     
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -993,9 +1004,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         moveDirection = CGVector(dx: 0, dy: 0)
         
         // Switch back to static image
-        PlayerManager.shared.playerImage.isHidden = false
-        PlayerManager.shared.playerVideoNode.isHidden = true
-        PlayerManager.shared.avPlayer.pause()
+        PlayerManager.shared.setWalking(false)
     }
     
 
@@ -1075,24 +1084,24 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             
             // ✅ Save player position on collision
             savePlayerPosition()
+            saveCurrentMapIndex()
             
-            // ✅ Store last collided enemy and its identifier
+            // ✅ Store last collided enemy and its identifier (do NOT defeat yet)
             lastCollidedEnemy = enemy
             lastCollidedEnemyIdentifier = enemy.userData?["identifier"] as? String
             
-            // ✅ Mark this enemy as completed immediately
+            // ✅ Begin encounter only — guardian stays until quiz completion succeeds
             if let enemyId = lastCollidedEnemyIdentifier {
-                NPC.shared.completedEnemyIdentifiers.insert(enemyId)
-                print("✅ Marked enemy as completed immediately. ID: \(enemyId)")
+                NPC.shared.beginEncounter(enemyId: enemyId)
+                // Soften contact so overlapping bodies don't re-fire if scene teardown is slow
+                enemy.physicsBody?.contactTestBitMask = PhysicsCategory.none
+                print("⚔️ Started encounter with enemy. ID: \(enemyId) (not defeated yet)")
             }
-            
-            // ✅ Remove enemy immediately (not just hide it)
-            removeCompletedEnemy(enemy)
             
             // ✅ Activate cooldown to prevent looping
             transitionCooldown = true
             
-            print("🚨 Collided with enemy. Identifier: \(lastCollidedEnemyIdentifier ?? "unknown") - Removed immediately")
+            print("🚨 Collided with enemy. Identifier: \(lastCollidedEnemyIdentifier ?? "unknown") — awaiting quiz result")
             
             // ✅ Transition to conversation scene
             transitionToConversationScene()
@@ -1147,10 +1156,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // MARK: - Handle Enemy Completion Notification
     @objc func handleEnemyCompleted() {
-        if let enemyId = lastCollidedEnemyIdentifier {
-            NPC.shared.completedEnemyIdentifiers.insert(enemyId)
-            print("✅ Marked enemy as completed via notification. ID: \(enemyId)")
-        }
+        NPC.shared.completePendingEncounter(enemyId: lastCollidedEnemyIdentifier)
+    }
+    
+    // MARK: - Persist current map across scene recreations
+    func saveCurrentMapIndex() {
+        UserDefaults.standard.set(currentMapIndex, forKey: Self.mapIndexKey)
     }
     
     // MARK: - First-run tutorial
@@ -1271,6 +1282,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // ✅ Reset enemy tracking
         hasSpawnedEnemies = false
         NPC.shared.completedEnemyIdentifiers.removeAll()
+        NPC.shared.abandonPendingEncounter()
         lastCollidedEnemy = nil
         lastCollidedEnemyIdentifier = nil
         NPC.shared.enemyNodes.removeAll()
@@ -1284,6 +1296,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // ✅ Cycle to next map
         currentMapIndex = (currentMapIndex + 1) % allMaps.count
         mapLayout = allMaps[currentMapIndex]
+        saveCurrentMapIndex()
         
         // ✅ Reset map generation flag to generate new map
         hasGeneratedMap = false
@@ -1300,6 +1313,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // MARK: - Transition to Conversation Scene on Collision
     func transitionToConversationScene() {
+        saveCurrentMapIndex()
         
         let transitionScene = TransitionScene(size: self.size)
         transitionScene.scaleMode = .aspectFill
@@ -1310,6 +1324,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // MARK: - Transition to Treasury Scene
     func transitionToTreasuryScene() {
+        saveCurrentMapIndex()
         // ✅ Reset cooldown after a delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             self?.transitionCooldown = false
@@ -1327,6 +1342,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
               let newLevel = userInfo["newLevel"] as? Int else {
             return
         }
+        
+        saveCurrentMapIndex()
         
         // ✅ Transition to level up scene
         let levelUpScene = LevelUpScene(size: self.size)
@@ -1547,6 +1564,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     func enterClampingMachine() {
         if GameStats.shared.crystalCoins >= 3 {  // ✅ Use stored value directly
             print("✅ Entering Clamping Scene")
+            saveCurrentMapIndex()
             let clampingScene = ClampingScene(size: self.size)
             clampingScene.scaleMode = .aspectFill
             let transition = SKTransition.fade(withDuration: 1.0)

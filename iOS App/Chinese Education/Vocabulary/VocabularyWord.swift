@@ -4,8 +4,8 @@ import Foundation
 struct VocabularyWord: Codable, Identifiable, Equatable {
     let id: String  // Unique identifier (word itself or UUID)
     let word: String  // Chinese word
-    let pinyin: String  // Pinyin pronunciation
-    let meaning: String  // English/Chinese meaning
+    var pinyin: String  // Pinyin pronunciation
+    var meaning: String  // English/Chinese meaning
     var masteryLevel: Int  // 0-5 mastery level
     var encounters: Int  // Number of times encountered
     var correctUses: Int  // Number of correct uses in context
@@ -25,6 +25,19 @@ struct VocabularyWord: Codable, Identifiable, Equatable {
     
     var masteryDescription: String {
         return VocabularyWord.masteryDescriptions[masteryLevel] ?? "未知"
+    }
+
+    /// Only words with a real gloss should enter graded practice.
+    var isPracticeReady: Bool {
+        VocabularyGlossary.hasUsableMeaning(self)
+    }
+
+    mutating func applyGlossaryIfNeeded() {
+        let gloss = VocabularyGlossary.gloss(for: word, existingPinyin: pinyin, existingMeaning: meaning)
+        if pinyin.isEmpty { pinyin = gloss.pinyin }
+        if meaning.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            meaning = gloss.meaning
+        }
     }
     
     // MARK: - Initialization

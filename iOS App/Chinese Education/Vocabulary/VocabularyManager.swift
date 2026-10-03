@@ -41,6 +41,7 @@ class VocabularyManager {
     
     private init() {
         loadVocabulary()
+        enrichStoredVocabularyFromGlossary()
     }
     
     // MARK: - Load & Save Vocabulary
@@ -57,6 +58,54 @@ class VocabularyManager {
         if let encoded = try? JSONEncoder().encode(vocabularyWords) {
             UserDefaults.standard.set(encoded, forKey: vocabularyKey)
         }
+    }
+
+    /// Fill empty pinyin/meaning from the offline glossary without wiping progress.
+    private func enrichStoredVocabularyFromGlossary() {
+        var changed = false
+        for (key, var word) in vocabularyWords {
+            let beforePinyin = word.pinyin
+            let beforeMeaning = word.meaning
+            word.applyGlossaryIfNeeded()
+            if word.pinyin != beforePinyin || word.meaning != beforeMeaning {
+                vocabularyWords[key] = word
+                changed = true
+            }
+        }
+        if changed {
+            saveVocabulary()
+        }
+    }
+
+    /// Small offline starter set so practice works before/without empty extractions.
+    private static let seedPracticeWords: [String] = [
+        "派對", "花園", "分享", "快樂", "季節", "春天", "秋天", "遷徙",
+        "氣候", "冒險", "溫暖", "植物", "生長", "陽光", "閱讀", "圖書館",
+        "行星", "地球", "春節", "傳統", "回收", "分類", "環保", "合作"
+    ]
+
+    /// Persist a compact curated seed only when nothing is practice-ready.
+    func ensureSeedVocabularyIfNeeded() {
+        let practiceReadyCount = vocabularyWords.values.filter { $0.isPracticeReady }.count
+        guard practiceReadyCount == 0 else { return }
+
+        for word in Self.seedPracticeWords {
+            guard let entry = VocabularyGlossary.lookup(word) else { continue }
+            if var existing = vocabularyWords[word] {
+                existing.applyGlossaryIfNeeded()
+                vocabularyWords[word] = existing
+            } else {
+                vocabularyWords[word] = VocabularyWord(
+                    word: word,
+                    pinyin: entry.pinyin,
+                    meaning: entry.meaning,
+                    masteryLevel: 0,
+                    encounters: 0,
+                    correctUses: 0
+                )
+            }
+        }
+        saveVocabulary()
     }
     
     // MARK: - Extract Vocabulary from Passage
@@ -78,18 +127,20 @@ class VocabularyManager {
         )
         
         var vocabularyList: [VocabularyWord] = []
-        for (word, difficulty, importance) in extractedWords {
+        for (word, difficulty, _) in extractedWords {
+            let gloss = VocabularyGlossary.gloss(for: word)
             if var existingWord = vocabularyWords[word] {
+                existingWord.applyGlossaryIfNeeded()
                 // Update with enhanced mastery if needed
                 existingWord.updateMasteryEnhanced(difficulty: difficulty)
                 vocabularyWords[word] = existingWord
                 vocabularyList.append(existingWord)
             } else {
-                // Create new vocabulary word with difficulty info
+                // Create new vocabulary word; only glossary-backed glosses are practice-ready
                 var newWord = VocabularyWord(
                     word: word,
-                    pinyin: "",  // Can be filled by AI or dictionary lookup
-                    meaning: "",  // Can be filled by AI or dictionary lookup
+                    pinyin: gloss.pinyin,
+                    meaning: gloss.meaning,
                     masteryLevel: 0,
                     encounters: 0,
                     correctUses: 0
@@ -146,7 +197,7 @@ class VocabularyManager {
     func getVocabularyByReadingPurpose(_ purpose: ReadingPurpose) -> [VocabularyWord] {
         // Get vocabulary from passages matching the reading purpose
         var relevantWords: [VocabularyWord] = []
-        let allPassageKeys = ["passage1", "passage2", "passage3", "passage4", "passage5", "passage6", "passage7", "passage8", "passage9"]
+        let allPassageKeys = QuestionBank.shared.getAllPassageKeys()
         
         for passageKey in allPassageKeys {
             if let passageSet = QuestionBank.shared.getPassageSet(for: passageKey) {
@@ -174,19 +225,28 @@ class VocabularyManager {
     func getVocabularyForLevel(_ level: Int) -> [VocabularyWord] {
         // Get vocabulary from passages appropriate for this level
         var relevantWords: [VocabularyWord] = []
-        let allPassageKeys = ["passage1", "passage2", "passage3", "passage4", "passage5", "passage6", "passage7", "passage8", "passage9"]
+        let allPassageKeys = QuestionBank.shared.getAllPassageKeys()
         
         // Map passage keys to approximate difficulty levels based on known passage structure
         let passageLevelMap: [String: Int] = [
-            "passage1": 1,  // 小兔子的派對 (P1-P2)
-            "passage2": 2,  // 四季變化 (P2-P3)
-            "passage3": 3,  // 小鳥的遷徙 (P3-P4)
-            "passage4": 2,  // 小貓咪的冒險 (P2-P3)
-            "passage5": 3,  // 植物的生長 (P3-P4)
-            "passage6": 4,  // 小明的圖書館之旅 (P4-P5)
-            "passage7": 5,  // 太陽系的行星 (P5-P6)
-            "passage8": 4,  // 傳統節日 (P4-P5)
-            "passage9": 2   // 學校的回收日 (P2-P3)
+            "passage1": 1,   // 小兔子的派對 (P1-P2)
+            "passage2": 2,   // 四季變化 (P2-P3)
+            "passage3": 3,   // 小鳥的遷徙 (P3-P4)
+            "passage4": 2,   // 小貓咪的冒險 (P2-P3)
+            "passage5": 3,   // 植物的生長 (P3-P4)
+            "passage6": 4,   // 小明的圖書館之旅 (P4-P5)
+            "passage7": 5,   // 太陽系的行星 (P5-P6)
+            "passage8": 4,   // 傳統節日 (P4-P5)
+            "passage9": 2,   // 學校的回收日 (P2-P3)
+            "passage10": 1,  // 阿美的雨天日記 (P1)
+            "passage11": 2,  // 操場上的接力賽 (P2)
+            "passage12": 2,  // 認識地圖與方向 (P2-P3)
+            "passage13": 3,  // 爺爺的故事盒 (P3)
+            "passage14": 3,  // 水的循環 (P3-P4)
+            "passage15": 4,  // 搬家的那天 (P4)
+            "passage16": 4,  // 蜜蜂與授粉 (P4-P5)
+            "passage17": 5,  // 夜空下的約定 (P5-P6)
+            "passage18": 5   // 地震安全須知 (P5-P6)
         ]
         
         for passageKey in allPassageKeys {
@@ -237,11 +297,13 @@ class VocabularyManager {
     // MARK: - Track Word Encounter
     func trackWordEncounter(_ word: String, isCorrect: Bool, context: String? = nil) {
         if var vocabularyWord = vocabularyWords[word] {
+            vocabularyWord.applyGlossaryIfNeeded()
             vocabularyWord.addEncounter(isCorrect: isCorrect, context: context)
             vocabularyWords[word] = vocabularyWord
         } else {
-            // Create new word entry
+            // Create new word entry and apply offline gloss when available
             var newWord = VocabularyWord(word: word)
+            newWord.applyGlossaryIfNeeded()
             newWord.addEncounter(isCorrect: isCorrect, context: context)
             vocabularyWords[word] = newWord
         }
@@ -256,6 +318,37 @@ class VocabularyManager {
     // MARK: - Get All Vocabulary
     func getAllVocabulary() -> [VocabularyWord] {
         return Array(vocabularyWords.values).sorted { $0.lastSeen > $1.lastSeen }
+    }
+
+    // MARK: - Practice-Ready Vocabulary
+    /// Words with usable meanings only — never practice empty-gloss extractions.
+    func getPracticeVocabulary(limit: Int = 20) -> [VocabularyWord] {
+        enrichStoredVocabularyFromGlossary()
+        if vocabularyWords.values.filter({ $0.isPracticeReady }).isEmpty {
+            ensureSeedVocabularyIfNeeded()
+        }
+
+        func accuracy(_ w: VocabularyWord) -> Double {
+            guard w.encounters > 0 else { return 0 }
+            return Double(w.correctUses) / Double(w.encounters)
+        }
+
+        let ready = vocabularyWords.values.filter { $0.isPracticeReady }
+        let needsReview = ready.filter { $0.masteryLevel < 4 }
+            .sorted { a, b in
+                if a.masteryLevel != b.masteryLevel { return a.masteryLevel < b.masteryLevel }
+                if accuracy(a) != accuracy(b) { return accuracy(a) < accuracy(b) }
+                return a.encounters > b.encounters
+            }
+
+        let ordered = needsReview.isEmpty
+            ? ready.sorted { a, b in
+                if a.masteryLevel != b.masteryLevel { return a.masteryLevel < b.masteryLevel }
+                return accuracy(a) < accuracy(b)
+            }
+            : needsReview
+
+        return Array(ordered.prefix(limit))
     }
     
     // MARK: - Get Vocabulary by Mastery Level
