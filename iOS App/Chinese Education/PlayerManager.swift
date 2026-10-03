@@ -8,8 +8,8 @@ class PlayerManager {
     // MARK: - 🎮 PLAYER VISUAL COMPONENTS
     var playerImage: SKSpriteNode!       // Main player sprite (Doll1 texture)
     var playerCropNode: SKCropNode!      // ✅ Crop node for oval/circular shape
-    /// Optional walk animation. Nil when Move2/moving.mp4 are absent (root `.gitignore` ignores `*.mp4`).
-    var playerVideoNode: SKVideoNode?
+    /// Optional walk animation with chroma-key green removal. Nil when Move2/moving.mp4 are absent.
+    var playerVideoNode: ChromaKeyVideoNode?
     var avPlayer: AVPlayer?
 
     private init() {}  // Private initializer for singleton
@@ -47,7 +47,6 @@ class PlayerManager {
         scene.addChild(playerCropNode)
 
         // Optional walk video: Move2.mp4 → moving.mp4 → Doll1 sprite only (never crash).
-        // Packaging: add Move2.mp4 / moving.mp4 locally under the app target; they are gitignored as `*.mp4`.
         if let videoURL = Bundle.main.url(forResource: "Move2", withExtension: "mp4") {
             setupVideoPlayer(url: videoURL)
         } else if let fallbackURL = Bundle.main.url(forResource: "moving", withExtension: "mp4") {
@@ -62,31 +61,15 @@ class PlayerManager {
         setupPlayerPhysics(playerSize: playerSize)
     }
     
-    // MARK: - Setup Video Player (with transparent background support)
+    // MARK: - Setup Video Player (chroma-key green → transparent)
     private func setupVideoPlayer(url: URL) {
         let playerSize = CGSize(width: 60, height: 60)
-        
-        avPlayer = AVPlayer(url: url)
-        avPlayer?.actionAtItemEnd = .none
-        NotificationCenter.default.addObserver(
-            forName: .AVPlayerItemDidPlayToEndTime,
-            object: avPlayer?.currentItem,
-            queue: .main
-        ) { [weak self] _ in
-            self?.avPlayer?.seek(to: CMTime.zero)
-            self?.avPlayer?.play()
-        }
-
-        let videoNode = SKVideoNode(avPlayer: avPlayer!)
-        videoNode.size = playerSize
+        let videoNode = ChromaKeyVideoNode(url: url, size: playerSize, loops: true, muted: true)
         videoNode.position = CGPoint.zero  // Relative to cropNode
         videoNode.zPosition = playerImage.zPosition
         videoNode.isHidden = true
         playerVideoNode = videoNode
-        
-        // ✅ For transparent background video, the video file itself needs to have alpha channel
-        // SpriteKit's SKVideoNode will respect the video's alpha channel if present
-        // Note: The video file (move2.mp4) should be encoded with alpha channel (e.g., ProRes 4444 or HEVC with alpha)
+        avPlayer = videoNode.player
         playerCropNode.addChild(videoNode)
     }
     
@@ -115,16 +98,16 @@ class PlayerManager {
     
     /// Show walk animation when video assets exist; otherwise keep Doll1 visible.
     func setWalking(_ walking: Bool) {
-        guard let videoNode = playerVideoNode, let player = avPlayer else {
+        guard let videoNode = playerVideoNode else {
             playerImage?.isHidden = false
             return
         }
         playerImage?.isHidden = walking
         videoNode.isHidden = !walking
         if walking {
-            player.play()
+            videoNode.play()
         } else {
-            player.pause()
+            videoNode.pause()
         }
     }
 }

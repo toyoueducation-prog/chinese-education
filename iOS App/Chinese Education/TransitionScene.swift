@@ -3,8 +3,8 @@ import AVFoundation
 
 class TransitionScene: SKScene, AVSpeechSynthesizerDelegate {
     private var videoNode: SKVideoNode?
-    private var doll2VideoNode: SKVideoNode?  // ✅ Video node for doll2 character
-    private var doll2AVPlayer: AVPlayer?  // ✅ AVPlayer for doll2 video
+    private var doll2VideoNode: ChromaKeyVideoNode?
+    private var doll2AVPlayer: AVPlayer?
     private var explanationLabel: SKLabelNode!
     private var continueButton: SKLabelNode!
     private var shouldPlayVideo: Bool = false  // ✅ Set to `true` for video transitions
@@ -42,31 +42,19 @@ class TransitionScene: SKScene, AVSpeechSynthesizerDelegate {
             return
         }
         
-        // ✅ Setup video player for doll2
-        doll2AVPlayer = AVPlayer(url: videoURL)
-        doll2AVPlayer?.volume = 0  // ✅ Mute audio
-        doll2AVPlayer?.actionAtItemEnd = .none  // Loop the video
-        
-        // ✅ Loop video when it ends
-        NotificationCenter.default.addObserver(
-            forName: .AVPlayerItemDidPlayToEndTime,
-            object: doll2AVPlayer?.currentItem,
-            queue: .main
-        ) { [weak self] _ in
-            self?.doll2AVPlayer?.seek(to: CMTime.zero)
-            self?.doll2AVPlayer?.play()
-        }
-        
-        // ✅ Create video node
-        doll2VideoNode = SKVideoNode(avPlayer: doll2AVPlayer!)
-        doll2VideoNode?.size = CGSize(width: 200, height: 200)  // Character size
-        doll2VideoNode?.position = CGPoint(x: size.width * 0.2, y: size.height * 0.4)  // Left side
-        doll2VideoNode?.zPosition = 10  // Above background, below text
-        doll2VideoNode?.name = "doll2Character"
-        addChild(doll2VideoNode!)
-        
-        // ✅ Start playing
-        doll2AVPlayer?.play()
+        let node = ChromaKeyVideoNode(
+            url: videoURL,
+            size: CGSize(width: 200, height: 200),
+            loops: true,
+            muted: true
+        )
+        node.position = CGPoint(x: size.width * 0.2, y: size.height * 0.4)
+        node.zPosition = 10
+        node.name = "doll2Character"
+        doll2VideoNode = node
+        doll2AVPlayer = node.player
+        addChild(node)
+        node.play()
     }
 
     // MARK: - Setup Play/Pause Button
@@ -250,7 +238,7 @@ class TransitionScene: SKScene, AVSpeechSynthesizerDelegate {
     // MARK: - Transition to Conversation Scene
     func transitionToConversationScene() {
         // ✅ Stop and cleanup video player before transitioning
-        doll2AVPlayer?.pause()
+        doll2VideoNode?.stop()
         doll2AVPlayer = nil
         doll2VideoNode?.removeFromParent()
         doll2VideoNode = nil
@@ -267,7 +255,7 @@ class TransitionScene: SKScene, AVSpeechSynthesizerDelegate {
         super.willMove(from: view)
         
         // ✅ Stop and cleanup video player
-        doll2AVPlayer?.pause()
+        doll2VideoNode?.stop()
         doll2AVPlayer = nil
         doll2VideoNode?.removeFromParent()
         doll2VideoNode = nil

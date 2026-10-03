@@ -70,9 +70,9 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
     private var exitButtonBackground: SKShapeNode!
     
     // Video playback
-    private var doll1VideoNode: SKVideoNode?
+    private var doll1VideoNode: ChromaKeyVideoNode?
     private var doll1AVPlayer: AVPlayer?
-    private var doll2VideoNode: SKVideoNode?
+    private var doll2VideoNode: ChromaKeyVideoNode?
     private var doll2AVPlayer: AVPlayer?
     
     // Feedback video playback
@@ -373,28 +373,36 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
     }
     
     func setupDollVideos() {
-        // ✅ Setup doll1.mp4 (muted)
+        // ✅ Setup doll1.mp4 (wave once, muted) with chroma green dropped
         if let videoURL = Bundle.main.url(forResource: "doll1", withExtension: "mp4") {
-            doll1AVPlayer = AVPlayer(url: videoURL)
-            doll1AVPlayer?.volume = 0
-            doll1VideoNode = SKVideoNode(avPlayer: doll1AVPlayer!)
-            doll1VideoNode?.size = CGSize(width: 100, height: 100)
-            doll1VideoNode?.position = CGPoint(x: size.width - 100, y: 100)
-            doll1VideoNode?.zPosition = 50
-            addChild(doll1VideoNode!)
-            doll1AVPlayer?.play()
+            let node = ChromaKeyVideoNode(
+                url: videoURL,
+                size: CGSize(width: 100, height: 100),
+                loops: false,
+                muted: true
+            )
+            node.position = CGPoint(x: size.width - 100, y: 100)
+            node.zPosition = 50
+            doll1VideoNode = node
+            doll1AVPlayer = node.player
+            addChild(node)
+            node.play()
         }
         
-        // ✅ Setup doll2.mp4 (muted)
+        // ✅ Setup doll2.mp4 (nod loop, muted) with chroma green dropped
         if let videoURL = Bundle.main.url(forResource: "doll2", withExtension: "mp4") {
-            doll2AVPlayer = AVPlayer(url: videoURL)
-            doll2AVPlayer?.volume = 0
-            doll2VideoNode = SKVideoNode(avPlayer: doll2AVPlayer!)
-            doll2VideoNode?.size = CGSize(width: 100, height: 100)
-            doll2VideoNode?.position = CGPoint(x: 100, y: 100)
-            doll2VideoNode?.zPosition = 50
-            addChild(doll2VideoNode!)
-            doll2AVPlayer?.play()
+            let node = ChromaKeyVideoNode(
+                url: videoURL,
+                size: CGSize(width: 100, height: 100),
+                loops: true,
+                muted: true
+            )
+            node.position = CGPoint(x: 100, y: 100)
+            node.zPosition = 50
+            doll2VideoNode = node
+            doll2AVPlayer = node.player
+            addChild(node)
+            node.play()
         }
     }
     
@@ -1744,6 +1752,8 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
     override func willMove(from view: SKView) {
         super.willMove(from: view)
         synthesizer.stopSpeaking(at: .immediate)
+        doll1VideoNode?.stop()
+        doll2VideoNode?.stop()
         doll1AVPlayer?.pause()
         doll2AVPlayer?.pause()
         

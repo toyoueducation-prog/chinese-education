@@ -38,9 +38,14 @@ fastlane/test_output
 iOSInjectionProject/
 
 # Large media files
-# Walk / transition clips (Move2.mp4, moving.mp4, etc.) are local packaging assets —
-# clones without them must still run via Doll sprite fallbacks (see PlayerManager / BadgeScene).
+# Ignore videos by default; clones without most clips still run via sprite fallbacks.
+# Allow only the four character animation clips used by PlayerManager / Conversation /
+# Transition / Badge / LevelUp scenes.
 *.mp4
+!Move2.mp4
+!moving.mp4
+!doll1.mp4
+!doll2.mp4
 *.mov
 *.avi
 *.mkv

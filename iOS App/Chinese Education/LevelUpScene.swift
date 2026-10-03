@@ -2,7 +2,8 @@ import SpriteKit
 import AVFoundation
 
 class LevelUpScene: SKScene {
-    private var videoNode: SKVideoNode?
+    private var videoNode: SKNode?
+    private var chromaVideoNode: ChromaKeyVideoNode?
     private var avPlayer: AVPlayer?
     private var continueButton: SKLabelNode!
     private var continueButtonBackground: SKShapeNode!
@@ -18,25 +19,36 @@ class LevelUpScene: SKScene {
     
     // MARK: - Setup Video
     func setupVideo() {
-        // ✅ Try to load level-up video, fallback to moving video
+        // ✅ Try to load level-up video, fallback to moving video (chroma-keyed character clip)
         guard let videoURL = Bundle.main.url(forResource: "levelup", withExtension: "mp4") else {
             print("⚠️ levelup.mp4 not found, falling back to moving.mp4")
             guard let fallbackURL = Bundle.main.url(forResource: "moving", withExtension: "mp4") else {
                 print("⚠️ moving.mp4 also not found, skipping video")
                 return
             }
-            setupVideoPlayer(url: fallbackURL)
+            setupChromaKeyVideoPlayer(url: fallbackURL)
             return
         }
-        setupVideoPlayer(url: videoURL)
+        setupOpaqueVideoPlayer(url: videoURL)
     }
     
-    // MARK: - Setup Video Player
-    private func setupVideoPlayer(url: URL) {
+    // MARK: - Character clip fallback (drop chroma green)
+    private func setupChromaKeyVideoPlayer(url: URL) {
+        let node = ChromaKeyVideoNode(url: url, size: size, loops: true, muted: true)
+        node.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        node.zPosition = -1
+        chromaVideoNode = node
+        videoNode = node
+        avPlayer = node.player
+        addChild(node)
+        node.play()
+    }
+    
+    // MARK: - Dedicated level-up clip (no green key expected)
+    private func setupOpaqueVideoPlayer(url: URL) {
         avPlayer = AVPlayer(url: url)
         avPlayer?.actionAtItemEnd = .none
         
-        // ✅ Loop video
         NotificationCenter.default.addObserver(
             forName: .AVPlayerItemDidPlayToEndTime,
             object: avPlayer?.currentItem,
@@ -46,11 +58,12 @@ class LevelUpScene: SKScene {
             self?.avPlayer?.play()
         }
         
-        videoNode = SKVideoNode(avPlayer: avPlayer!)
-        videoNode?.position = CGPoint(x: size.width / 2, y: size.height / 2)
-        videoNode?.size = size
-        videoNode?.zPosition = -1
-        addChild(videoNode!)
+        let skNode = SKVideoNode(avPlayer: avPlayer!)
+        skNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        skNode.size = size
+        skNode.zPosition = -1
+        videoNode = skNode
+        addChild(skNode)
         
         avPlayer?.play()
     }
@@ -137,6 +150,7 @@ class LevelUpScene: SKScene {
     
     // MARK: - Return to Game
     func returnToGameScene() {
+        chromaVideoNode?.stop()
         avPlayer?.pause()
         videoNode?.removeFromParent()
         
@@ -149,6 +163,7 @@ class LevelUpScene: SKScene {
     // MARK: - Cleanup
     override func willMove(from view: SKView) {
         super.willMove(from: view)
+        chromaVideoNode?.stop()
         avPlayer?.pause()
         videoNode?.removeFromParent()
         NotificationCenter.default.removeObserver(self)
