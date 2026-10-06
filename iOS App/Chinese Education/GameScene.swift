@@ -1053,14 +1053,19 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             let secondBody = contact.bodyB.categoryBitMask
 
         
-        // ✅ Check for treasury box collision
-        if let treasuryNode = (bodyA.name == "treasuryBox" ? bodyA : (bodyB.name == "treasuryBox" ? bodyB : nil)) {
-            if (bodyA === playerNode || bodyB === playerNode) && !transitionCooldown {
-                print("💰 Treasury box collision detected!")
-                transitionCooldown = true
-                transitionToTreasuryScene()
-                return
-            }
+        // ✅ Check for treasury box collision (bodyA/bodyB.node are optional)
+        let treasuryNode: SKNode? = {
+            if bodyA?.name == "treasuryBox" { return bodyA }
+            if bodyB?.name == "treasuryBox" { return bodyB }
+            return nil
+        }()
+        if treasuryNode != nil,
+           (bodyA === playerNode || bodyB === playerNode),
+           !transitionCooldown {
+            print("💰 Treasury box collision detected!")
+            transitionCooldown = true
+            transitionToTreasuryScene()
+            return
         }
         
         guard let enemy = enemyNode, enemy.name == "enemy" else {
