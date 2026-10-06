@@ -39,8 +39,8 @@ class ClassManager {
     func removeStudent(studentID: String) {
         students.removeAll { $0.studentID == studentID }
         // Remove from all groups
-        for group in groups {
-            group.studentIDs.removeAll { $0 == studentID }
+        for index in groups.indices {
+            groups[index].studentIDs.removeAll { $0 == studentID }
         }
         saveData()
     }

@@ -2,7 +2,7 @@ import SpriteKit
 import AVFoundation
 
 class BadgeScene: SKScene {
-    private var videoNode: SKVideoNode?
+    private var videoNode: ChromaKeyVideoNode?
     private var badgeLabel: SKLabelNode!
     private var continueButton: SKLabelNode!
     var badgeName: String = "New Badge!"  // ✅ Badge name to display
@@ -27,23 +27,14 @@ class BadgeScene: SKScene {
         }
     }
     
-    // MARK: - Setup Video Player
+    // MARK: - Setup Video Player (drop chroma green so full-screen stretch is not a neon field)
     private func setupVideoPlayer(url: URL) {
-
-        let player = AVPlayer(url: url)
-        videoNode = SKVideoNode(avPlayer: player)
-        videoNode?.position = CGPoint(x: size.width / 2, y: size.height / 2)
-        videoNode?.size = size
-        videoNode?.zPosition = -1
-        
-        // ✅ For transparent background video, the video file needs alpha channel
-        // SpriteKit's SKVideoNode will respect the video's alpha channel if present
-        // Note: The video file (Move2.mp4) should be encoded with alpha channel (e.g., ProRes 4444 or HEVC with alpha)
-        if let videoNode = videoNode {
-            addChild(videoNode)
-        }
-
-        player.play()
+        let node = ChromaKeyVideoNode(url: url, size: size, loops: true, muted: true)
+        node.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        node.zPosition = -1
+        videoNode = node
+        addChild(node)
+        node.play()
     }
     
     // MARK: - Doll1 Fallback (no video assets)
@@ -85,9 +76,17 @@ class BadgeScene: SKScene {
 
     // MARK: - Transition Back to Game Scene
     func returnToGameScene() {
+        videoNode?.stop()
+        videoNode?.removeFromParent()
         let conversationScene = ConversationScene(size: self.size)
         conversationScene.scaleMode = .aspectFill
         let transition = SKTransition.fade(withDuration: 1.0)
         self.view?.presentScene(conversationScene, transition: transition)
+    }
+
+    override func willMove(from view: SKView) {
+        super.willMove(from: view)
+        videoNode?.stop()
+        videoNode?.removeFromParent()
     }
 }

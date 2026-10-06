@@ -13,8 +13,6 @@
 		2906553C2EFBEEB400E4AA08 /* doll1.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 2906553B2EFBEEB400E4AA08 /* doll1.mp4 */; };
 		2906553D2EFBEEB400E4AA08 /* doll1.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 2906553B2EFBEEB400E4AA08 /* doll1.mp4 */; };
 		2906553E2EFBEEB400E4AA08 /* doll1.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 2906553B2EFBEEB400E4AA08 /* doll1.mp4 */; };
-		290655B32DB1E83500FA06C0 /* correct.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 290655B22DB1E83500FA06C0 /* correct.mp4 */; };
-		290655B52DB1E83D00FA06C0 /* incorrect.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 290655B42DB1E83D00FA06C0 /* incorrect.mp4 */; };
 		2916463F2D524BC200EF15E4 /* Chinese_EducationApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2916463E2D524BC200EF15E4 /* Chinese_EducationApp.swift */; };
 		291646432D524BC500EF15E4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 291646422D524BC500EF15E4 /* Assets.xcassets */; };
 		291646462D524BC500EF15E4 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 291646452D524BC500EF15E4 /* Preview Assets.xcassets */; };
@@ -40,9 +38,6 @@
 		29699A232F1C84C7004D611D /* Move2.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 29699A212F1C84C7004D611D /* Move2.mp4 */; };
 		29699A242F1C84C7004D611D /* Move2.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 29699A212F1C84C7004D611D /* Move2.mp4 */; };
 		2984CBF32D61DD39008D19C0 /* ConversationScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2984CBF22D61DD39008D19C0 /* ConversationScene.swift */; };
-		2984CBF72D61FA20008D19C0 /* Water.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 2984CBF62D61F7F4008D19C0 /* Water.mp4 */; };
-		2984CBF82D61FA22008D19C0 /* Water.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 2984CBF62D61F7F4008D19C0 /* Water.mp4 */; };
-		2984CBF92D61FA23008D19C0 /* Water.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 2984CBF62D61F7F4008D19C0 /* Water.mp4 */; };
 		298508F22D75EB0100AECD23 /* moving.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 298508F12D75EB0100AECD23 /* moving.mp4 */; };
 		298508F42D78820700AECD23 /* Custom_Button.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298508F32D78820700AECD23 /* Custom_Button.swift */; };
 		298508F62D7D845A00AECD23 /* HintScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298508F52D7D845A00AECD23 /* HintScene.swift */; };
@@ -56,6 +51,7 @@
 		298CE73B2D6AA30500762889 /* TeacherQuestionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298CE73A2D6AA30500762889 /* TeacherQuestionManager.swift */; };
 		298CE73D2D6AA33000762889 /* QuestionSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298CE73C2D6AA33000762889 /* QuestionSyncManager.swift */; };
 		298CE7402D6AC4F700762889 /* PlayerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298CE73F2D6AC4F700762889 /* PlayerManager.swift */; };
+		A6CHKEYMB2F150001000E9171 /* ChromaKeyVideoNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6CHKEYRF2F150001000E9171 /* ChromaKeyVideoNode.swift */; };
 		298CE7422D6AC56200762889 /* GameStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298CE7412D6AC56200762889 /* GameStats.swift */; };
 		299653E92D636DAB0038E8B1 /* ClampingScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 299653E82D636DAB0038E8B1 /* ClampingScene.swift */; };
 		299653EB2D637D300038E8B1 /* SigninScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 299653EA2D637D300038E8B1 /* SigninScene.swift */; };
@@ -81,11 +77,11 @@
 		29A1B2D72D90C8AB00C81CE8 /* DataSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A1B2D62D90C8AB00C81CE8 /* DataSyncManager.swift */; };
 		29F8129B2D86C95900C81CE7 /* GradientBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F8129A2D86C95800C81CE7 /* GradientBackground.swift */; };
 		29F8129D2D87123100C81CE7 /* IntroductionScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F8129C2D87123100C81CE7 /* IntroductionScene.swift */; };
-		29F8129F2D8714A800C81CE7 /* intro.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 29F8129E2D8713AD00C81CE7 /* intro.mp4 */; };
 		29F812A12D8E3FDA00C81CE7 /* MazeScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F812A02D8E3FDA00C81CE7 /* MazeScene.swift */; };
 		29F812A32D90C41800C81CE7 /* WelcomeBackScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F812A22D90C41800C81CE7 /* WelcomeBackScene.swift */; };
-		29F812A52D90C7BE00C81CE7 /* welcomeback.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 29F812A42D90C7BE00C81CE7 /* welcomeback.mp4 */; };
 		29F812A72D90C8A000C81CE7 /* MapManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F812A62D90C8A000C81CE7 /* MapManager.swift */; };
+		A7TREASMB2F160001000E9171 /* TreasuryScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7TREASRF2F160001000E9171 /* TreasuryScene.swift */; };
+		A7LVLUPMB2F160001000E9171 /* LevelUpScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7LVLUPRF2F160001000E9171 /* LevelUpScene.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -141,6 +137,7 @@
 		298CE73A2D6AA30500762889 /* TeacherQuestionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeacherQuestionManager.swift; sourceTree = "<group>"; };
 		298CE73C2D6AA33000762889 /* QuestionSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestionSyncManager.swift; sourceTree = "<group>"; };
 		298CE73F2D6AC4F700762889 /* PlayerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerManager.swift; sourceTree = "<group>"; };
+		A6CHKEYRF2F150001000E9171 /* ChromaKeyVideoNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChromaKeyVideoNode.swift; sourceTree = "<group>"; };
 		298CE7412D6AC56200762889 /* GameStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameStats.swift; sourceTree = "<group>"; };
 		299653E82D636DAB0038E8B1 /* ClampingScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClampingScene.swift; sourceTree = "<group>"; };
 		299653EA2D637D300038E8B1 /* SigninScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SigninScene.swift; sourceTree = "<group>"; };
@@ -170,6 +167,8 @@
 		29F812A42D90C7BE00C81CE7 /* welcomeback.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = welcomeback.mp4; sourceTree = "<group>"; };
 		29F812A62D90C8A000C81CE7 /* MapManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapManager.swift; sourceTree = "<group>"; };
 		A2CLASSMF2F070001000E9171 /* ClassManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClassManager.swift; sourceTree = "<group>"; };
+		A7TREASRF2F160001000E9171 /* TreasuryScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreasuryScene.swift; sourceTree = "<group>"; };
+		A7LVLUPRF2F160001000E9171 /* LevelUpScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelUpScene.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -287,6 +286,7 @@
 			isa = PBXGroup;
 			children = (
 				298CE73F2D6AC4F700762889 /* PlayerManager.swift */,
+				A6CHKEYRF2F150001000E9171 /* ChromaKeyVideoNode.swift */,
 				298CE7412D6AC56200762889 /* GameStats.swift */,
 				298CE7302D6A129200762889 /* PlayerProgress.swift */,
 				298508FF2D85539C00AECD23 /* NPC.swift */,
@@ -322,6 +322,8 @@
 				291646752D525A0100EF15E4 /* GameScene.swift */,
 				298CE7342D6A1A2800762889 /* NewWorldScene.swift */,
 				2985090E2D6D333300A50896 /* BadgeScene.swift */,
+				A7TREASRF2F160001000E9171 /* TreasuryScene.swift */,
+				A7LVLUPRF2F160001000E9171 /* LevelUpScene.swift */,
 				29F812A62D90C8A000C81CE7 /* MapManager.swift */,
 			);
 			name = Scene;
@@ -381,6 +383,7 @@
 				291646372D524BC200EF15E4 /* Sources */,
 				291646382D524BC200EF15E4 /* Frameworks */,
 				291646392D524BC200EF15E4 /* Resources */,
+				A7OPTPHAS2F160001000E9171 /* Copy Optional Videos */,
 			);
 			buildRules = (
 			);
@@ -477,17 +480,12 @@
 			files = (
 				29699A242F1C84C7004D611D /* Move2.mp4 in Resources */,
 				291646462D524BC500EF15E4 /* Preview Assets.xcassets in Resources */,
-				29F8129F2D8714A800C81CE7 /* intro.mp4 in Resources */,
 				2906553A2EFBEDC000E4AA08 /* doll2.mp4 in Resources */,
 				298508F22D75EB0100AECD23 /* moving.mp4 in Resources */,
 				2906553D2EFBEEB400E4AA08 /* doll1.mp4 in Resources */,
-				290655B52DB1E83D00FA06C0 /* incorrect.mp4 in Resources */,
-				29F812A52D90C7BE00C81CE7 /* welcomeback.mp4 in Resources */,
 				291646432D524BC500EF15E4 /* Assets.xcassets in Resources */,
 				299ECD602D68BFFF001A6647 /* cartoon_fast_music.mp3 in Resources */,
 				2916466E2D524D6E00EF15E4 /* SKScene.sks in Resources */,
-				2984CBF72D61FA20008D19C0 /* Water.mp4 in Resources */,
-				290655B32DB1E83500FA06C0 /* correct.mp4 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -499,7 +497,6 @@
 				290655382EFBEDC000E4AA08 /* doll2.mp4 in Resources */,
 				2916466F2D524D6E00EF15E4 /* SKScene.sks in Resources */,
 				29699A232F1C84C7004D611D /* Move2.mp4 in Resources */,
-				2984CBF82D61FA22008D19C0 /* Water.mp4 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -511,11 +508,32 @@
 				290655392EFBEDC000E4AA08 /* doll2.mp4 in Resources */,
 				291646702D524D6E00EF15E4 /* SKScene.sks in Resources */,
 				29699A222F1C84C7004D611D /* Move2.mp4 in Resources */,
-				2984CBF92D61FA23008D19C0 /* Water.mp4 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		A7OPTPHAS2F160001000E9171 /* Copy Optional Videos */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			alwaysOutOfDate = 1;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Optional Videos";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Optional gitignored videos — copy into the app bundle when present locally.\n# Fresh clones without these files still build; Swift falls back to sprites/text.\nset -e\nSRC=\"${SRCROOT}/Chinese Education\"\nDEST=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}\"\nmkdir -p \"$DEST\"\nfor f in correct.mp4 incorrect.mp4 intro.mp4 Water.mp4 welcomeback.mp4; do\n  if [ -f \"$SRC/$f\" ]; then\n    cp -f \"$SRC/$f\" \"$DEST/$f\"\n    echo \"Copied optional video: $f\"\n  else\n    echo \"Skipping missing optional video: $f\"\n  fi\ndone\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		291646372D524BC200EF15E4 /* Sources */ = {
@@ -532,7 +550,10 @@
 				29F8129B2D86C95900C81CE7 /* GradientBackground.swift in Sources */,
 				299653EB2D637D300038E8B1 /* SigninScene.swift in Sources */,
 				2985090F2D6D333300A50896 /* BadgeScene.swift in Sources */,
+				A7TREASMB2F160001000E9171 /* TreasuryScene.swift in Sources */,
+				A7LVLUPMB2F160001000E9171 /* LevelUpScene.swift in Sources */,
 				298CE7402D6AC4F700762889 /* PlayerManager.swift in Sources */,
+				A6CHKEYMB2F150001000E9171 /* ChromaKeyVideoNode.swift in Sources */,
 				298509002D85539C00AECD23 /* NPC.swift in Sources */,
 				2916464B2D524BC600EF15E4 /* Chinese_Education.xcdatamodeld in Sources */,
 				298CE7372D6AA2DD00762889 /* QuestionBank.swift in Sources */,
