@@ -11,7 +11,9 @@ enum SafeAreaLayout {
     static func insets(for scene: SKScene) -> UIEdgeInsets {
         #if os(iOS)
         if let view = scene.view {
-            let insets = view.safeAreaInsets
+            var insets = view.safeAreaInsets
+            if insets.top < 20 && scene.size.height >= 700 { insets.top = max(insets.top, 59) }
+            if insets.bottom < 10 && scene.size.height >= 700 { insets.bottom = max(insets.bottom, 34) }
             if insets.top > 0 || insets.bottom > 0 {
                 return insets
             }
@@ -19,7 +21,11 @@ enum SafeAreaLayout {
         let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
         if let window = scenes.flatMap(\.windows).first(where: \.isKeyWindow)
             ?? scenes.first?.windows.first {
-            return window.safeAreaInsets
+            var insets = window.safeAreaInsets
+            // Before first layout pass, insets can still read as zero — keep a notch floor.
+            if insets.top < 20 && scene.size.height >= 700 { insets.top = 59 }
+            if insets.bottom < 10 && scene.size.height >= 700 { insets.bottom = 34 }
+            return insets
         }
         // Typical iPhone portrait with Dynamic Island / home indicator.
         return UIEdgeInsets(top: 59, left: 0, bottom: 34, right: 0)

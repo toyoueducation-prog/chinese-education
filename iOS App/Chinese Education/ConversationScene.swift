@@ -77,6 +77,8 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
     private var lastPassageTouchY: CGFloat = 0
     /// Bottom Y of the question panel (scene coords) — answers stack below this.
     private var questionPanelBottomY: CGFloat = 0
+    /// Bottom Y of the passage panel (scene coords).
+    private var passagePanelBottomY: CGFloat = 0
     
     // Video playback
     private var doll1VideoNode: ChromaKeyVideoNode?
@@ -332,9 +334,10 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         let frame = safeContentFrame
         let topBarReserved: CGFloat = 56
         let passageWidth = frame.width
-        // Cap passage so question + 4 answers still fit below.
-        let maxPassageHeight = min(frame.height * 0.32, 220)
-        let fontSize: CGFloat = max(22, min(26, size.width / 16))
+        // Budget: top bar + passage + question (~110) + 4 answers (~232) + dolls/home (~110).
+        let reservedBelowPassage: CGFloat = 110 + 232 + 110
+        let maxPassageHeight = max(120, min(frame.height * 0.28, frame.height - topBarReserved - reservedBelowPassage))
+        let fontSize: CGFloat = max(20, min(24, size.width / 17))
         let lineHeight = fontSize + 10
         let horizontalPad: CGFloat = 18
         let verticalPad: CGFloat = 16
@@ -344,7 +347,9 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         passageContentHeight = contentHeight
         passageVisibleHeight = visibleHeight
 
-        let panelCenterY = safeTopY - topBarReserved - visibleHeight / 2
+        let panelTop = safeTopY - topBarReserved
+        let panelCenterY = panelTop - visibleHeight / 2
+        passagePanelBottomY = panelTop - visibleHeight
         let passageContainer = SKShapeNode(rectOf: CGSize(width: passageWidth, height: visibleHeight), cornerRadius: 14)
         // Solid/semi-opaque panel — never put text directly on busy art.
         passageContainer.fillColor = UIColor(white: 1.0, alpha: 0.94)
@@ -515,17 +520,17 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         }
 
         let frame = safeContentFrame
-        var passageBottom = safeTopY - 56
-        enumerateChildNodes(withName: "passageContainer") { node, _ in
-            if let container = node as? SKShapeNode {
-                passageBottom = container.position.y - container.frame.height / 2 - 18
-            }
-        }
+        let passageBottom = (passagePanelBottomY > 0 ? passagePanelBottomY : safeTopY - 200) - 14
 
         let questionContainerWidth = frame.width
         let textWidth = questionContainerWidth - 36
         let headerHeight: CGFloat = 28
-        let verticalPad: CGFloat = 16
+        let verticalPad: CGFloat = 14
+
+        // Answers always get space above dolls / home indicator.
+        let answerReserve: CGFloat = 4 * 54 + 20
+        let answersFloor = safeBottomY + 100
+        let maxQuestionHeight = max(90, passageBottom - (answersFloor + answerReserve) - 12)
 
         questionLabel = SKLabelNode(text: question.question)
         questionLabel.fontName = "AvenirNext-Medium"
@@ -535,27 +540,24 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         questionLabel.numberOfLines = 0
         questionLabel.lineBreakMode = .byWordWrapping
         questionLabel.name = "questionLabel"
-        // Dynamic size for long Chinese stems; never below 18.
-        questionLabel.fontSize = 24
-        questionLabel.fitFont(maxWidth: textWidth, maxHeight: 120, minimum: 18, starting: 24)
-        let questionTextHeight = questionLabel.measuredTextHeight(maxWidth: textWidth)
-        let questionContainerHeight = headerHeight + questionTextHeight + verticalPad * 2 + 8
+        questionLabel.fontSize = 22
+        let textBudget = max(48, maxQuestionHeight - headerHeight - verticalPad * 2)
+        questionLabel.fitFont(maxWidth: textWidth, maxHeight: textBudget, minimum: 17, starting: 22)
+        let questionTextHeight = min(textBudget, questionLabel.measuredTextHeight(maxWidth: textWidth))
+        let questionContainerHeight = min(
+            maxQuestionHeight,
+            headerHeight + questionTextHeight + verticalPad * 2 + 6
+        )
 
-        // Leave room for up to 4 answer rows above the home indicator / dolls.
-        let answerReserve: CGFloat = 4 * 58 + 24
-        let maxQuestionBottom = safeBottomY + answerReserve + 100
-        var panelTop = passageBottom - 12
-        var panelBottom = panelTop - questionContainerHeight
-        if panelBottom < maxQuestionBottom {
-            panelBottom = maxQuestionBottom
-            panelTop = panelBottom + questionContainerHeight
-        }
+        // Never push upward into the passage — only shrink.
+        let panelTop = passageBottom
+        let panelBottom = panelTop - questionContainerHeight
 
         let questionContainer = SKShapeNode(
             rectOf: CGSize(width: questionContainerWidth, height: questionContainerHeight),
             cornerRadius: 14
         )
-        questionContainer.fillColor = UIColor(red: 1.0, green: 0.96, blue: 0.88, alpha: 0.96)
+        questionContainer.fillColor = UIColor(red: 1.0, green: 0.96, blue: 0.88, alpha: 0.97)
         questionContainer.strokeColor = UIColor(red: 0.75, green: 0.45, blue: 0.1, alpha: 1.0)
         questionContainer.lineWidth = 2.5
         questionContainer.position = CGPoint(x: size.width / 2, y: (panelTop + panelBottom) / 2)
@@ -565,7 +567,7 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         questionPanelBottomY = panelBottom
 
         let questionNumberLabel = SKLabelNode(text: "問題 \(currentQuestionIndex + 1)")
-        questionNumberLabel.fontSize = 18
+        questionNumberLabel.fontSize = 17
         questionNumberLabel.fontColor = UIColor(red: 0.7, green: 0.35, blue: 0.05, alpha: 1.0)
         questionNumberLabel.fontName = "AvenirNext-Bold"
         questionNumberLabel.horizontalAlignmentMode = .left
@@ -584,7 +586,7 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
 
         isOpenEndedQuestion = (question.type == "qa")
 
-        let answersTop = panelBottom - 14
+        let answersTop = panelBottom - 12
         if let choices = question.choices, !isOpenEndedQuestion {
             displayMultipleChoice(choices, question: question, belowY: answersTop)
         } else if isOpenEndedQuestion {
