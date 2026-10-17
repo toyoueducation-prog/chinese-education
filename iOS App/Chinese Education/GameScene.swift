@@ -96,6 +96,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     // Map Legend: "S"=Stone Walls, "."=Grass Paths, "T"=Trees, "G"=Grass Areas, "W"=Water, "P"=Player Spawn
     private var currentMapIndex = 0  // ✅ Track which map we're on
     private static let mapIndexKey = "currentMapIndex"
+    /// On-screen tile size in points. Catalog tiles ship as 192px @3x (= 64pt).
+    static let mapTilePointSize: CGFloat = 64
     private var mapLayout: [[Character]] = [
         ["S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S"], // Row 0: Top boundary
         ["S",".",".",".","T","G","G","G","T",".",".",".",".",".",".",".",".",".",".",".","S"], // Row 1: Forest area
@@ -149,7 +151,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     override func didMove(to view: SKView) {
-        backgroundColor = UIColor(red: 0.2, green: 0.5, blue: 0.2, alpha: 1.0)  // ✅ Darker green background
+        // Match meadow tile hue so camera edges beyond the 21×20 grid aren't a flat void.
+        backgroundColor = UIColor(red: 0.45, green: 0.62, blue: 0.32, alpha: 1.0)
         physicsWorld.contactDelegate = self
         physicsWorld.gravity = .zero // Disable gravity for 2D movement
         
@@ -393,8 +396,20 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 node.removeFromParent()
             }
         }
+
+        // Soft full-map underlay so areas outside the 21×20 grid (and camera edges) stay storybook grass.
+        let underlay = SKSpriteNode(imageNamed: "grass2")
+        underlay.name = "mapUnderlay"
+        underlay.zPosition = -2
+        underlay.texture?.filteringMode = .linear
+        let worldW = CGFloat(21) * Self.mapTilePointSize
+        let worldH = CGFloat(20) * Self.mapTilePointSize
+        underlay.size = CGSize(width: max(size.width, worldW) * 1.35, height: max(size.height, worldH) * 1.35)
+        underlay.position = CGPoint(x: worldW / 2 - size.width / 2, y: size.height / 2 - worldH / 2)
+        addChild(underlay)
         
-        let tileSize = CGSize(width: 64, height: 64)
+        // 64pt tiles pair with @3x 192px catalog assets (exact Retina, no upscale blur).
+        let tileSize = CGSize(width: Self.mapTilePointSize, height: Self.mapTilePointSize)
         for (row, tiles) in mapLayout.enumerated() {
             for (col, symbol) in tiles.enumerated() {
                 let tileName = imageName(for: symbol)
@@ -429,6 +444,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 }
                 
                 tileNode.size = tileSize
+                tileNode.texture?.filteringMode = .linear
                 tileNode.anchorPoint = CGPoint(x: 0, y: 1)
                 
                 let xPos = CGFloat(col) * tileSize.width - size.width / 2
@@ -507,9 +523,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             case "T": 
                 // Randomly choose between tree types
                 // Note: tree_oak has a double .png extension issue - using tree_pine and tree_birch for now
-                let treeTypes = ["tree_pine", "tree_birch"]  // Removed tree_oak until file is renamed
+                let treeTypes = ["tree_pine", "tree_birch", "tree_oak"]
                 return treeTypes.randomElement() ?? "tree_pine"
-            case ".", "P": return "forest_path"  // Use forest path (will fallback if missing)
+            case ".", "P": return "forest_path"
+
             case "F": return "forest_grass1"  // Forest floor - using grass as fallback until forest_floor image is added
             case "B": return "bush_berry"  // Berry bush
             case "R": return "rock_large"  // Large rock
@@ -737,14 +754,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             
             // ✅ Original map boundaries: 21x20 grid, 64x64 tiles
             // ✅ Map is rendered with col 0 at (-size.width/2) and col 20 at (20*64 - size.width/2)
-            let tileSize: CGFloat = 64
+            let tileSize: CGFloat = Self.mapTilePointSize
             let mapColumns = 21
             let mapRows = 20
             let mapWidth = CGFloat(mapColumns) * tileSize  // 1344
             let mapHeight = CGFloat(mapRows) * tileSize     // 1280
             // ✅ Calculate actual map bounds based on tile positions
-            // ✅ First tile (col 0) is at: 0 * 64 - size.width / 2
-            // ✅ Last tile (col 20) is at: 20 * 64 - size.width / 2 = 1280 - size.width / 2
             let mapBounds = (
                 minX: 0 * tileSize - size.width / 2 + 30,           // First column + margin
                 maxX: CGFloat(mapColumns - 1) * tileSize - size.width / 2 - 30,  // Last column - margin

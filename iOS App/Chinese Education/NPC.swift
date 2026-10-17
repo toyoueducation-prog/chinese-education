@@ -97,7 +97,8 @@ class NPC {
             return
         }
         
-        let enemySize = CGSize(width: 60, height: 60)
+        // Match player: 72pt on-screen; Doll2@3x is 256px for Retina sharpness.
+        let enemySize = CGSize(width: 72, height: 72)
 
         for _ in 0..<enemiesToSpawn {
             // ✅ Initialize with a safe default position (will be replaced if valid position found)
@@ -179,6 +180,7 @@ class NPC {
             // ✅ Create enemy image with oval/circular shape (same as player)
             let originalEnemyImage = SKSpriteNode(imageNamed: "Doll2")
             originalEnemyImage.size = enemySize
+            originalEnemyImage.texture?.filteringMode = .linear
             
             // ✅ Create circular mask for oval shape
             let maskNode = SKShapeNode(ellipseOf: enemySize)

@@ -1,21 +1,21 @@
 {
-  "images" : [
+  "images": [
     {
-      "filename" : " Background2.jpg",
-      "idiom" : "universal",
-      "scale" : "1x"
+      "idiom": "universal",
+      "scale": "1x"
     },
     {
-      "idiom" : "universal",
-      "scale" : "2x"
+      "idiom": "universal",
+      "scale": "2x"
     },
     {
-      "idiom" : "universal",
-      "scale" : "3x"
+      "filename": "Background2@3x.png",
+      "idiom": "universal",
+      "scale": "3x"
     }
   ],
-  "info" : {
-    "author" : "xcode",
-    "version" : 1
+  "info": {
+    "author": "xcode",
+    "version": 1
   }
 }

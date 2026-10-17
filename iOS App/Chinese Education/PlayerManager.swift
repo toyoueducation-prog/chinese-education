@@ -16,11 +16,13 @@ class PlayerManager {
 
     // MARK: - Setup Player
     func setupPlayer(in scene: SKScene) {
-        let playerSize = CGSize(width: 60, height: 60)
+        // 72pt on-screen; Doll1@3x is 256px (~3.5×) to stay sharp on Retina.
+        let playerSize = CGSize(width: 72, height: 72)
 
         // ✅ Create player image with oval/circular shape (always available via Assets.xcassets/Doll1)
         let originalImage = SKSpriteNode(imageNamed: "Doll1")
         originalImage.size = playerSize
+        originalImage.texture?.filteringMode = .linear
         
         // ✅ Create circular mask for oval shape
         let maskNode = SKShapeNode(ellipseOf: playerSize)
@@ -63,7 +65,7 @@ class PlayerManager {
     
     // MARK: - Setup Video Player (chroma-key green → transparent)
     private func setupVideoPlayer(url: URL) {
-        let playerSize = CGSize(width: 60, height: 60)
+        let playerSize = CGSize(width: 72, height: 72)
         let videoNode = ChromaKeyVideoNode(url: url, size: playerSize, loops: true, muted: true)
         videoNode.position = CGPoint.zero  // Relative to cropNode
         videoNode.zPosition = playerImage.zPosition
