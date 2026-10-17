@@ -1,463 +1,373 @@
 import SpriteKit
+import AVFoundation
+#if os(iOS)
+import UIKit
+#endif
 
 /**
- * NPC MANAGER - Enemy & Non-Player Character System
- * 
- * Manages all non-player characters (enemies) in the game world.
- * This singleton class handles:
- * - Enemy spawning with position validation
- * - Enemy patrol/movement patterns
- * - Boundary clamping to keep enemies within map bounds
- * - Collision detection preparation
- * 
- * Enemy Behavior:
- * - Enemies spawn randomly within map boundaries
- * - They patrol in random directions
- * - Continuously clamped to stay within map bounds
- * - Round-shaped sprites (matching player appearance)
- * 
- * Spawning Logic:
- * - Validates positions to avoid obstacles and player spawn
- * - Uses map boundaries (21x20 grid, 64x64 tiles)
- * - Maximum 2 enemies spawned at once
- * - Enemies stored as SKNode (can be SKSpriteNode or SKCropNode)
+ * NPC MANAGER - 森林守護者 (Forest Guardian) System
+ *
+ * Manages forest guardians on the map. Guardians are storybook animals
+ * (fox / owl) the player meets for reading encounters — not monsters.
  */
 
-// MARK: - ⚡ PHYSICS CATEGORIES - Collision Detection System
-/**
- * Defines physics categories for collision detection.
- * Used to identify different types of game objects in physics contacts.
- */
 struct PhysicsCategory {
-    static let none: UInt32 = 0          // No collision category
-    static let player: UInt32 = 0x1 << 0 // Player collision category
-    static let enemy: UInt32 = 0x1 << 1  // Enemy collision category
+    static let none: UInt32 = 0
+    static let player: UInt32 = 0x1 << 0
+    static let enemy: UInt32 = 0x1 << 1  // Collision bit for 森林守護者
 }
 
-// MARK: - 👾 NPC MANAGER - Enemy & Non-Player Character System
 class NPC {
-    static let shared = NPC()  // Singleton pattern
-    
-    // MARK: - 🎯 ENEMY MANAGEMENT
-    var enemyNodes: [SKNode] = []  // Array of spawned enemy nodes (can be SKSpriteNode or SKCropNode)
-    var completedEnemyIdentifiers: Set<String> = []  // Track completed enemies by identifier
-    /// Enemy currently in a quiz encounter. Cleared on success or abandon; never means "defeated".
+    static let shared = NPC()
+
+    /// Active guardian nodes on / across scenes (node name remains "enemy" for physics contacts).
+    var enemyNodes: [SKNode] = []
+    var completedEnemyIdentifiers: Set<String> = []
     var pendingEncounterEnemyId: String?
-    
+
     private static let pendingEncounterKey = "pendingEncounterEnemyId"
-    
-    /// Begin a quiz encounter without marking the guardian defeated.
+
+    /// Two animal types for the pair of guardians on each map.
+    private let guardianSpriteNames = ["GuardianFox", "GuardianOwl"]
+    private let guardianWalkVideos = ["guardian_fox_walk", "guardian_owl_walk"]
+
+    private init() {}
+
     func beginEncounter(enemyId: String) {
         pendingEncounterEnemyId = enemyId
         UserDefaults.standard.set(enemyId, forKey: Self.pendingEncounterKey)
     }
-    
-    /// Mark the pending (or given) enemy defeated only after a successful quiz completion.
+
     func completePendingEncounter(enemyId: String? = nil) {
         let id = enemyId ?? pendingEncounterEnemyId ?? UserDefaults.standard.string(forKey: Self.pendingEncounterKey)
         if let id = id {
             completedEnemyIdentifiers.insert(id)
-            print("✅ Marked enemy defeated after quiz success. ID: \(id)")
+            print("✅ 森林守護者相遇完成。ID: \(id)")
         }
         clearPendingEncounter()
     }
-    
-    /// Player left mid-quiz — guardian remains available.
+
     func abandonPendingEncounter() {
         if let id = pendingEncounterEnemyId ?? UserDefaults.standard.string(forKey: Self.pendingEncounterKey) {
-            print("↩️ Abandoned quiz; guardian remains. ID: \(id)")
+            print("↩️ 離開提問；森林守護者仍在。ID: \(id)")
         }
         clearPendingEncounter()
     }
-    
+
     private func clearPendingEncounter() {
         pendingEncounterEnemyId = nil
         UserDefaults.standard.removeObject(forKey: Self.pendingEncounterKey)
     }
 
-    // ✅ Spawn enemies only once
+    /// Spawn up to `count` 森林守護者 (default 2: fox + owl).
     func spawnEnemies(in scene: SKScene, count: Int) {
-        // ✅ Filter out completed enemies first
-        enemyNodes = enemyNodes.filter { enemy in
-            let enemyId = enemy.userData?["identifier"] as? String ?? ""
-            return !completedEnemyIdentifiers.contains(enemyId)
+        enemyNodes = enemyNodes.filter { node in
+            let id = node.userData?["identifier"] as? String ?? ""
+            return !completedEnemyIdentifiers.contains(id)
         }
-        
-        // ✅ Calculate how many enemies we need to spawn
-        // ✅ Count living (non-completed) guardians even if detached from a prior scene
-        let currentActiveCount = enemyNodes.filter { enemy in
-            let enemyId = enemy.userData?["identifier"] as? String ?? ""
-            return !completedEnemyIdentifiers.contains(enemyId)
+
+        let currentActiveCount = enemyNodes.filter { node in
+            let id = node.userData?["identifier"] as? String ?? ""
+            return !completedEnemyIdentifiers.contains(id)
         }.count
-        
-        let enemiesToSpawn = max(0, count - currentActiveCount)
-        
-        guard enemiesToSpawn > 0 else {
-            print("✅ Already have \(currentActiveCount) active enemies, no need to spawn more")
+
+        let toSpawn = max(0, count - currentActiveCount)
+        guard toSpawn > 0 else {
+            print("✅ 已有 \(currentActiveCount) 位森林守護者，無需再生成")
             return
         }
-        
-        // Match player: 72pt on-screen; Doll2@3x is 256px for Retina sharpness.
-        let enemySize = CGSize(width: 72, height: 72)
 
-        for _ in 0..<enemiesToSpawn {
-            // ✅ Initialize with a safe default position (will be replaced if valid position found)
-            var enemyPosition = CGPoint(x: 0, y: 0)
+        let guardianSize = CGSize(width: 72, height: 72)
+        var usedTypes = Set(enemyNodes.compactMap { $0.userData?["guardianType"] as? String })
+
+        for i in 0..<toSpawn {
+            var typeIndex = i % guardianSpriteNames.count
+            // Prefer unused animal type so the pair is fox + owl.
+            for (idx, name) in guardianSpriteNames.enumerated() where !usedTypes.contains(name) {
+                typeIndex = idx
+                break
+            }
+            let spriteName = guardianSpriteNames[typeIndex]
+            let walkName = guardianWalkVideos[typeIndex]
+            usedTypes.insert(spriteName)
+
+            var position = CGPoint.zero
             var attempts = 0
-            var foundValidPosition = false
+            var found = false
 
-            // ✅ Use map boundaries - exclude stone wall boundaries (first and last row/col)
             let tileSize: CGFloat = 64
             let mapWidth = 21 * tileSize
             let mapHeight = 20 * tileSize
-            // ✅ Exclude outer stone walls (first and last row/col are walls)
-            // Spawn within inner area (rows 1-18, cols 1-19) to avoid walls
             let mapBounds = (
-                minX: -mapWidth / 2 + tileSize + 30,  // Skip first column (stone wall) + margin
-                maxX: mapWidth / 2 - tileSize - 30,   // Skip last column (stone wall) - margin
-                minY: -mapHeight / 2 + tileSize + 30, // Skip first row (stone wall) + margin
-                maxY: mapHeight / 2 - tileSize - 30   // Skip last row (stone wall) - margin
+                minX: -mapWidth / 2 + tileSize + 30,
+                maxX: mapWidth / 2 - tileSize - 30,
+                minY: -mapHeight / 2 + tileSize + 30,
+                maxY: mapHeight / 2 - tileSize - 30
             )
 
             repeat {
-                // ✅ Spawn within map boundaries (excluding stone walls)
-                let randomX = CGFloat.random(in: mapBounds.minX...mapBounds.maxX)
-                let randomY = CGFloat.random(in: mapBounds.minY...mapBounds.maxY)
-                let candidatePosition = CGPoint(x: randomX, y: randomY)
-                
-                // ✅ Validate position - must be walkable (not on walls, trees, or water)
-                if !isPositionOccupied(candidatePosition, scene: scene) && isValidMovementPosition(candidatePosition, scene: scene) {
-                    // ✅ Double-check: ensure not on stone wall, tree, or water tile
-                    if let tileType = getTileTypeAtPosition(candidatePosition, scene: scene) {
-                        // ✅ Only accept walkable tiles (not S, T, W)
+                let candidate = CGPoint(
+                    x: CGFloat.random(in: mapBounds.minX...mapBounds.maxX),
+                    y: CGFloat.random(in: mapBounds.minY...mapBounds.maxY)
+                )
+                if !isPositionOccupied(candidate, scene: scene) && isValidMovementPosition(candidate, scene: scene) {
+                    if let tileType = getTileTypeAtPosition(candidate, scene: scene) {
                         if !["S", "T", "W"].contains(tileType) {
-                            enemyPosition = candidatePosition
-                            foundValidPosition = true
+                            position = candidate
+                            found = true
                         }
                     } else {
-                        // ✅ If can't determine tile type, trust isValidMovementPosition result
-                        enemyPosition = candidatePosition
-                        foundValidPosition = true
+                        position = candidate
+                        found = true
                     }
                 }
-                
                 attempts += 1
-                if attempts > 200 {  // ✅ Increased attempts for better chance of finding valid position
-                    // ✅ Fallback: try a few known walkable positions
-                    let fallbackPositions = [
-                        CGPoint(x: 0, y: 0),        // Center
-                        CGPoint(x: -200, y: 0),     // Left center
-                        CGPoint(x: 200, y: 0),      // Right center
-                        CGPoint(x: 0, y: -200),     // Bottom center
-                        CGPoint(x: 0, y: 200)        // Top center
+                if attempts > 200 {
+                    let fallbacks = [
+                        CGPoint(x: 0, y: 0), CGPoint(x: -200, y: 0),
+                        CGPoint(x: 200, y: 0), CGPoint(x: 0, y: -200), CGPoint(x: 0, y: 200)
                     ]
-                    for fallbackPos in fallbackPositions {
-                        if isValidMovementPosition(fallbackPos, scene: scene) {
-                            if let tileType = getTileTypeAtPosition(fallbackPos, scene: scene) {
-                                if !["S", "T", "W"].contains(tileType) {
-                                    enemyPosition = fallbackPos
-                                    foundValidPosition = true
-                                    break
-                                }
-                            } else {
-                                enemyPosition = fallbackPos
-                                foundValidPosition = true
-                                break
-                            }
-                        }
+                    for fallback in fallbacks where isValidMovementPosition(fallback, scene: scene) {
+                        position = fallback
+                        found = true
+                        break
                     }
-                    if !foundValidPosition {
-                        enemyPosition = CGPoint(x: 0, y: 0)  // Last resort
-                        foundValidPosition = true
+                    if !found {
+                        position = .zero
+                        found = true
                     }
                     break
                 }
-            } while !foundValidPosition
+            } while !found
 
-            // ✅ Ensure position is clamped to bounds (double-check)
-            enemyPosition = clampToMapBounds(enemyPosition, scene: scene)
+            position = clampToMapBounds(position, scene: scene)
 
-            // ✅ Create enemy image with oval/circular shape (same as player)
-            let originalEnemyImage = SKSpriteNode(imageNamed: "Doll2")
-            originalEnemyImage.size = enemySize
-            originalEnemyImage.texture?.filteringMode = .linear
-            
-            // ✅ Create circular mask for oval shape
-            let maskNode = SKShapeNode(ellipseOf: enemySize)
-            maskNode.fillColor = .white
-            maskNode.strokeColor = .clear
-            
-            // ✅ Use SKCropNode to create circular/oval visual shape
-            let enemyCropNode = SKCropNode()
-            enemyCropNode.maskNode = maskNode
-            enemyCropNode.addChild(originalEnemyImage)
-            enemyCropNode.position = enemyPosition  // ✅ Position is now guaranteed to be within bounds
-            originalEnemyImage.position = CGPoint.zero  // Relative to cropNode
-            enemyCropNode.name = "enemy"
+            // Prefer named guardian art; fall back to Doll2 (fox).
+            let imageName = UIImage(named: spriteName) != nil ? spriteName : "Doll2"
+            let sprite = SKSpriteNode(imageNamed: imageName)
+            sprite.size = guardianSize
+            sprite.texture?.filteringMode = .linear
+            sprite.name = "guardianSprite"
 
-            // ✅ Add physics body for collision detection (circular like player)
-            let radius = min(enemySize.width, enemySize.height) / 2
-            enemyCropNode.physicsBody = SKPhysicsBody(circleOfRadius: radius)
-            enemyCropNode.physicsBody?.isDynamic = false
-            enemyCropNode.physicsBody?.categoryBitMask = PhysicsCategory.enemy
-            enemyCropNode.physicsBody?.contactTestBitMask = PhysicsCategory.player
-            enemyCropNode.physicsBody?.collisionBitMask = PhysicsCategory.none
+            let mask = SKShapeNode(ellipseOf: guardianSize)
+            mask.fillColor = .white
+            mask.strokeColor = .clear
 
-            scene.addChild(enemyCropNode)
-            
-            // ✅ Give each enemy a unique identifier
-            let enemyIdentifier = "enemy_\(UUID().uuidString)"
-            enemyCropNode.userData = NSMutableDictionary()
-            enemyCropNode.userData?["identifier"] = enemyIdentifier
-            
-            // ✅ Store the cropNode directly
-            enemyNodes.append(enemyCropNode)
+            let crop = SKCropNode()
+            crop.maskNode = mask
+            crop.addChild(sprite)
+            crop.position = position
+            sprite.position = .zero
+            crop.name = "enemy"  // keep physics contact name
+            crop.zPosition = 8
+            crop.xScale = 1  // art faces left by default
 
-            // ✅ Add patrol movement (pass the cropNode)
-            patrolEnemy(enemy: enemyCropNode, scene: scene)
+            let radius = min(guardianSize.width, guardianSize.height) / 2
+            crop.physicsBody = SKPhysicsBody(circleOfRadius: radius)
+            crop.physicsBody?.isDynamic = false
+            crop.physicsBody?.categoryBitMask = PhysicsCategory.enemy
+            crop.physicsBody?.contactTestBitMask = PhysicsCategory.player
+            crop.physicsBody?.collisionBitMask = PhysicsCategory.none
+
+            let identifier = "guardian_\(UUID().uuidString)"
+            crop.userData = NSMutableDictionary()
+            crop.userData?["identifier"] = identifier
+            crop.userData?["guardianType"] = spriteName
+            crop.userData?["displayName"] = "森林守護者"
+            crop.userData?["walkVideo"] = walkName
+
+            // Optional green-screen walk clip (keyed like Move2 / doll clips).
+            if let url = Bundle.main.url(forResource: walkName, withExtension: "mp4")
+                ?? Bundle.main.url(forResource: "doll2", withExtension: "mp4") {
+                let video = ChromaKeyVideoNode(url: url, size: guardianSize, loops: true, muted: true)
+                video.position = .zero
+                video.zPosition = sprite.zPosition
+                video.isHidden = true
+                video.name = "guardianWalk"
+                crop.addChild(video)
+                crop.userData?["hasWalkVideo"] = true
+            }
+
+            scene.addChild(crop)
+            enemyNodes.append(crop)
+            patrolEnemy(enemy: crop, scene: scene)
+            print("🦊 生成森林守護者 \(spriteName) @ \(position)")
         }
     }
 
-    // ✅ Enemy patrol logic
+    private func setGuardianWalking(_ guardian: SKNode, walking: Bool) {
+        let sprite = guardian.childNode(withName: "guardianSprite")
+        let walk = guardian.childNode(withName: "guardianWalk") as? ChromaKeyVideoNode
+        guard let walk = walk else {
+            sprite?.isHidden = false
+            return
+        }
+        sprite?.isHidden = walking
+        walk.isHidden = !walking
+        if walking { walk.play() } else { walk.pause() }
+    }
+
+    /// Guardian idle art faces left; flip when traveling right.
+    private func setFacing(_ node: SKNode, dx: CGFloat) {
+        guard abs(dx) > 0.5 else { return }
+        let magnitude = abs(node.xScale) < 0.01 ? 1 : abs(node.xScale)
+        node.xScale = dx > 0 ? -magnitude : magnitude
+    }
+
     private func patrolEnemy(enemy: SKNode, scene: SKScene) {
-        let moveDistance: CGFloat = 100  // Distance per move
-        let moveDuration: TimeInterval = 2  // Speed of movement
+        let moveDistance: CGFloat = 100
+        let moveDuration: TimeInterval = 2
 
         func getValidRandomPosition() -> CGPoint {
-            var newPosition: CGPoint
-            var attempts = 0  // ✅ Prevent infinite loops
+            var newPosition: CGPoint = enemy.position
+            var attempts = 0
             repeat {
                 let dx = [moveDistance, -moveDistance].randomElement()!
                 let dy = [moveDistance, -moveDistance].randomElement()!
-                let proposedPosition = CGPoint(x: enemy.position.x + dx, y: enemy.position.y + dy)
-                
-                // ✅ Clamp to map boundaries (excluding stone walls)
-                newPosition = clampToMapBounds(proposedPosition, scene: scene)
-                
-                // ✅ Ensure the new position is walkable (not on walls, trees, or water)
-                if let tileType = getTileTypeAtPosition(newPosition, scene: scene) {
-                    if ["S", "T", "W"].contains(tileType) {
-                        // ✅ Position is on a wall/tree/water, try again
-                        attempts += 1
-                        if attempts > 10 { break }  // ✅ Fallback to avoid infinite loops
-                        continue
-                    }
+                let proposed = CGPoint(x: enemy.position.x + dx, y: enemy.position.y + dy)
+                newPosition = clampToMapBounds(proposed, scene: scene)
+                if let tileType = getTileTypeAtPosition(newPosition, scene: scene),
+                   ["S", "T", "W"].contains(tileType) {
+                    attempts += 1
+                    if attempts > 10 { break }
+                    continue
                 }
-                
                 attempts += 1
-                if attempts > 10 { break }  // ✅ Fallback to avoid infinite loops
+                if attempts > 10 { break }
             } while isPositionOccupied(newPosition, scene: scene) || !isValidMovementPosition(newPosition, scene: scene)
-
             return newPosition
         }
 
         let moveAction = SKAction.run { [weak self] in
             guard let self = self else { return }
-            // ✅ Clamp current position first (in case enemy somehow moved outside)
             let currentClamped = self.clampToMapBounds(enemy.position, scene: scene)
             if enemy.position != currentClamped {
                 enemy.position = currentClamped
-                print("⚠️ Enemy position corrected before movement: \(currentClamped)")
             }
-            
-            let nextPosition = getValidRandomPosition()
-            // ✅ Ensure final position is within bounds BEFORE starting movement
-            let clampedPosition = self.clampToMapBounds(nextPosition, scene: scene)
-            
-            // ✅ Only move if position changed
-            guard clampedPosition != enemy.position else {
-                return  // Skip movement if already at target
-            }
-            
-            // ✅ Use custom action that clamps during movement
-            let startPosition = enemy.position
-            let move = SKAction.customAction(withDuration: moveDuration) { [weak self] node, elapsedTime in
+
+            let next = self.clampToMapBounds(getValidRandomPosition(), scene: scene)
+            guard next != enemy.position else { return }
+
+            let dx = next.x - enemy.position.x
+            self.setFacing(enemy, dx: dx)
+            self.setGuardianWalking(enemy, walking: true)
+
+            let start = enemy.position
+            let move = SKAction.customAction(withDuration: moveDuration) { [weak self] _, elapsed in
                 guard let self = self else { return }
-                // ✅ Interpolate position
-                let progress = min(elapsedTime / moveDuration, 1.0)
-                let currentX = startPosition.x + (clampedPosition.x - startPosition.x) * CGFloat(progress)
-                let currentY = startPosition.y + (clampedPosition.y - startPosition.y) * CGFloat(progress)
-                let interpolatedPos = CGPoint(x: currentX, y: currentY)
-                
-                // ✅ Clamp the interpolated position continuously
-                let clamped = self.clampToMapBounds(interpolatedPos, scene: scene)
-                enemy.position = clamped
+                let progress = min(elapsed / moveDuration, 1.0)
+                let x = start.x + (next.x - start.x) * CGFloat(progress)
+                let y = start.y + (next.y - start.y) * CGFloat(progress)
+                enemy.position = self.clampToMapBounds(CGPoint(x: x, y: y), scene: scene)
             }
-            
+
             enemy.run(move) { [weak self] in
-                // ✅ Final check and clamp after movement completes
                 guard let self = self else { return }
-                let finalClamped = self.clampToMapBounds(enemy.position, scene: scene)
-                if enemy.position != finalClamped {
-                    enemy.position = finalClamped
-                }
+                enemy.position = self.clampToMapBounds(enemy.position, scene: scene)
+                self.setGuardianWalking(enemy, walking: false)
             }
         }
 
         let wait = SKAction.wait(forDuration: 2)
-        let patrolSequence = SKAction.sequence([moveAction, wait])
-        let repeatPatrol = SKAction.repeatForever(patrolSequence)
-
-        enemy.run(repeatPatrol, withKey: "patrol")  // ✅ Add key to track patrol action
+        enemy.run(SKAction.repeatForever(SKAction.sequence([moveAction, wait])), withKey: "patrol")
     }
-    
-    // ✅ Restart patrol for an enemy (used when re-adding enemies to scene)
+
     func restartPatrol(for enemy: SKNode, in scene: SKScene) {
-        // ✅ Remove existing patrol action if any
         enemy.removeAction(forKey: "patrol")
-        // ✅ Start new patrol
         patrolEnemy(enemy: enemy, scene: scene)
     }
 
-
-
-    // ✅ Check if position is occupied by trees
     private func isPositionOccupied(_ position: CGPoint, scene: SKScene) -> Bool {
         for node in scene.children {
             if node.name == "tree" && abs(node.position.x - position.x) < 60 && abs(node.position.y - position.y) < 100 {
-                return true  // ✅ Prevents NPCs from moving into trees
+                return true
             }
         }
         return false
     }
-    
-    // ✅ Clamp enemy position to map boundaries (excluding stone walls)
+
     private func clampToMapBounds(_ position: CGPoint, scene: SKScene) -> CGPoint {
-        // ✅ Original map boundaries: 21x20 grid, 64x64 tiles
-        // ✅ Exclude outer stone walls to keep enemies within walkable area
         let tileSize: CGFloat = 64
         let mapWidth = 21 * tileSize
         let mapHeight = 20 * tileSize
-        // ✅ Keep enemies within inner area (not on stone wall boundaries)
         let mapBounds = (
-            minX: -mapWidth / 2 + tileSize + 30,  // Skip first column (stone wall) + margin
-            maxX: mapWidth / 2 - tileSize - 30,   // Skip last column (stone wall) - margin
-            minY: -mapHeight / 2 + tileSize + 30, // Skip first row (stone wall) + margin
-            maxY: mapHeight / 2 - tileSize - 30   // Skip last row (stone wall) - margin
+            minX: -mapWidth / 2 + tileSize + 30,
+            maxX: mapWidth / 2 - tileSize - 30,
+            minY: -mapHeight / 2 + tileSize + 30,
+            maxY: mapHeight / 2 - tileSize - 30
         )
-        
-        // ✅ Clamp position to map boundaries (within walkable area)
+
         var clampedX = max(mapBounds.minX, min(mapBounds.maxX, position.x))
         var clampedY = max(mapBounds.minY, min(mapBounds.maxY, position.y))
-        
-        // ✅ Additional check: if clamped position is on a wall/tree/water, try to find nearby walkable position
-        if let tileType = getTileTypeAtPosition(CGPoint(x: clampedX, y: clampedY), scene: scene) {
-            if ["S", "T", "W"].contains(tileType) {
-                // ✅ Try to find a nearby walkable position
-                let searchRadius: CGFloat = tileSize
-                var foundWalkable = false
-                for offsetX in stride(from: -searchRadius, through: searchRadius, by: tileSize / 2) {
-                    for offsetY in stride(from: -searchRadius, through: searchRadius, by: tileSize / 2) {
-                        let testPos = CGPoint(x: clampedX + offsetX, y: clampedY + offsetY)
-                        if let testTileType = getTileTypeAtPosition(testPos, scene: scene) {
-                            if !["S", "T", "W"].contains(testTileType) {
-                                clampedX = testPos.x
-                                clampedY = testPos.y
-                                foundWalkable = true
-                                break
-                            }
-                        }
+
+        if let tileType = getTileTypeAtPosition(CGPoint(x: clampedX, y: clampedY), scene: scene),
+           ["S", "T", "W"].contains(tileType) {
+            let searchRadius = tileSize
+            outer: for offsetX in stride(from: -searchRadius, through: searchRadius, by: tileSize / 2) {
+                for offsetY in stride(from: -searchRadius, through: searchRadius, by: tileSize / 2) {
+                    let test = CGPoint(x: clampedX + offsetX, y: clampedY + offsetY)
+                    if let t = getTileTypeAtPosition(test, scene: scene), !["S", "T", "W"].contains(t) {
+                        clampedX = test.x
+                        clampedY = test.y
+                        break outer
                     }
-                    if foundWalkable { break }
                 }
             }
         }
-        
         return CGPoint(x: clampedX, y: clampedY)
     }
-    
-    // ✅ Get tile type at a given position by checking nearby tile nodes
+
     private func getTileTypeAtPosition(_ position: CGPoint, scene: SKScene) -> Character? {
         let tileSize: CGFloat = 64
-        
-        // ✅ Find the tile node closest to this position
-        var closestTile: SKSpriteNode? = nil
-        var closestDistance: CGFloat = CGFloat.greatestFiniteMagnitude
-        
+        var closestTile: SKSpriteNode?
+        var closestDistance = CGFloat.greatestFiniteMagnitude
+
         for node in scene.children {
             if let sprite = node as? SKSpriteNode,
                sprite.zPosition == -1,
                let nodeName = sprite.name,
                nodeName.hasPrefix("mapTile_") {
-                let distanceX = abs(sprite.position.x - position.x)
-                let distanceY = abs(sprite.position.y - position.y)
-                let distance = sqrt(distanceX * distanceX + distanceY * distanceY)
-                
-                // ✅ If within one tile distance, this is the tile
+                let distance = hypot(sprite.position.x - position.x, sprite.position.y - position.y)
                 if distance < tileSize && distance < closestDistance {
                     closestTile = sprite
                     closestDistance = distance
                 }
             }
         }
-        
         guard let tile = closestTile else { return nil }
-        
-        // ✅ Check if it has a physics body (collision tile: S, T, W)
         if tile.physicsBody != nil {
-            // ✅ Determine type by checking texture name or image name
-            // Try to get the texture name from the node
             if let textureName = tile.texture?.description.lowercased() {
-                if textureName.contains("stone") {
-                    return "S"  // Stone wall
-                } else if textureName.contains("tree") {
-                    return "T"  // Tree
-                } else if textureName.contains("water") {
-                    return "W"  // Water
-                }
+                if textureName.contains("stone") { return "S" }
+                if textureName.contains("tree") { return "T" }
+                if textureName.contains("water") { return "W" }
             }
-            // ✅ Default to stone if has physics body but can't determine type
             return "S"
-        } else {
-            // ✅ Walkable tile (grass, path) - no physics body
-            return "."  // Walkable
         }
+        return "."
     }
-    
-    // ✅ Check if position is valid for movement (not in collision areas)
+
     private func isValidMovementPosition(_ position: CGPoint, scene: SKScene) -> Bool {
-        // ✅ First check if position is on a stone wall, tree, or water using tile type
-        if let tileType = getTileTypeAtPosition(position, scene: scene) {
-            // ✅ Only walkable tiles are ".", "G", "P" (grass paths, grass areas, player spawn)
-            if ["S", "T", "W"].contains(tileType) {
-                return false  // Stone walls, trees, and water are not walkable
-            }
+        if let tileType = getTileTypeAtPosition(position, scene: scene),
+           ["S", "T", "W"].contains(tileType) {
+            return false
         }
-        
-        // ✅ Also check collision with trees by name (backup check)
         let tileSize: CGFloat = 64
-        let checkRadius: CGFloat = tileSize / 2 + 10  // Half tile + small margin
-        
+        let checkRadius = tileSize / 2 + 10
         for node in scene.children {
-            // Check for trees (by name)
-            if node.name == "tree" {
-                let distance = sqrt(pow(node.position.x - position.x, 2) + pow(node.position.y - position.y, 2))
-                if distance < checkRadius {
-                    return false
-                }
+            if node.name == "tree",
+               hypot(node.position.x - position.x, node.position.y - position.y) < checkRadius {
+                return false
             }
-            
-            // ✅ Check for collision tiles (water, stone) by checking map tiles with physics bodies
             if let sprite = node as? SKSpriteNode,
                sprite.zPosition == -1,
                let nodeName = sprite.name,
-               nodeName.hasPrefix("mapTile_") {
-                // Check if this tile is within one tile distance
-                let distanceX = abs(sprite.position.x - position.x)
-                let distanceY = abs(sprite.position.y - position.y)
-                
-                // If within tile bounds, check if it's a collision tile
-                if distanceX < tileSize && distanceY < tileSize {
-                    // ✅ Collision tiles have physics bodies (water, stone, trees)
-                    // If the tile has a physics body, it's a collision area
-                    if sprite.physicsBody != nil {
-                        return false
-                    }
-                }
+               nodeName.hasPrefix("mapTile_"),
+               abs(sprite.position.x - position.x) < tileSize,
+               abs(sprite.position.y - position.y) < tileSize,
+               sprite.physicsBody != nil {
+                return false
             }
         }
-        
         return true
     }
-
 }

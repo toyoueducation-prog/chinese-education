@@ -145,9 +145,77 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         ["S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S"]  // Row 19: Bottom boundary (hedge)
     ]
     
-    // ✅ Array of all available maps
+    // Map 3: Riverside meadow — alternate water/tree layout (new seed for progression).
+    private var mapLayout3: [[Character]] = [
+        ["S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S"],
+        ["S","G","G","G","T","T","G","G","G","G","G","G","G","G","T","T","G","G","G","G","S"],
+        ["S","G",".",".","T","G","G",".",".","G","G",".",".","G","G","T",".",".","G","G","S"],
+        ["S","G",".","W","W","G",".",".","B",".",".","B",".",".","G","W","W",".","G","G","S"],
+        ["S","G",".","W","W","G","G","G","G","G","G","G","G","G","G","W","W",".","G","G","S"],
+        ["S","G","G",".",".","G","T","G","G","W","W","G","G","T","G",".",".","G","G","G","S"],
+        ["S","G","G","G",".",".","G","G","G","W","W","G","G","G",".",".","G","G","G","G","S"],
+        ["S","T","G","G","G",".",".",".","G","G","G","G",".",".",".","G","G","G","T","G","S"],
+        ["S","T","G","G","G","G","R",".",".","G","G",".",".","R","G","G","G","G","T","G","S"],
+        ["S","G","G","L","L","G","G","G",".",".",".",".",".","G","G","G","L","L","G","G","S"],
+        ["S","G","G","L","L","G","T","G","G",".","P",".","G","G","T","G","L","L","G","G","S"],
+        ["S","G","G","G","G","G","T","G","G","G","G","G","G","G","T","G","G","G","G","G","S"],
+        ["S","G",".",".","G","G","G","G","G","T","T","T","G","G","G","G","G",".",".","G","S"],
+        ["S","G",".",".",".","G","G","G",".",".",".",".",".","G","G","G",".",".",".","G","S"],
+        ["S","G","G","B","G","G","G","G","G",".","X",".","G","G","G","G","G","B","G","G","S"],
+        ["S","G","G","G","G","G","G","G","G","G","G","G","G","G","G","G","G","G","G","G","S"],
+        ["S","T","T","G","G",".",".","G","G","G","G","G","G","G",".",".","G","G","T","T","S"],
+        ["S","T","G","G","G","G","G","G","G","G","G","G","G","G","G","G","G","G","G","T","S"],
+        ["S","G","G","G","G","G","G","G","G","G","G","G","G","G","G","G","G","G","G","G","S"],
+        ["S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S"]
+    ]
+
     private var allMaps: [[[Character]]] {
-        return [mapLayout, mapLayout2]  // Add more maps here: mapLayout3, mapLayout4, etc.
+        return [mapLayout, mapLayout2, mapLayout3]
+    }
+
+    private func treasuryCollectedKey(for mapIndex: Int) -> String {
+        "treasuryCollected_map_\(mapIndex)"
+    }
+    private func treasurySpawnKey(for mapIndex: Int) -> String {
+        "treasurySpawn_map_\(mapIndex)"
+    }
+
+    /// Occasional treasure: not always present. Rolls once per map visit.
+    private func shouldPlaceTreasuryOnThisMap() -> Bool {
+        if UserDefaults.standard.bool(forKey: treasuryCollectedKey(for: currentMapIndex)) {
+            return false
+        }
+        let key = treasurySpawnKey(for: currentMapIndex)
+        if ProcessInfo.processInfo.arguments.contains("-qaForceTreasure") {
+            UserDefaults.standard.set(true, forKey: key)
+            return true
+        }
+        if ProcessInfo.processInfo.arguments.contains("-qaNoTreasure") {
+            UserDefaults.standard.set(false, forKey: key)
+            return false
+        }
+        if UserDefaults.standard.object(forKey: key) != nil {
+            return UserDefaults.standard.bool(forKey: key)
+        }
+        // ~30% base chance, or after meeting at least one 森林守護者 this map (~55%).
+        let completed = NPC.shared.completedEnemyIdentifiers.count
+        let spawn: Bool
+        if completed >= 1 {
+            spawn = Double.random(in: 0...1) < 0.55
+        } else {
+            spawn = Double.random(in: 0...1) < 0.30
+        }
+        UserDefaults.standard.set(spawn, forKey: key)
+        print(spawn ? "💎 本圖將出現寶箱" : "💎 本圖不出現寶箱")
+        return spawn
+    }
+
+    private func markTreasuryCollected() {
+        UserDefaults.standard.set(true, forKey: treasuryCollectedKey(for: currentMapIndex))
+        UserDefaults.standard.set(false, forKey: treasurySpawnKey(for: currentMapIndex))
+        enumerateChildNodes(withName: "treasuryBox") { node, _ in
+            node.removeFromParent()
+        }
     }
     
     override func didMove(to view: SKView) {
@@ -313,6 +381,30 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         // ✅ Setup Player FIRST to avoid nil error
         PlayerManager.shared.setupPlayer(in: self)
+        // QA: verify horizontal flip for rightward facing + pull guardians on-camera.
+        if ProcessInfo.processInfo.arguments.contains("-qaJumpGame") {
+            let faceRight = ProcessInfo.processInfo.arguments.contains("-qaFaceRight")
+            let faceLeft = ProcessInfo.processInfo.arguments.contains("-qaFaceLeft")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { [weak self] in
+                guard let self = self, let player = PlayerManager.shared.playerCropNode else { return }
+                if faceRight {
+                    PlayerManager.shared.setWalking(true)
+                    PlayerManager.shared.updateFacing(dx: 1)
+                    print("🧪 QA face right xScale=\(player.xScale)")
+                } else if faceLeft {
+                    PlayerManager.shared.setWalking(true)
+                    PlayerManager.shared.updateFacing(dx: -1)
+                    print("🧪 QA face left xScale=\(player.xScale)")
+                }
+                var offset: CGFloat = 110
+                for guardian in NPC.shared.enemyNodes where guardian.parent === self {
+                    guardian.position = CGPoint(x: player.position.x + offset, y: player.position.y - 20)
+                    if faceRight { guardian.xScale = -abs(guardian.xScale == 0 ? 1 : guardian.xScale) }
+                    else { guardian.xScale = abs(guardian.xScale == 0 ? 1 : guardian.xScale) }
+                    offset = -offset * 1.15
+                }
+            }
+        }
 
         setupCamera()
         setupUI()
@@ -458,23 +550,22 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                     PlayerManager.shared.playerCropNode?.position = CGPoint(x: xPos, y: yPos)
                 }
                 
-                // ✅ Add treasury box with collision detection
-                if symbol == "X" {
+                // Occasional treasure slot ("X") — only place when this map rolled a spawn.
+                if symbol == "X", shouldPlaceTreasuryOnThisMap() {
                     let treasuryBox = SKSpriteNode(imageNamed: "treasury")
                     treasuryBox.size = tileSize
                     treasuryBox.anchorPoint = CGPoint(x: 0, y: 1)
                     treasuryBox.position = CGPoint(x: xPos, y: yPos)
-                    treasuryBox.zPosition = 5  // Above ground tiles
+                    treasuryBox.zPosition = 5
                     treasuryBox.name = "treasuryBox"
                     addChild(treasuryBox)
-                    
-                    // ✅ Add physics body for collision detection
+
                     let bodySize = CGSize(width: tileSize.width, height: tileSize.height)
                     treasuryBox.physicsBody = SKPhysicsBody(rectangleOf: bodySize, center: CGPoint(x: tileSize.width / 2, y: -tileSize.height / 2))
                     treasuryBox.physicsBody?.isDynamic = false
-                    treasuryBox.physicsBody?.categoryBitMask = 0x1 << 3  // Treasury category
-                    treasuryBox.physicsBody?.collisionBitMask = 0x1 << 0  // Collide with player
-                    treasuryBox.physicsBody?.contactTestBitMask = 0x1 << 0  // Detect player contact
+                    treasuryBox.physicsBody?.categoryBitMask = 0x1 << 3
+                    treasuryBox.physicsBody?.collisionBitMask = 0x1 << 0
+                    treasuryBox.physicsBody?.contactTestBitMask = 0x1 << 0
                 }
                 
                 // Add physics body to block player movement
@@ -740,6 +831,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         lastUpdateTime = currentTime
 
         if isMoving {
+            PlayerManager.shared.updateFacing(dx: moveDirection.dx)
             let newX = PlayerManager.shared.playerCropNode.position.x + moveDirection.dx * dt
             let newY = PlayerManager.shared.playerCropNode.position.y + moveDirection.dy * dt
             
@@ -1005,7 +1097,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             dx: (location.x - PlayerManager.shared.playerCropNode.position.x) * moveVelocityScale,
             dy: (location.y - PlayerManager.shared.playerCropNode.position.y) * moveVelocityScale
         )
-        
+        PlayerManager.shared.updateFacing(dx: moveDirection.dx)
         // Switch to video node when walk clips exist; otherwise keep Doll1
         PlayerManager.shared.setWalking(true)
     }
@@ -1020,6 +1112,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             dx: (location.x - PlayerManager.shared.playerCropNode.position.x) * moveVelocityScale,
             dy: (location.y - PlayerManager.shared.playerCropNode.position.y) * moveVelocityScale
         )
+        PlayerManager.shared.updateFacing(dx: moveDirection.dx)
     }
     
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -1086,8 +1179,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         if treasuryNode != nil,
            (bodyA === playerNode || bodyB === playerNode),
            !transitionCooldown {
-            print("💰 Treasury box collision detected!")
+            print("💰 寶箱碰撞 — 收集後移除")
             transitionCooldown = true
+            markTreasuryCollected()
             transitionToTreasuryScene()
             return
         }
@@ -1101,12 +1195,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             return
         }
         
-        print("🚨 Collision Detected with Enemy!")
+        print("🌲 碰到森林守護者！")
         
         
         if (firstBody == PhysicsCategory.player && secondBody == PhysicsCategory.enemy) ||
             (firstBody == PhysicsCategory.enemy && secondBody == PhysicsCategory.player) {
-            print("🚨 Collision Detected with Enemy!")
+            print("🌲 森林守護者相遇！")
             // ✅ Stop player movement
             isMoving = false
             moveDirection = CGVector(dx: 0, dy: 0)
@@ -1259,9 +1353,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private func applyMovementTutorialStepContent() {
         let steps = [
             "用手指在畫面上拖曳，角色會往你的方向移動；放開手指就會停下來。",
-            "地圖上的圓形角色是閱讀守護者，碰到他們就會進入文章與題目。",
+            "地圖上的動物是「森林守護者」。碰到兩位守護者並完成提問後，就會前往下一片森林。",
             "左上角顯示等級與經驗值。上方藍色按鈕可開啟「進度」與「詞彙」頁面。",
-            "還有夾娃娃機可以收集獎勵。祝你學習愉快！"
+            "寶箱只會偶爾出現；找到並打開後就會消失。祝你學習愉快！"
         ]
         guard movementTutorialStepIndex < steps.count else { return }
         movementTutorialMessageLabel?.text = steps[movementTutorialStepIndex]
@@ -1308,36 +1402,57 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // MARK: - Transition to New Map
     func transitionToNewMap() {
-        // ✅ Reset enemy tracking
         hasSpawnedEnemies = false
         NPC.shared.completedEnemyIdentifiers.removeAll()
         NPC.shared.abandonPendingEncounter()
         lastCollidedEnemy = nil
         lastCollidedEnemyIdentifier = nil
         NPC.shared.enemyNodes.removeAll()
-        
-        // ✅ Reset player position to center (will be set to spawn point in new map)
+
         PlayerManager.shared.playerCropNode?.position = CGPoint(x: 0, y: 0)
-        
-        // ✅ Clear saved player position so new map can set spawn point
         UserDefaults.standard.removeObject(forKey: "playerPosition")
-        
-        // ✅ Cycle to next map
+
         currentMapIndex = (currentMapIndex + 1) % allMaps.count
         mapLayout = allMaps[currentMapIndex]
         saveCurrentMapIndex()
-        
-        // ✅ Reset map generation flag to generate new map
+        // Fresh treasure roll for the new map
+        UserDefaults.standard.removeObject(forKey: treasurySpawnKey(for: currentMapIndex))
+        UserDefaults.standard.removeObject(forKey: treasuryCollectedKey(for: currentMapIndex))
         hasGeneratedMap = false
-        
-        // ✅ Create new scene with the new map
-        let newGameScene = GameScene(size: self.size)
-        newGameScene.currentMapIndex = self.currentMapIndex  // ✅ Pass the map index
-        newGameScene.scaleMode = .aspectFill
-        let transition = SKTransition.fade(withDuration: 1.5)
-        self.view?.presentScene(newGameScene, transition: transition)
-        
-        print("🎉 Transitioned to map \(currentMapIndex + 1) of \(allMaps.count)!")
+
+        // Short banner before loading the next forest.
+        if let cam = camera {
+            let banner = SKNode()
+            banner.zPosition = 900
+            banner.name = "mapAdvanceBanner"
+            let bg = SKShapeNode(rectOf: CGSize(width: min(size.width - 40, 340), height: 90), cornerRadius: 14)
+            bg.fillColor = UIColor(red: 0.12, green: 0.35, blue: 0.2, alpha: 0.94)
+            bg.strokeColor = UIColor(red: 0.7, green: 0.9, blue: 0.5, alpha: 1)
+            bg.lineWidth = 2
+            banner.addChild(bg)
+            let label = SKLabelNode(text: "🌲 進入下一片森林…")
+            label.fontName = "AvenirNext-Bold"
+            label.fontSize = 22
+            label.fontColor = .white
+            label.verticalAlignmentMode = .center
+            banner.addChild(label)
+            cam.addChild(banner)
+            banner.run(SKAction.sequence([
+                SKAction.wait(forDuration: 1.1),
+                SKAction.fadeOut(withDuration: 0.35),
+                SKAction.removeFromParent()
+            ]))
+        }
+
+        let nextIndex = currentMapIndex
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.25) { [weak self] in
+            guard let self = self else { return }
+            let newGameScene = GameScene(size: self.size)
+            newGameScene.currentMapIndex = nextIndex
+            newGameScene.scaleMode = .aspectFill
+            self.view?.presentScene(newGameScene, transition: SKTransition.fade(withDuration: 1.0))
+            print("🎉 進入地圖 \(nextIndex + 1) / \(self.allMaps.count)")
+        }
     }
     
     // MARK: - Transition to Conversation Scene on Collision

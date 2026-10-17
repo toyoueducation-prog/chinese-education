@@ -12,7 +12,7 @@ class TransitionScene: SKScene, AVSpeechSynthesizerDelegate {
     private var synthesizer = AVSpeechSynthesizer()  // ✅ Speech synthesizer
     private var playPauseButton: SKLabelNode?  // ✅ Play/pause button
     private var isPronunciationPlaying = false  // ✅ Track pronunciation state
-    private var explanationText = "你遇到了森林的守護者...\n它想向你提問一個問題！"
+    private var explanationText = "你遇到了森林守護者……\n牠想向你提問一個問題！"
     
     override func didMove(to view: SKView) {
         backgroundColor = .black

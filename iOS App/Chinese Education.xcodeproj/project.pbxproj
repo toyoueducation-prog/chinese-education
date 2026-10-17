@@ -534,7 +534,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Optional gitignored videos — copy into the app bundle when present locally.\n# Fresh clones without these files still build; Swift falls back to sprites/text.\nset -e\nSRC=\"${SRCROOT}/Chinese Education\"\nDEST=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}\"\nmkdir -p \"$DEST\"\nfor f in correct.mp4 incorrect.mp4 intro.mp4 Water.mp4 welcomeback.mp4; do\n  if [ -f \"$SRC/$f\" ]; then\n    cp -f \"$SRC/$f\" \"$DEST/$f\"\n    echo \"Copied optional video: $f\"\n  else\n    echo \"Skipping missing optional video: $f\"\n  fi\ndone\n";
+			shellScript = "# Optional gitignored videos — copy into the app bundle when present locally.\n# Fresh clones without these files still build; Swift falls back to sprites/text.\nset -e\nSRC=\"${SRCROOT}/Chinese Education\"\nDEST=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}\"\nmkdir -p \"$DEST\"\nfor f in correct.mp4 incorrect.mp4 intro.mp4 Water.mp4 welcomeback.mp4 guardian_fox_walk.mp4 guardian_owl_walk.mp4; do\n  if [ -f \"$SRC/$f\" ]; then\n    cp -f \"$SRC/$f\" \"$DEST/$f\"\n    echo \"Copied optional video: $f\"\n  else\n    echo \"Skipping missing optional video: $f\"\n  fi\ndone\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

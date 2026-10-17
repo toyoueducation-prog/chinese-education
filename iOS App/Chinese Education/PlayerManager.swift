@@ -112,4 +112,14 @@ class PlayerManager {
             videoNode.pause()
         }
     }
+
+    /// Walk clips / Doll1 face right in their authored frames.
+    /// Moving left flips the crop (children inherit); moving right keeps natural scale.
+    func updateFacing(dx: CGFloat) {
+        guard let crop = playerCropNode, abs(dx) > 0.5 else { return }
+        let mag = abs(crop.xScale) < 0.01 ? 1 : abs(crop.xScale)
+        playerImage?.xScale = abs(playerImage?.xScale ?? 1)
+        playerVideoNode?.xScale = abs(playerVideoNode?.xScale ?? 1)
+        crop.xScale = dx < 0 ? -mag : mag
+    }
 }
