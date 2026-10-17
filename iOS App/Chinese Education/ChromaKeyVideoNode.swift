@@ -11,48 +11,48 @@ import CoreVideo
 /// instead keys by **RGB distance to `#00FF00`** (screen ≈0.11, vest ≈0.5+), softens
 /// the edge, despills fringe green, and uploads premultiplied RGBA textures SpriteKit
 /// can composite.
+///
+/// Performance: walk/companion clips are ~960². Per-frame CPU keying + new `SKTexture`
+/// on the main thread stalled the game loop. Frames are **pre-keyed once** at a display-
+/// sized resolution, cached by URL, then played back with `SKAction` (no live keying).
 final class ChromaKeyVideoNode: SKSpriteNode {
     private(set) var player: AVPlayer
-    private var videoOutput: AVPlayerItemVideoOutput?
-    private var displayLink: CADisplayLink?
     private var endObserver: NSObjectProtocol?
     private let loops: Bool
-    private let ciContext = CIContext(options: nil)
+    private let videoURL: URL
+    private let animateActionKey = "chromaKeyCachedAnim"
+    private var wantsPlaying = false
 
     /// Match tested still-frame params: screen clears, olive vest/pants stay opaque.
     private let keySimilarity: Float = 0.32
     private let keyBlend: Float = 0.10
+    /// Source clips are 960² but drawn ~60pt; baking at 128² keeps edges clean on 3×.
+    private let maxBakeDimension: Int = 128
+
+    private struct CachedClip {
+        let textures: [SKTexture]
+        let timePerFrame: TimeInterval
+    }
+
+    private static let cacheLock = NSLock()
+    private static var clipCache: [String: CachedClip] = [:]
+    private static var bakingKeys = Set<String>()
 
     init(url: URL, size: CGSize, loops: Bool = true, muted: Bool = true) {
         self.loops = loops
+        self.videoURL = url
         let item = AVPlayerItem(url: url)
         let player = AVPlayer(playerItem: item)
         player.volume = muted ? 0 : 1
-        player.actionAtItemEnd = loops ? .none : .pause
+        player.actionAtItemEnd = .pause
         self.player = player
 
         super.init(texture: nil, color: .clear, size: size)
         blendMode = .alpha
         name = "chromaKeyVideo"
-        // No SKShader — alpha is baked into each uploaded frame.
 
-        let outputSettings: [String: Any] = [
-            kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)
-        ]
-        let output = AVPlayerItemVideoOutput(pixelBufferAttributes: outputSettings)
-        item.add(output)
-        videoOutput = output
-
-        if loops {
-            endObserver = NotificationCenter.default.addObserver(
-                forName: .AVPlayerItemDidPlayToEndTime,
-                object: item,
-                queue: .main
-            ) { [weak self] _ in
-                self?.player.seek(to: .zero)
-                self?.player.play()
-            }
-        }
+        // Warm the shared texture cache as soon as the node exists (walk starts later).
+        Self.preload(url: url, maxBakeDimension: maxBakeDimension, similarity: keySimilarity, blend: keyBlend)
     }
 
     @available(*, unavailable)
@@ -65,17 +65,27 @@ final class ChromaKeyVideoNode: SKSpriteNode {
     }
 
     func play() {
-        startDisplayLinkIfNeeded()
-        player.play()
+        wantsPlaying = true
+        if let clip = Self.cachedClip(for: videoURL) {
+            runCachedAnimation(clip)
+            return
+        }
+        Self.preload(url: videoURL, maxBakeDimension: maxBakeDimension, similarity: keySimilarity, blend: keyBlend) { [weak self] clip in
+            guard let self, self.wantsPlaying, let clip else { return }
+            self.runCachedAnimation(clip)
+        }
     }
 
     func pause() {
+        wantsPlaying = false
+        removeAction(forKey: animateActionKey)
         player.pause()
     }
 
     func stop() {
+        wantsPlaying = false
+        removeAction(forKey: animateActionKey)
         player.pause()
-        stopDisplayLink()
         if let endObserver {
             NotificationCenter.default.removeObserver(endObserver)
             self.endObserver = nil
@@ -87,50 +97,156 @@ final class ChromaKeyVideoNode: SKSpriteNode {
         super.removeFromParent()
     }
 
-    // MARK: - Private
+    // MARK: - Cached playback
 
-    private func startDisplayLinkIfNeeded() {
-        guard displayLink == nil else { return }
-        let link = CADisplayLink(target: self, selector: #selector(displayLinkFired(_:)))
-        link.add(to: .main, forMode: .common)
-        displayLink = link
+    private func runCachedAnimation(_ clip: CachedClip) {
+        removeAction(forKey: animateActionKey)
+        guard !clip.textures.isEmpty else { return }
+        texture = clip.textures[0]
+        let animate = SKAction.animate(with: clip.textures, timePerFrame: clip.timePerFrame, resize: false, restore: false)
+        let action = loops ? SKAction.repeatForever(animate) : animate
+        run(action, withKey: animateActionKey)
     }
 
-    private func stopDisplayLink() {
-        displayLink?.invalidate()
-        displayLink = nil
+    private static func cachedClip(for url: URL) -> CachedClip? {
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+        return clipCache[url.absoluteString]
     }
 
-    @objc private func displayLinkFired(_ link: CADisplayLink) {
-        guard let videoOutput else { return }
-        let time = player.currentTime()
-        guard videoOutput.hasNewPixelBuffer(forItemTime: time) else { return }
-        var displayTime = CMTime.zero
-        guard let buffer = videoOutput.copyPixelBuffer(forItemTime: time, itemTimeForDisplay: &displayTime) else {
+    private static func preload(
+        url: URL,
+        maxBakeDimension: Int,
+        similarity: Float,
+        blend: Float,
+        completion: ((CachedClip?) -> Void)? = nil
+    ) {
+        let key = url.absoluteString
+        cacheLock.lock()
+        if let existing = clipCache[key] {
+            cacheLock.unlock()
+            DispatchQueue.main.async { completion?(existing) }
             return
         }
-
-        guard let keyedImage = Self.chromaKeyImage(
-            from: buffer,
-            similarity: keySimilarity,
-            blend: keyBlend,
-            context: ciContext
-        ) else {
+        if bakingKeys.contains(key) {
+            cacheLock.unlock()
+            // Another bake in flight — poll briefly for callers that need the result.
+            if let completion {
+                DispatchQueue.global(qos: .userInitiated).async {
+                    for _ in 0..<200 {
+                        Thread.sleep(forTimeInterval: 0.05)
+                        cacheLock.lock()
+                        let clip = clipCache[key]
+                        let stillBaking = bakingKeys.contains(key)
+                        cacheLock.unlock()
+                        if let clip {
+                            DispatchQueue.main.async { completion(clip) }
+                            return
+                        }
+                        if !stillBaking { break }
+                    }
+                    DispatchQueue.main.async { completion(nil) }
+                }
+            }
             return
         }
+        bakingKeys.insert(key)
+        cacheLock.unlock()
 
-        let newTexture = SKTexture(cgImage: keyedImage)
-        newTexture.filteringMode = .linear
-        texture = newTexture
+        DispatchQueue.global(qos: .userInitiated).async {
+            let baked = bakeClip(url: url, maxBakeDimension: maxBakeDimension, similarity: similarity, blend: blend)
+            DispatchQueue.main.async {
+                var clip: CachedClip?
+                if let baked {
+                    let textures = baked.images.map { cg -> SKTexture in
+                        let t = SKTexture(cgImage: cg)
+                        t.filteringMode = .linear
+                        return t
+                    }
+                    clip = CachedClip(textures: textures, timePerFrame: baked.timePerFrame)
+                }
+                cacheLock.lock()
+                if let clip {
+                    clipCache[key] = clip
+                }
+                bakingKeys.remove(key)
+                cacheLock.unlock()
+                completion?(clip)
+            }
+        }
+    }
+
+    private struct BakedFrames {
+        let images: [CGImage]
+        let timePerFrame: TimeInterval
+    }
+
+    /// Decode once via `AVAssetReader`, key at reduced resolution, keep upright.
+    private static func bakeClip(
+        url: URL,
+        maxBakeDimension: Int,
+        similarity: Float,
+        blend: Float
+    ) -> BakedFrames? {
+        let asset = AVURLAsset(url: url)
+        guard let track = asset.tracks(withMediaType: .video).first else { return nil }
+
+        let reader: AVAssetReader
+        do {
+            reader = try AVAssetReader(asset: asset)
+        } catch {
+            print("⚠️ ChromaKey bake reader failed: \(error)")
+            return nil
+        }
+
+        let outputSettings: [String: Any] = [
+            kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)
+        ]
+        let output = AVAssetReaderTrackOutput(track: track, outputSettings: outputSettings)
+        output.alwaysCopiesSampleData = false
+        guard reader.canAdd(output) else { return nil }
+        reader.add(output)
+        guard reader.startReading() else { return nil }
+
+        let fps = Double(track.nominalFrameRate)
+        let timePerFrame = fps > 1 ? 1.0 / fps : 1.0 / 24.0
+
+        var images: [CGImage] = []
+        images.reserveCapacity(160)
+
+        while reader.status == .reading {
+            guard let sample = output.copyNextSampleBuffer(),
+                  let buffer = CMSampleBufferGetImageBuffer(sample) else {
+                break
+            }
+            if let keyed = chromaKeyImage(
+                from: buffer,
+                similarity: similarity,
+                blend: blend,
+                maxDimension: maxBakeDimension
+            ) {
+                images.append(keyed)
+            }
+        }
+
+        guard !images.isEmpty else {
+            print("⚠️ ChromaKey bake produced no frames for \(url.lastPathComponent)")
+            return nil
+        }
+        print("✅ ChromaKey baked \(images.count) frames @≤\(maxBakeDimension)px for \(url.lastPathComponent)")
+        return BakedFrames(images: images, timePerFrame: timePerFrame)
     }
 
     /// Keys flat `#00FF00` by RGB distance; keeps muted olive clothing.
+    /// Optionally downsamples while keying (nearest) so bake cost stays small.
     static func chromaKeyImage(
         from pixelBuffer: CVPixelBuffer,
         similarity: Float,
         blend: Float,
-        context: CIContext
+        maxDimension: Int = .max,
+        context: CIContext? = nil
     ) -> CGImage? {
+        _ = context // retained in signature for call-site compatibility
         CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
         defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
 
@@ -139,8 +255,12 @@ final class ChromaKeyVideoNode: SKSpriteNode {
         let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
         guard let base = CVPixelBufferGetBaseAddress(pixelBuffer) else { return nil }
 
+        let scale = min(1.0, CGFloat(maxDimension) / CGFloat(max(width, height)))
+        let outW = max(1, Int((CGFloat(width) * scale).rounded(.down)))
+        let outH = max(1, Int((CGFloat(height) * scale).rounded(.down)))
+
         // Output upright premultiplied RGBA.
-        var out = [UInt8](repeating: 0, count: width * height * 4)
+        var out = [UInt8](repeating: 0, count: outW * outH * 4)
         let keyR: Float = 0
         let keyG: Float = 255
         let keyB: Float = 0
@@ -148,12 +268,14 @@ final class ChromaKeyVideoNode: SKSpriteNode {
         let softLo = similarity - blend
         let softRange = max(2 * blend, 0.0001)
 
-        for y in 0..<height {
-            // AVPlayerItemVideoOutput BGRA buffers are already top-down for this path;
-            // flipping rows here inverted every ChromaKeyVideoNode clip.
-            let srcRow = base.advanced(by: y * bytesPerRow).assumingMemoryBound(to: UInt8.self)
-            for x in 0..<width {
-                let i = x * 4
+        for y in 0..<outH {
+            // AVAssetReader / AVPlayerItemVideoOutput BGRA buffers are top-down here;
+            // do not vertically flip (that inverted every clip).
+            let srcY = min(height - 1, y * height / outH)
+            let srcRow = base.advanced(by: srcY * bytesPerRow).assumingMemoryBound(to: UInt8.self)
+            for x in 0..<outW {
+                let srcX = min(width - 1, x * width / outW)
+                let i = srcX * 4
                 let b = Float(srcRow[i + 0])
                 let g = Float(srcRow[i + 1])
                 let r = Float(srcRow[i + 2])
@@ -180,7 +302,7 @@ final class ChromaKeyVideoNode: SKSpriteNode {
                     outG = maxRB + 12
                 }
 
-                let oi = (y * width + x) * 4
+                let oi = (y * outW + x) * 4
                 let a = alpha
                 out[oi + 0] = UInt8(max(0, min(255, r * a)))
                 out[oi + 1] = UInt8(max(0, min(255, outG * a)))
@@ -193,10 +315,10 @@ final class ChromaKeyVideoNode: SKSpriteNode {
         let bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue)
         guard let ctx = CGContext(
             data: &out,
-            width: width,
-            height: height,
+            width: outW,
+            height: outH,
             bitsPerComponent: 8,
-            bytesPerRow: width * 4,
+            bytesPerRow: outW * 4,
             space: colorSpace,
             bitmapInfo: bitmapInfo.rawValue
         ) else {

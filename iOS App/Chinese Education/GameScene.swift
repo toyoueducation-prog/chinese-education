@@ -43,7 +43,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     // MARK: - 📷 CAMERA & MOVEMENT
     private var cameraNode: SKCameraNode!               // Camera that follows player
     private var isMoving = false                        // Player movement state
-    private var moveDirection: CGVector = CGVector(dx: 0, dy: 0)  // Movement direction
+    /// Desired velocity in points/second (frame-rate independent).
+    private var moveDirection: CGVector = CGVector(dx: 0, dy: 0)
+    private var lastUpdateTime: TimeInterval = 0
+    /// Former per-frame scale was `0.01`; at 60fps that is `0.6` points/sec per point of touch offset.
+    private let moveVelocityScale: CGFloat = 0.6
     
     // MARK: - 🎮 UI LABELS (Gaming HUD)
     private var levelLabel: SKLabelNode!                // Player level display
@@ -718,9 +722,18 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     override func update(_ currentTime: TimeInterval) {
+        // Delta-time movement so walk speed stays constant when frame time varies.
+        let dt: CGFloat
+        if lastUpdateTime == 0 {
+            dt = 0
+        } else {
+            dt = CGFloat(min(max(currentTime - lastUpdateTime, 0), 1.0 / 20.0))
+        }
+        lastUpdateTime = currentTime
+
         if isMoving {
-            let newX = PlayerManager.shared.playerCropNode.position.x + moveDirection.dx
-            let newY = PlayerManager.shared.playerCropNode.position.y + moveDirection.dy
+            let newX = PlayerManager.shared.playerCropNode.position.x + moveDirection.dx * dt
+            let newY = PlayerManager.shared.playerCropNode.position.y + moveDirection.dy * dt
             
             // ✅ Original map boundaries: 21x20 grid, 64x64 tiles
             // ✅ Map is rendered with col 0 at (-size.width/2) and col 20 at (20*64 - size.width/2)
@@ -981,8 +994,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // Handle other touches
         
         isMoving = true
-        moveDirection = CGVector(dx: (location.x - PlayerManager.shared.playerCropNode.position.x) * 0.01,
-                                 dy: (location.y - PlayerManager.shared.playerCropNode.position.y) * 0.01)
+        // Velocity in points/second (same feel as the old 0.01×/frame at 60fps).
+        moveDirection = CGVector(
+            dx: (location.x - PlayerManager.shared.playerCropNode.position.x) * moveVelocityScale,
+            dy: (location.y - PlayerManager.shared.playerCropNode.position.y) * moveVelocityScale
+        )
         
         // Switch to video node when walk clips exist; otherwise keep Doll1
         PlayerManager.shared.setWalking(true)
@@ -993,9 +1009,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         guard let touch = touches.first else { return }
         let location = touch.location(in: self)
         
-        // Update movement direction based on new touch location
-        moveDirection = CGVector(dx: (location.x - PlayerManager.shared.playerCropNode.position.x) * 0.01,
-                                 dy: (location.y - PlayerManager.shared.playerCropNode.position.y) * 0.01)
+        // Update velocity from touch offset (points/second).
+        moveDirection = CGVector(
+            dx: (location.x - PlayerManager.shared.playerCropNode.position.x) * moveVelocityScale,
+            dy: (location.y - PlayerManager.shared.playerCropNode.position.y) * moveVelocityScale
+        )
     }
     
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
