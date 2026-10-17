@@ -111,6 +111,21 @@ final class Chinese_EducationTests: XCTestCase {
         XCTAssertFalse(unknown.isPracticeReady)
     }
 
+    /// Regression: duplicate dict keys fatalError when extractVocabulary first touches the glossary.
+    func testVocabularyGlossaryEntriesLoadWithoutDuplicateKeyCrash() {
+        let entries = VocabularyGlossary.entries
+        XCTAssertGreaterThanOrEqual(entries.count, 150)
+        for word in ["陽光", "冒險", "好奇", "探索", "地球"] {
+            XCTAssertNotNil(entries[word], "Expected shared gloss for \(word)")
+            XCTAssertFalse(entries[word]!.meaning.isEmpty)
+        }
+        // Same path ConversationScene hits after adaptive encounter selection.
+        if let passage = QuestionBank.shared.getPassageSet(for: "passage1")?.passage {
+            let extracted = VocabularyManager.shared.extractVocabulary(from: passage, maxWords: 15)
+            XCTAssertFalse(extracted.isEmpty)
+        }
+    }
+
     func testPracticeVocabularyExcludesEmptyMeanings() {
         let manager = VocabularyManager.shared
         // Extraction may create empty-gloss bigrams; practice list must only include glossed words.
