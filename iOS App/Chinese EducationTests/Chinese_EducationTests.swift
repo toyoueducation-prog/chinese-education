@@ -300,6 +300,11 @@ final class Chinese_EducationTests: XCTestCase {
                 process: .inferring, correct: true, time: 8, date: base.addingTimeInterval(Double(10 + i))
             ))
         }
+        // Break the run so the trailing streak is exactly 3.
+        records.append(makeAnswerRecord(
+            studentID: "s1", name: "小明", passage: "passage4", type: "選擇題",
+            process: .evaluating, correct: false, time: 15, date: base.addingTimeInterval(19)
+        ))
         records.append(makeAnswerRecord(
             studentID: "s1", name: "小明", passage: "passage5", type: "開放題",
             process: .interpreting, correct: true, time: 12, date: base.addingTimeInterval(20)
@@ -314,7 +319,7 @@ final class Chinese_EducationTests: XCTestCase {
         ))
 
         let snap = engine.analyzeStudent(studentID: "s1", studentName: "小明", records: records)
-        XCTAssertEqual(snap.totalAnswers, 11)
+        XCTAssertEqual(snap.totalAnswers, 12)
         XCTAssertEqual(snap.currentStreak, 3)
         XCTAssertGreaterThanOrEqual(snap.bestStreak, 3)
         XCTAssertTrue(snap.weakestSkills.contains("檢索理解"))

@@ -600,11 +600,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				291646772D525A0100EF15E4 /* GameScene.swift in Sources */,
-				291646732D5259DD00EF15E4 /* GameView.swift in Sources */,
-				299653EC2D637D300038E8B1 /* SigninScene.swift in Sources */,
 				291646552D524BC600EF15E4 /* Chinese_EducationTests.swift in Sources */,
-				294405B02F06B0BA000E9171 /* TeacherDashboardScene.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -612,11 +608,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				294405AF2F06B0BA000E9171 /* TeacherDashboardScene.swift in Sources */,
 				2916465F2D524BC600EF15E4 /* Chinese_EducationUITests.swift in Sources */,
-				291646742D5259DD00EF15E4 /* GameView.swift in Sources */,
-				291646782D525A0100EF15E4 /* GameScene.swift in Sources */,
-				299653ED2D637D300038E8B1 /* SigninScene.swift in Sources */,
 				291646612D524BC600EF15E4 /* Chinese_EducationUITestsLaunchTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -221,11 +221,18 @@ class NPC {
         }
     }
 
-    /// Fox/owl walk clips face left; flip when traveling right.
+    /// Fox/owl walk clips face left; flip children when traveling right.
+    /// Keep the crop node's scale positive so the oval mask stays stable.
     private func setFacing(_ node: SKNode, dx: CGFloat) {
         guard abs(dx) > 0.5 else { return }
-        let magnitude = abs(node.xScale) < 0.01 ? 1 : abs(node.xScale)
-        node.xScale = dx > 0 ? -magnitude : magnitude
+        let scale: CGFloat = dx > 0 ? -1 : 1
+        node.xScale = abs(node.xScale) < 0.01 ? 1 : abs(node.xScale)
+        if let sprite = node.childNode(withName: "guardianSprite") {
+            sprite.xScale = scale
+        }
+        if let walk = guardianWalkNode(in: node) {
+            walk.xScale = scale
+        }
     }
 
     private func patrolEnemy(enemy: SKNode, scene: SKScene) {

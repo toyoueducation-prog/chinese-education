@@ -114,12 +114,12 @@ class PlayerManager {
     }
 
     /// Verified against Move2 clip frames: authored walk art faces RIGHT.
-    /// Moving left flips (`xScale = -mag`); moving right keeps natural scale.
+    /// Flip the sprite/video children (not the crop mask) so facing is reliable.
     func updateFacing(dx: CGFloat) {
-        guard let crop = playerCropNode, abs(dx) > 0.5 else { return }
-        let mag = abs(crop.xScale) < 0.01 ? 1 : abs(crop.xScale)
-        playerImage?.xScale = abs(playerImage?.xScale ?? 1)
-        playerVideoNode?.xScale = abs(playerVideoNode?.xScale ?? 1)
-        crop.xScale = dx < 0 ? -mag : mag
+        guard abs(dx) > 0.5 else { return }
+        let scale: CGFloat = dx < 0 ? -1 : 1
+        playerCropNode?.xScale = abs(playerCropNode?.xScale ?? 1)
+        playerImage?.xScale = scale
+        playerVideoNode?.xScale = scale
     }
 }

@@ -396,6 +396,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                     PlayerManager.shared.setWalking(true)
                     PlayerManager.shared.updateFacing(dx: -1)
                 }
+                print("🧪 QA player faceR=\(faceRight) faceL=\(faceLeft) imgScale=\(PlayerManager.shared.playerImage?.xScale ?? 0) vidScale=\(PlayerManager.shared.playerVideoNode?.xScale ?? 0)")
                 var offset: CGFloat = 120
                 for guardian in NPC.shared.enemyNodes where guardian.parent === self {
                     let type = guardian.userData?["guardianType"] as? String ?? "?"
@@ -405,15 +406,20 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                     if forceWalk {
                         NPC.shared.setWalkingAnimation(for: guardian, walking: true, facingDX: dx)
                     }
-                    print("🧪 QA guardian \(type) walk=\(forceWalk) xScale=\(guardian.xScale)")
+                    let spriteScale = guardian.childNode(withName: "guardianSprite")?.xScale ?? 0
+                    print("🧪 QA guardian \(type) walk=\(forceWalk) crop=\(guardian.xScale) sprite=\(spriteScale)")
                     offset = -offset * 1.2
                 }
             }
-            // Re-assert walk after chroma bake finishes.
-            if forceWalk {
+            // Re-assert walk + facing after chroma bake finishes.
+            if forceWalk || faceRight || faceLeft {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) { [weak self] in
                     guard let self = self else { return }
                     let dx: CGFloat = faceRight ? 1 : (faceLeft ? -1 : 1)
+                    if faceRight || faceLeft {
+                        PlayerManager.shared.setWalking(true)
+                        PlayerManager.shared.updateFacing(dx: dx)
+                    }
                     for guardian in NPC.shared.enemyNodes where guardian.parent === self {
                         NPC.shared.setWalkingAnimation(for: guardian, walking: true, facingDX: dx)
                     }
@@ -978,15 +984,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                     // ✅ Update dot position in real-time as enemy moves
                     npcDots[index].position = CGPoint(x: npcMapX, y: npcMapY)
                 } else {
-                    // ✅ Hide dot if enemy is outside bounds
+                    // Hide minimap dot only — never teleport/clamp the live enemy here.
+                    // Clamping world position from the minimap loop fought patrol moves and
+                    // looked like guardians vanishing and reappearing.
                     npcDots[index].isHidden = true
-                    // ✅ Clamp the enemy position back to bounds immediately
-                    let clampedPosition = CGPoint(
-                        x: max(enemyMapBounds.minX, min(enemyMapBounds.maxX, npc.position.x)),
-                        y: max(enemyMapBounds.minY, min(enemyMapBounds.maxY, npc.position.y))
-                    )
-                    npc.position = clampedPosition
-                    print("⚠️ Enemy \(index) was outside bounds, clamped to: \(clampedPosition)")
                 }
             }
         }
