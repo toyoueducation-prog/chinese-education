@@ -397,18 +397,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             }
         }
 
-        // Soft full-map underlay so areas outside the 21×20 grid (and camera edges) stay storybook grass.
-        let underlay = SKSpriteNode(imageNamed: "grass2")
-        underlay.name = "mapUnderlay"
-        underlay.zPosition = -2
-        underlay.texture?.filteringMode = .linear
-        let worldW = CGFloat(21) * Self.mapTilePointSize
-        let worldH = CGFloat(20) * Self.mapTilePointSize
-        underlay.size = CGSize(width: max(size.width, worldW) * 1.35, height: max(size.height, worldH) * 1.35)
-        underlay.position = CGPoint(x: worldW / 2 - size.width / 2, y: size.height / 2 - worldH / 2)
-        addChild(underlay)
-        
         // 64pt tiles pair with @3x 192px catalog assets (exact Retina, no upscale blur).
+        // Camera edges beyond the grid use backgroundColor (meadow green) — avoid stretching a
+        // 192px tile into a full-screen underlay (that looked blurry).
         let tileSize = CGSize(width: Self.mapTilePointSize, height: Self.mapTilePointSize)
         for (row, tiles) in mapLayout.enumerated() {
             for (col, symbol) in tiles.enumerated() {
