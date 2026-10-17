@@ -48,7 +48,8 @@ class SignInScene: SKScene, UITextFieldDelegate {
         gameTitle.fontSize = 48  // ✅ Larger font
         gameTitle.fontColor = .white
         gameTitle.fontName = "AvenirNext-Bold"
-        gameTitle.position = CGPoint(x: size.width / 2, y: safeTopY - 56)
+        gameTitle.verticalAlignmentMode = .center
+        gameTitle.position = CGPoint(x: size.width / 2, y: safeTopY - 40)
         addChild(gameTitle)
     }
     
@@ -169,7 +170,7 @@ class SignInScene: SKScene, UITextFieldDelegate {
         self.teacherButtonBackground.fillColor = UIColor.systemPurple
         self.teacherButtonBackground.strokeColor = UIColor.systemPurple
         self.teacherButtonBackground.lineWidth = 2
-        self.teacherButtonBackground.position = CGPoint(x: size.width / 2, y: 50)
+        self.teacherButtonBackground.position = CGPoint(x: size.width / 2, y: safeBottomY + 40)
         self.teacherButtonBackground.name = "teacherLoginButton"
         addChild(self.teacherButtonBackground)
         

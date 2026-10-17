@@ -1387,7 +1387,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // ✅ Create main stats panel with modern design (below status bar via cameraSafeTopY)
         let statsPanelSize = CGSize(width: 280, height: 200)
         let statsPanel = SKSpriteNode(color: UIColor.black.withAlphaComponent(0.7), size: statsPanelSize)
-        let panelTop = cameraSafeTopY - 12
+        let panelTop = cameraSafeTopY - 16
         statsPanel.position = CGPoint(x: -size.width / 2 + 150, y: panelTop - statsPanelSize.height / 2)
         statsPanel.zPosition = 19
         statsPanel.name = "statsPanel"
@@ -1517,7 +1517,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     // MARK: - 🧭 Navigation Buttons Setup
     func setupNavigationButtons() {
         // Progress Dashboard Button (moved to the left)
-        let navY = cameraSafeBottomY + 36
+        let navY = cameraSafeBottomY + 48
         let progressButton = createNavigationButton(text: "📊 進度", name: "progressButton", position: CGPoint(x: size.width / 2 - 150, y: navY))
         camera?.addChild(progressButton)
         
@@ -1526,7 +1526,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         camera?.addChild(vocabularyButton)
         
         // Report Button (moved to the left)
-        let reportButton = createNavigationButton(text: "📄 報告", name: "reportButton", position: CGPoint(x: size.width / 2 + 50, y: -size.height / 2 + 50))  // ✅ Moved left (from +100 to +50)
+        let reportButton = createNavigationButton(text: "📄 報告", name: "reportButton", position: CGPoint(x: size.width / 2 + 50, y: navY))
         camera?.addChild(reportButton)
     }
     

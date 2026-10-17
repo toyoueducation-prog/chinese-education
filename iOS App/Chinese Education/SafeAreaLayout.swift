@@ -8,27 +8,34 @@ import UIKit
 /// so the clock, battery, wifi, and home indicator remain visible.
 enum SafeAreaLayout {
     /// Prefer the live `SKView` insets; fall back to the key window, then notch-era defaults.
+    /// Always raise to a notch/home-indicator floor on tall phones — SpriteView with
+    /// `ignoresSafeArea` often reports understated or zero insets at first layout.
     static func insets(for scene: SKScene) -> UIEdgeInsets {
         #if os(iOS)
+        var insets = UIEdgeInsets.zero
         if let view = scene.view {
-            var insets = view.safeAreaInsets
-            if insets.top < 20 && scene.size.height >= 700 { insets.top = max(insets.top, 59) }
-            if insets.bottom < 10 && scene.size.height >= 700 { insets.bottom = max(insets.bottom, 34) }
-            if insets.top > 0 || insets.bottom > 0 {
-                return insets
+            insets = view.safeAreaInsets
+        }
+        if insets.top < 1 || insets.bottom < 1 {
+            let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            if let window = scenes.flatMap(\.windows).first(where: \.isKeyWindow)
+                ?? scenes.first?.windows.first {
+                let w = window.safeAreaInsets
+                insets.top = max(insets.top, w.top)
+                insets.left = max(insets.left, w.left)
+                insets.bottom = max(insets.bottom, w.bottom)
+                insets.right = max(insets.right, w.right)
             }
         }
-        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-        if let window = scenes.flatMap(\.windows).first(where: \.isKeyWindow)
-            ?? scenes.first?.windows.first {
-            var insets = window.safeAreaInsets
-            // Before first layout pass, insets can still read as zero — keep a notch floor.
-            if insets.top < 20 && scene.size.height >= 700 { insets.top = 59 }
-            if insets.bottom < 10 && scene.size.height >= 700 { insets.bottom = 34 }
-            return insets
+        // Floor for Dynamic Island / home-indicator phones (and understated SpriteView insets).
+        if scene.size.height >= 700 {
+            insets.top = max(insets.top, 59)
+            insets.bottom = max(insets.bottom, 34)
+        } else if scene.size.height >= 600 {
+            insets.top = max(insets.top, 47)
+            insets.bottom = max(insets.bottom, 34)
         }
-        // Typical iPhone portrait with Dynamic Island / home indicator.
-        return UIEdgeInsets(top: 59, left: 0, bottom: 34, right: 0)
+        return insets
         #else
         return .zero
         #endif

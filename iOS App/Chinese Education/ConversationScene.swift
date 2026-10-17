@@ -112,8 +112,23 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         // ✅ Load passage and questions
         loadPassageAndQuestions()
         
-        // ✅ Setup UI
+        // Layout after the next run-loop tick so SKView/window safeAreaInsets are populated.
         setupConversation()
+        DispatchQueue.main.async { [weak self] in
+            self?.relayoutChromeAndContent()
+        }
+    }
+
+    /// Re-apply top chrome + passage/question stack using current safe-area insets.
+    private func relayoutChromeAndContent() {
+        enumerateChildNodes(withName: "exitButton") { node, _ in node.removeFromParent() }
+        enumerateChildNodes(withName: "playPauseButton") { node, _ in node.removeFromParent() }
+        setupExitButton()
+        setupPlayPauseButton()
+        setupPassageContainer()
+        if !questions.isEmpty {
+            displayQuestion(questions[currentQuestionIndex])
+        }
     }
     
     func setupBackground() {
@@ -133,6 +148,24 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
     
     // MARK: - Load Data
     func loadPassageAndQuestions() {
+        // QA: force the longest Chinese passage so layout can be stress-tested.
+        if ProcessInfo.processInfo.arguments.contains("-qaJumpConversation"),
+           let longest = QuestionBank.shared.getAllPassageSets()
+            .max(by: { $0.passage.count < $1.passage.count }) {
+            let qaQuestions = longest.questionKeys.prefix(4).compactMap {
+                QuestionBank.shared.getQuestion(forKey: $0)
+            }
+            if !qaQuestions.isEmpty {
+                passageText = longest.passage
+                questions = qaQuestions
+                currentPassageKey = longest.passageKey
+                _ = VocabularyManager.shared.extractVocabulary(from: passageText, maxWords: 15)
+                splitPassageIntoLines()
+                print("🧪 QA longest passage (\(passageText.count) chars, \(passageLines.count) lines)")
+                return
+            }
+        }
+
         // ✅ Get completed passages to avoid showing the same one
         let completedPassages = UserDefaults.standard.stringArray(forKey: "completedPassages") ?? []
         
@@ -299,7 +332,8 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
     }
     
     func setupExitButton() {
-        let topY = safeTopY - 28
+        // Keep the whole 40pt control below the status bar (top edge ≤ safeTopY - 12).
+        let topY = safeTopY - 36
         exitButtonBackground = SKShapeNode(rectOf: CGSize(width: 100, height: 40), cornerRadius: 8)
         exitButtonBackground.fillColor = UIColor.systemRed.withAlphaComponent(0.92)
         exitButtonBackground.strokeColor = .white
@@ -332,15 +366,23 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         passageScrollOffset = 0
 
         let frame = safeContentFrame
+        // Top chrome (exit / play) sits in the first ~56pt below the safe top.
         let topBarReserved: CGFloat = 56
         let passageWidth = frame.width
-        // Budget: top bar + passage + question (~110) + 4 answers (~232) + dolls/home (~110).
-        let reservedBelowPassage: CGFloat = 110 + 232 + 110
-        let maxPassageHeight = max(120, min(frame.height * 0.28, frame.height - topBarReserved - reservedBelowPassage))
+        // Reserve room below the passage: gap + question + answers + dolls/home.
+        let gapAfterPassage: CGFloat = 20
+        let questionBudget: CGFloat = 100
+        let answerBudget: CGFloat = 4 * 52 + 24
+        let dollsBudget: CGFloat = 108
+        let reservedBelowPassage = gapAfterPassage + questionBudget + answerBudget + dollsBudget
+        let maxPassageHeight = max(
+            100,
+            min(frame.height * 0.24, frame.height - topBarReserved - reservedBelowPassage)
+        )
         let fontSize: CGFloat = max(20, min(24, size.width / 17))
         let lineHeight = fontSize + 10
         let horizontalPad: CGFloat = 18
-        let verticalPad: CGFloat = 16
+        let verticalPad: CGFloat = 14
 
         let contentHeight = max(lineHeight, CGFloat(passageLines.count) * lineHeight) + verticalPad * 2
         let visibleHeight = min(maxPassageHeight, contentHeight)
@@ -349,10 +391,11 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
 
         let panelTop = safeTopY - topBarReserved
         let panelCenterY = panelTop - visibleHeight / 2
+        // Bottom edge of the passage panel — question stack must stay strictly below this.
         passagePanelBottomY = panelTop - visibleHeight
         let passageContainer = SKShapeNode(rectOf: CGSize(width: passageWidth, height: visibleHeight), cornerRadius: 14)
         // Solid/semi-opaque panel — never put text directly on busy art.
-        passageContainer.fillColor = UIColor(white: 1.0, alpha: 0.94)
+        passageContainer.fillColor = UIColor(white: 1.0, alpha: 0.96)
         passageContainer.strokeColor = UIColor(red: 0.15, green: 0.35, blue: 0.65, alpha: 1.0)
         passageContainer.lineWidth = 2
         passageContainer.position = CGPoint(x: size.width / 2, y: panelCenterY)
@@ -397,15 +440,17 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         }
 
         applyPassageScrollOffset()
+        // Scroll affordance lives inside the panel bottom padding so it cannot collide with the question.
         if contentHeight > visibleHeight + 1 {
             let hint = SKLabelNode(text: "↕ 滑動閱讀")
-            hint.fontSize = 12
+            hint.fontSize = 11
             hint.fontColor = UIColor.darkGray
             hint.fontName = "AvenirNext-Medium"
-            hint.position = CGPoint(x: size.width / 2, y: panelCenterY - visibleHeight / 2 - 14)
+            hint.verticalAlignmentMode = .bottom
+            hint.position = CGPoint(x: 0, y: -visibleHeight / 2 + 4)
             hint.name = "passageScrollHint"
-            hint.zPosition = 10
-            addChild(hint)
+            hint.zPosition = 2
+            passageContainer.addChild(hint)
         }
     }
 
@@ -416,7 +461,7 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
     }
 
     func setupPlayPauseButton() {
-        let topY = safeTopY - 28
+        let topY = safeTopY - 36
         playPauseButton = SKLabelNode(text: "▶️")
         playPauseButton?.fontSize = 28
         playPauseButton?.fontColor = .white
@@ -520,17 +565,18 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         }
 
         let frame = safeContentFrame
-        let passageBottom = (passagePanelBottomY > 0 ? passagePanelBottomY : safeTopY - 200) - 14
+        // Strictly below the passage panel — never climb upward into it.
+        let passageBottom = (passagePanelBottomY > 0 ? passagePanelBottomY : safeTopY - 200) - 18
 
         let questionContainerWidth = frame.width
         let textWidth = questionContainerWidth - 36
-        let headerHeight: CGFloat = 28
-        let verticalPad: CGFloat = 14
+        let headerHeight: CGFloat = 26
+        let verticalPad: CGFloat = 12
 
         // Answers always get space above dolls / home indicator.
-        let answerReserve: CGFloat = 4 * 54 + 20
+        let answerReserve: CGFloat = 4 * 52 + 20
         let answersFloor = safeBottomY + 100
-        let maxQuestionHeight = max(90, passageBottom - (answersFloor + answerReserve) - 12)
+        let maxQuestionHeight = max(84, passageBottom - (answersFloor + answerReserve) - 10)
 
         questionLabel = SKLabelNode(text: question.question)
         questionLabel.fontName = "AvenirNext-Medium"
@@ -541,12 +587,12 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         questionLabel.lineBreakMode = .byWordWrapping
         questionLabel.name = "questionLabel"
         questionLabel.fontSize = 22
-        let textBudget = max(48, maxQuestionHeight - headerHeight - verticalPad * 2)
+        let textBudget = max(44, maxQuestionHeight - headerHeight - verticalPad * 2)
         questionLabel.fitFont(maxWidth: textWidth, maxHeight: textBudget, minimum: 17, starting: 22)
         let questionTextHeight = min(textBudget, questionLabel.measuredTextHeight(maxWidth: textWidth))
         let questionContainerHeight = min(
             maxQuestionHeight,
-            headerHeight + questionTextHeight + verticalPad * 2 + 6
+            headerHeight + questionTextHeight + verticalPad * 2 + 4
         )
 
         // Never push upward into the passage — only shrink.
@@ -562,7 +608,7 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         questionContainer.lineWidth = 2.5
         questionContainer.position = CGPoint(x: size.width / 2, y: (panelTop + panelBottom) / 2)
         questionContainer.name = "questionContainer"
-        questionContainer.zPosition = 8
+        questionContainer.zPosition = 12
         addChild(questionContainer)
         questionPanelBottomY = panelBottom
 
