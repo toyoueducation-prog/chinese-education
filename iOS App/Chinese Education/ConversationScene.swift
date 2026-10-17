@@ -236,26 +236,20 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
     
     // MARK: - Split Passage into Lines
     func splitPassageIntoLines() {
-        // ✅ Limit words per line to ensure highlighting works properly
-        // ✅ For Chinese, we'll use a more conservative character limit per line
-        // ✅ This ensures sentences don't span too many lines and highlighting stays accurate
-        let maxCharsPerLine = 25  // ✅ Reduced from calculated value to ensure better highlighting
+        // Fit Chinese glyphs to the passage panel: ~1em per character, with horizontal padding.
+        let usableWidth = max(160, safeContentFrame.width - 40)
+        let approxFont: CGFloat = max(20, min(24, size.width / 17))
+        let maxCharsPerLine = max(10, Int(floor(usableWidth / approxFont)))
         
-        // ✅ Split by sentence boundaries first, then by word/character groups
         var lines: [String] = []
-        
-        // ✅ First, split by sentence boundaries (。)
         let sentences = passageText.components(separatedBy: "。").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
         
         for sentence in sentences {
             let sentenceText = sentence.trimmingCharacters(in: .whitespaces) + "。"
             
-            // ✅ If sentence fits in one line, keep it together
             if sentenceText.count <= maxCharsPerLine {
                 lines.append(sentenceText)
             } else {
-                // ✅ Split long sentences at natural break points (punctuation, spaces)
-                // ✅ Try to break at punctuation first, then at word boundaries
                 var remainingSentence = sentenceText
                 while !remainingSentence.isEmpty {
                     if remainingSentence.count <= maxCharsPerLine {
@@ -263,12 +257,9 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
                         break
                     }
                     
-                    // ✅ Try to find a good break point (punctuation or space)
-                    // ✅ Look for punctuation marks (，、；：) or spaces as break points
                     var breakIndex: String.Index?
                     let breakChars: [Character] = ["，", "、", "；", "：", " ", "\n"]
                     
-                    // ✅ Search backwards from maxCharsPerLine to find a break point
                     for i in (0..<min(maxCharsPerLine, remainingSentence.count)).reversed() {
                         let checkIndex = remainingSentence.index(remainingSentence.startIndex, offsetBy: i)
                         if breakChars.contains(remainingSentence[checkIndex]) {
@@ -277,7 +268,6 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
                         }
                     }
                     
-                    // ✅ If no break point found, use maxCharsPerLine
                     let endIndex = breakIndex ?? remainingSentence.index(remainingSentence.startIndex, offsetBy: maxCharsPerLine, limitedBy: remainingSentence.endIndex) ?? remainingSentence.endIndex
                     
                     let line = String(remainingSentence[..<endIndex])
