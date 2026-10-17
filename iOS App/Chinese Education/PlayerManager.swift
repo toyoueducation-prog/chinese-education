@@ -113,8 +113,8 @@ class PlayerManager {
         }
     }
 
-    /// Walk clips / Doll1 face right in their authored frames.
-    /// Moving left flips the crop (children inherit); moving right keeps natural scale.
+    /// Verified against Move2 clip frames: authored walk art faces RIGHT.
+    /// Moving left flips (`xScale = -mag`); moving right keeps natural scale.
     func updateFacing(dx: CGFloat) {
         guard let crop = playerCropNode, abs(dx) > 0.5 else { return }
         let mag = abs(crop.xScale) < 0.01 ? 1 : abs(crop.xScale)

@@ -249,4 +249,143 @@ final class Chinese_EducationTests: XCTestCase {
         let processNeeds = InterventionEngine.shared.identifyStrugglingAreas(profile).filter { $0.type == .process }
         XCTAssertTrue(processNeeds.isEmpty)
     }
+
+    // MARK: - Teacher analytics / AI insight engine
+
+    private func makeAnswerRecord(
+        studentID: String,
+        name: String,
+        passage: String,
+        type: String,
+        process: PIRLSProcess?,
+        correct: Bool,
+        time: TimeInterval,
+        attempt: Int = 1,
+        date: Date = Date()
+    ) -> StudentAnswerLogRecord {
+        StudentAnswerLogRecord(
+            id: UUID().uuidString,
+            studentID: studentID,
+            studentName: name,
+            date: date,
+            passageKey: passage,
+            questionKey: "q_\(UUID().uuidString.prefix(6))",
+            questionType: type,
+            questionPreview: "preview",
+            studentAnswer: correct ? "A" : "B",
+            correctAnswer: "A",
+            isCorrect: correct,
+            responseTimeSeconds: time,
+            attemptNumber: attempt,
+            pirlsProcessRaw: process?.rawValue,
+            readingPurposeRaw: ReadingPurpose.literary.rawValue
+        )
+    }
+
+    func testRuleBasedInsightEngineStudentAccuracyAndStreaks() {
+        let engine = RuleBasedAnalyticsInsightEngine()
+        engine.skillSampleFloor = 2
+        let base = Date(timeIntervalSince1970: 1_700_000_000)
+        var records: [StudentAnswerLogRecord] = []
+        // Build a clear retrieving weakness and a streak of 3 at the end.
+        for i in 0..<4 {
+            records.append(makeAnswerRecord(
+                studentID: "s1", name: "小明", passage: "passage1", type: "選擇題",
+                process: .retrieving, correct: false, time: 20, date: base.addingTimeInterval(Double(i))
+            ))
+        }
+        for i in 0..<4 {
+            records.append(makeAnswerRecord(
+                studentID: "s1", name: "小明", passage: "passage3", type: "選擇題",
+                process: .inferring, correct: true, time: 8, date: base.addingTimeInterval(Double(10 + i))
+            ))
+        }
+        records.append(makeAnswerRecord(
+            studentID: "s1", name: "小明", passage: "passage5", type: "開放題",
+            process: .interpreting, correct: true, time: 12, date: base.addingTimeInterval(20)
+        ))
+        records.append(makeAnswerRecord(
+            studentID: "s1", name: "小明", passage: "passage5", type: "開放題",
+            process: .interpreting, correct: true, time: 11, date: base.addingTimeInterval(21)
+        ))
+        records.append(makeAnswerRecord(
+            studentID: "s1", name: "小明", passage: "passage5", type: "開放題",
+            process: .interpreting, correct: true, time: 10, date: base.addingTimeInterval(22)
+        ))
+
+        let snap = engine.analyzeStudent(studentID: "s1", studentName: "小明", records: records)
+        XCTAssertEqual(snap.totalAnswers, 11)
+        XCTAssertEqual(snap.currentStreak, 3)
+        XCTAssertGreaterThanOrEqual(snap.bestStreak, 3)
+        XCTAssertTrue(snap.weakestSkills.contains("檢索理解"))
+        XCTAssertGreaterThan(snap.accuracyBySkill["推論理解"] ?? 0, 0.7)
+        XCTAssertFalse(snap.insights.isEmpty)
+        XCTAssertTrue(snap.insights.contains { $0.kind == .weakness || $0.kind == .recommendation })
+    }
+
+    func testRuleBasedInsightEngineFlagsAtRiskAndClassView() {
+        let engine = RuleBasedAnalyticsInsightEngine()
+        engine.atRiskAccuracyThreshold = 0.45
+        engine.atRiskMinimumAnswers = 6
+        engine.skillSampleFloor = 2
+
+        var records: [StudentAnswerLogRecord] = []
+        for i in 0..<8 {
+            records.append(makeAnswerRecord(
+                studentID: "risk", name: "阿華", passage: "passage2", type: "選擇題",
+                process: .evaluating, correct: i < 2, time: 30, date: Date().addingTimeInterval(Double(i))
+            ))
+        }
+        for i in 0..<6 {
+            records.append(makeAnswerRecord(
+                studentID: "ok", name: "小美", passage: "passage4", type: "選擇題",
+                process: .retrieving, correct: true, time: 9, date: Date().addingTimeInterval(Double(20 + i))
+            ))
+        }
+
+        let classSnap = engine.analyzeClass(
+            roster: [(id: "risk", name: "阿華"), (id: "ok", name: "小美")],
+            records: records
+        )
+        XCTAssertEqual(classSnap.studentCount, 2)
+        XCTAssertEqual(classSnap.totalAnswers, 14)
+        XCTAssertTrue(classSnap.atRiskStudentIDs.contains("risk"))
+        XCTAssertFalse(classSnap.atRiskStudentIDs.contains("ok"))
+        XCTAssertTrue(classSnap.insights.contains { $0.kind == .atRisk })
+    }
+
+    func testAnswerHistoryRecordAttemptDefaultsForLegacyPayload() throws {
+        // Simulate a pre-attemptNumber log entry (field absent).
+        let json = """
+        {"id":"r1","studentID":"s9","date":725000000.0,"passageKey":"passage1","questionKey":"q1","questionType":"選擇題","questionPreview":"Q","studentAnswer":"A","correctAnswer":"A","isCorrect":true,"responseTimeSeconds":5.0}
+        """.data(using: .utf8)!
+        let decoded = try JSONDecoder().decode(StudentAnswerLogRecord.self, from: json)
+        XCTAssertEqual(decoded.attemptNumber, 1)
+        XCTAssertEqual(decoded.studentID, "s9")
+    }
+
+    func testAnalyticsInsightEngineFacadeUsesProvider() {
+        let engine = RuleBasedAnalyticsInsightEngine()
+        let previous = AnalyticsInsightEngine.provider
+        AnalyticsInsightEngine.provider = engine
+        defer { AnalyticsInsightEngine.provider = previous }
+
+        let prior = AnswerHistoryStore.shared.allRecords()
+        defer { AnswerHistoryStore.shared.replaceAllForTesting(prior) }
+
+        let sample = [
+            makeAnswerRecord(
+                studentID: "facade", name: "測試", passage: "passage1", type: "選擇題",
+                process: .retrieving, correct: true, time: 7, attempt: 2
+            ),
+            makeAnswerRecord(
+                studentID: "facade", name: "測試", passage: "passage1", type: "選擇題",
+                process: .retrieving, correct: false, time: 12, attempt: 1
+            )
+        ]
+        AnswerHistoryStore.shared.replaceAllForTesting(sample)
+        let snap = AnalyticsInsightEngine.studentSnapshot(studentID: "facade", studentName: "測試")
+        XCTAssertEqual(snap.totalAnswers, 2)
+        XCTAssertEqual(snap.studentName, "測試")
+    }
 }

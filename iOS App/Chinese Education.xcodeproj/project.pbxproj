@@ -64,6 +64,7 @@
 		29A1B2C72D90C8A300C81CE8 /* VocabularyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A1B2C62D90C8A300C81CE8 /* VocabularyManager.swift */; };
 		29A1B2C92D90C8A400C81CE8 /* StudentProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A1B2C82D90C8A400C81CE8 /* StudentProfile.swift */; };
 		A3AHISTMB2F080001000E9171 /* AnswerHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3AHISTMF2F080001000E9171 /* AnswerHistoryStore.swift */; };
+		A3AINSEMB2F170001000E9171 /* AnalyticsInsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3AINESRF2F170001000E9171 /* AnalyticsInsightEngine.swift */; };
 		29A1B2CB2D90C8A500C81CE8 /* PIRLSAnalytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A1B2CA2D90C8A500C81CE8 /* PIRLSAnalytics.swift */; };
 		29A1B2CD2D90C8A600C81CE8 /* DifficultyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A1B2CC2D90C8A600C81CE8 /* DifficultyManager.swift */; };
 		A4ADAPTLM2F090001000E9171 /* LearningPathManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4ADAPTLP2F090001000E9171 /* LearningPathManager.swift */; };
@@ -149,6 +150,7 @@
 		29A1B2C62D90C8A300C81CE8 /* VocabularyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabularyManager.swift; sourceTree = "<group>"; };
 		29A1B2C82D90C8A400C81CE8 /* StudentProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudentProfile.swift; sourceTree = "<group>"; };
 		A3AHISTMF2F080001000E9171 /* AnswerHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnswerHistoryStore.swift; sourceTree = "<group>"; };
+		A3AINESRF2F170001000E9171 /* AnalyticsInsightEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsInsightEngine.swift; sourceTree = "<group>"; };
 		29A1B2CA2D90C8A500C81CE8 /* PIRLSAnalytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PIRLSAnalytics.swift; sourceTree = "<group>"; };
 		29A1B2CC2D90C8A600C81CE8 /* DifficultyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DifficultyManager.swift; sourceTree = "<group>"; };
 		A4ADAPTLP2F090001000E9171 /* LearningPathManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearningPathManager.swift; sourceTree = "<group>"; };
@@ -349,6 +351,7 @@
 			children = (
 				29A1B2C82D90C8A400C81CE8 /* StudentProfile.swift */,
 				A3AHISTMF2F080001000E9171 /* AnswerHistoryStore.swift */,
+				A3AINESRF2F170001000E9171 /* AnalyticsInsightEngine.swift */,
 				29A1B2CA2D90C8A500C81CE8 /* PIRLSAnalytics.swift */,
 				A4ADAPTRP2F090001000E9171 /* ReadingPurposeTracker.swift */,
 				29A1B2CE2D90C8A700C81CE8 /* ProgressDashboard.swift */,
@@ -575,6 +578,7 @@
 				29A1B2C72D90C8A300C81CE8 /* VocabularyManager.swift in Sources */,
 				29A1B2C92D90C8A400C81CE8 /* StudentProfile.swift in Sources */,
 				A3AHISTMB2F080001000E9171 /* AnswerHistoryStore.swift in Sources */,
+				A3AINSEMB2F170001000E9171 /* AnalyticsInsightEngine.swift in Sources */,
 				29A1B2CB2D90C8A500C81CE8 /* PIRLSAnalytics.swift in Sources */,
 				29A1B2CD2D90C8A600C81CE8 /* DifficultyManager.swift in Sources */,
 				A4ADAPTLM2F090001000E9171 /* LearningPathManager.swift in Sources */,

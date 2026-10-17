@@ -160,7 +160,7 @@ class NPC {
             sprite.position = .zero
             crop.name = "enemy"  // keep physics contact name
             crop.zPosition = 8
-            crop.xScale = 1  // art faces left by default
+            crop.xScale = 1  // fox/owl walk art faces left by default
 
             let radius = min(guardianSize.width, guardianSize.height) / 2
             crop.physicsBody = SKPhysicsBody(circleOfRadius: radius)
@@ -221,7 +221,7 @@ class NPC {
         }
     }
 
-    /// Idle/walk art faces left; flip when traveling right.
+    /// Fox/owl walk clips face left; flip when traveling right.
     private func setFacing(_ node: SKNode, dx: CGFloat) {
         guard abs(dx) > 0.5 else { return }
         let magnitude = abs(node.xScale) < 0.01 ? 1 : abs(node.xScale)
@@ -229,74 +229,61 @@ class NPC {
     }
 
     private func patrolEnemy(enemy: SKNode, scene: SKScene) {
-        let moveDistance: CGFloat = 100
-        let moveDuration: TimeInterval = 2.2
-        let pauseDuration: TimeInterval = 1.2
+        // Continuous waypoint chain — never teleport/respawn. Walk clip stays on;
+        // brief pause at each waypoint, then the next leg starts from current position.
+        enemy.removeAction(forKey: "patrol")
+        enemy.removeAction(forKey: "patrolStep")
+        setGuardianWalking(enemy, walking: true)
+        runNextPatrolLeg(enemy: enemy, scene: scene)
+    }
 
-        func nextPatrolTarget() -> CGPoint {
-            var newPosition = enemy.position
-            var attempts = 0
-            repeat {
-                let dx = [moveDistance, -moveDistance].randomElement()!
-                let dy = [moveDistance, -moveDistance, CGFloat(0)].randomElement()!
-                let proposed = CGPoint(x: enemy.position.x + dx, y: enemy.position.y + dy)
-                newPosition = clampToMapBounds(proposed, scene: scene)
-                if let tileType = getTileTypeAtPosition(newPosition, scene: scene),
-                   ["S", "T", "W"].contains(tileType) {
-                    attempts += 1
-                    continue
-                }
-                attempts += 1
-            } while attempts < 12 && (
-                isPositionOccupied(newPosition, scene: scene)
-                || !isValidMovementPosition(newPosition, scene: scene)
-                || newPosition == enemy.position
-            )
-            return newPosition
+    private func runNextPatrolLeg(enemy: SKNode, scene: SKScene) {
+        let next = nextContinuousWaypoint(from: enemy.position, scene: scene)
+        let dx = next.x - enemy.position.x
+        let distance = max(1, hypot(dx, next.y - enemy.position.y))
+        let speed: CGFloat = 55
+        let duration = TimeInterval(distance / speed)
+
+        setFacing(enemy, dx: dx)
+        setGuardianWalking(enemy, walking: true)
+
+        let move = SKAction.move(to: next, duration: duration)
+        move.timingMode = .linear
+        let pause = SKAction.wait(forDuration: 0.2)
+        let continueLoop = SKAction.run { [weak self, weak enemy, weak scene] in
+            guard let self = self, let enemy = enemy, let scene = scene else { return }
+            self.runNextPatrolLeg(enemy: enemy, scene: scene)
         }
+        enemy.run(SKAction.sequence([move, pause, continueLoop]), withKey: "patrol")
+    }
 
-        // One patrol step = face + show walk video for the whole travel, then idle pause.
-        // Single custom action so the walk clip stays on for the full travel duration.
-        let step = SKAction.customAction(withDuration: moveDuration + pauseDuration) { [weak self] node, elapsed in
-            guard let self = self else { return }
-            let travelEnd = moveDuration
-            if node.userData?["patrolActive"] as? Bool != true {
-                let next = self.clampToMapBounds(nextPatrolTarget(), scene: scene)
-                node.userData?["patrolStart"] = NSValue(cgPoint: node.position)
-                node.userData?["patrolEnd"] = NSValue(cgPoint: next)
-                node.userData?["patrolActive"] = true
-                node.userData?["patrolWalking"] = true
-                self.setFacing(node, dx: next.x - node.position.x)
-                self.setGuardianWalking(node, walking: true)
-            }
-            guard let startVal = node.userData?["patrolStart"] as? NSValue,
-                  let endVal = node.userData?["patrolEnd"] as? NSValue else { return }
-            let start = startVal.cgPointValue
-            let end = endVal.cgPointValue
-            if elapsed <= travelEnd {
-                let progress = CGFloat(min(elapsed / max(travelEnd, 0.001), 1.0))
-                let x = start.x + (end.x - start.x) * progress
-                let y = start.y + (end.y - start.y) * progress
-                node.position = self.clampToMapBounds(CGPoint(x: x, y: y), scene: scene)
-            } else {
-                node.position = self.clampToMapBounds(end, scene: scene)
-                if node.userData?["patrolWalking"] as? Bool == true {
-                    node.userData?["patrolWalking"] = false
-                    self.setGuardianWalking(node, walking: false)
-                }
-            }
-            // Reset step bookkeeping when this cycle is about to finish so the next
-            // repeatForever iteration picks a new target.
-            if elapsed >= moveDuration + pauseDuration - 0.02 {
-                node.userData?["patrolActive"] = false
-            }
+    /// Prefer a short step from the current position (never a far jump).
+    private func nextContinuousWaypoint(from origin: CGPoint, scene: SKScene) -> CGPoint {
+        let stepOptions: [CGVector] = [
+            CGVector(dx: 80, dy: 0), CGVector(dx: -80, dy: 0),
+            CGVector(dx: 0, dy: 80), CGVector(dx: 0, dy: -80),
+            CGVector(dx: 60, dy: 60), CGVector(dx: -60, dy: 60),
+            CGVector(dx: 60, dy: -60), CGVector(dx: -60, dy: -60)
+        ].shuffled()
+
+        for step in stepOptions {
+            let proposed = CGPoint(x: origin.x + step.dx, y: origin.y + step.dy)
+            let clamped = clampToMapBounds(proposed, scene: scene)
+            // Reject if clamping pulled us too far (would look like a teleport).
+            if hypot(clamped.x - origin.x, clamped.y - origin.y) < 12 { continue }
+            if hypot(clamped.x - proposed.x, clamped.y - proposed.y) > 40 { continue }
+            if isPositionOccupied(clamped, scene: scene) { continue }
+            if !isValidMovementPosition(clamped, scene: scene) { continue }
+            return clamped
         }
-
-        enemy.run(SKAction.repeatForever(step), withKey: "patrol")
+        // Soft fallback: tiny nudge that stays near origin.
+        let soft = clampToMapBounds(CGPoint(x: origin.x + 40, y: origin.y), scene: scene)
+        return soft
     }
 
     func restartPatrol(for enemy: SKNode, in scene: SKScene) {
         enemy.removeAction(forKey: "patrol")
+        enemy.removeAction(forKey: "patrolStep")
         patrolEnemy(enemy: enemy, scene: scene)
     }
 

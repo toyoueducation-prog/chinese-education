@@ -64,6 +64,8 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
     private var shouldStopPronunciation = false  // ✅ Flag to prevent moving to next line after answering
     private var incorrectQuestionKeys: Set<String> = []  // ✅ Track incorrect question keys for summary
     private var questionStartTime: Date = Date()  // ✅ Track when question is displayed for response time
+    /// Per-question attempt counts within this encounter (1-based when logged).
+    private var questionAttemptCounts: [String: Int] = [:]
     
     // UI Elements
     private var exitButton: SKLabelNode!
@@ -942,6 +944,8 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
             loggedAnswer = ""
         }
         let profile = StudentProfile.shared
+        let attempt = (questionAttemptCounts[question.key] ?? 0) + 1
+        questionAttemptCounts[question.key] = attempt
         AnswerHistoryStore.shared.append(
             studentID: profile.studentID,
             studentName: profile.studentName,
@@ -949,7 +953,8 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
             question: question,
             studentAnswer: loggedAnswer,
             isCorrect: isCorrect,
-            responseTime: responseTime
+            responseTime: responseTime,
+            attemptNumber: attempt
         )
         
         // ✅ Prevent moving to next line after answering, but keep pronunciation/highlighting going
