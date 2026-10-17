@@ -149,9 +149,9 @@ final class ChromaKeyVideoNode: SKSpriteNode {
         let softRange = max(2 * blend, 0.0001)
 
         for y in 0..<height {
-            // AVFoundation BGRA buffers are commonly bottom-up relative to UI images.
-            let srcY = height - 1 - y
-            let srcRow = base.advanced(by: srcY * bytesPerRow).assumingMemoryBound(to: UInt8.self)
+            // AVPlayerItemVideoOutput BGRA buffers are already top-down for this path;
+            // flipping rows here inverted every ChromaKeyVideoNode clip.
+            let srcRow = base.advanced(by: y * bytesPerRow).assumingMemoryBound(to: UInt8.self)
             for x in 0..<width {
                 let i = x * 4
                 let b = Float(srcRow[i + 0])
