@@ -75,7 +75,7 @@ class LevelUpScene: SKScene {
         levelLabel.fontSize = 64
         levelLabel.fontColor = .systemYellow
         levelLabel.fontName = "AvenirNext-Bold"
-        levelLabel.position = CGPoint(x: size.width / 2, y: size.height - 200)
+        levelLabel.position = CGPoint(x: size.width / 2, y: safeTopY - 100)
         levelLabel.zPosition = 100
         addChild(levelLabel)
         
@@ -85,7 +85,7 @@ class LevelUpScene: SKScene {
         messageLabel.fontSize = 32
         messageLabel.fontColor = .white
         messageLabel.fontName = "AvenirNext-Medium"
-        messageLabel.position = CGPoint(x: size.width / 2, y: size.height - 280)
+        messageLabel.position = CGPoint(x: size.width / 2, y: safeTopY - 180)
         messageLabel.zPosition = 100
         addChild(messageLabel)
         

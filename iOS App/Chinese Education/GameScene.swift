@@ -560,9 +560,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // ✅ Mini-map background with transparency
         miniMap = SKSpriteNode(color: UIColor.white.withAlphaComponent(0.8),
                                size: CGSize(width: size.width * mapScale, height: size.height * mapScale))
-        miniMap.anchorPoint = CGPoint(x: 0, y: 0)  // ✅ Ensure proper center alignment
-        miniMap.position = CGPoint(x: size.width / 2 - miniMap.size.width - 20,
-                                   y: size.height / 2 - miniMap.size.height - 20)
+        miniMap.anchorPoint = CGPoint(x: 0, y: 0)
+        miniMap.position = CGPoint(x: size.width / 2 - miniMap.size.width - 16,
+                                   y: cameraSafeTopY - miniMap.size.height - 8)
         miniMap.zPosition = 20
         miniMap.name = "miniMap"
 
@@ -1384,10 +1384,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // MARK: - 🎮 Setup UI Elements - Enhanced Gaming HUD
     private func setupUI() {
-        // ✅ Create main stats panel with modern design
+        // ✅ Create main stats panel with modern design (below status bar via cameraSafeTopY)
         let statsPanelSize = CGSize(width: 280, height: 200)
         let statsPanel = SKSpriteNode(color: UIColor.black.withAlphaComponent(0.7), size: statsPanelSize)
-        statsPanel.position = CGPoint(x: -size.width / 2 + 150, y: size.height / 2 - 100)
+        let panelTop = cameraSafeTopY - 12
+        statsPanel.position = CGPoint(x: -size.width / 2 + 150, y: panelTop - statsPanelSize.height / 2)
         statsPanel.zPosition = 19
         statsPanel.name = "statsPanel"
         camera?.addChild(statsPanel)
@@ -1432,9 +1433,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             return label
         }
 
-        // ✅ Improved positioning with better spacing
+        // ✅ Improved positioning with better spacing (below safe top)
         let startX: CGFloat = -size.width / 2 + 30
-        let startY: CGFloat = size.height / 2 - 50
+        let startY: CGFloat = cameraSafeTopY - 36
         let spacing: CGFloat = 40
 
         // ✅ Create stats with icons and better organization
@@ -1458,7 +1459,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     // MARK: - 🎰 Setup Clamping Button - Enhanced Design
     private func setupClampingButton() {
         let buttonSize = CGSize(width: 180, height: 50)
-        let buttonPosition = CGPoint(x: -size.width / 2 + 150, y: size.height / 2 - 250)
+        let buttonPosition = CGPoint(x: -size.width / 2 + 150, y: cameraSafeTopY - 250)
         
         // ✅ Create button background with gradient effect
         let buttonBackground = SKSpriteNode(color: UIColor.systemBlue.withAlphaComponent(0.9), size: buttonSize)
@@ -1516,11 +1517,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     // MARK: - 🧭 Navigation Buttons Setup
     func setupNavigationButtons() {
         // Progress Dashboard Button (moved to the left)
-        let progressButton = createNavigationButton(text: "📊 進度", name: "progressButton", position: CGPoint(x: size.width / 2 - 150, y: -size.height / 2 + 50))  // ✅ Moved left (from -100 to -150)
+        let navY = cameraSafeBottomY + 36
+        let progressButton = createNavigationButton(text: "📊 進度", name: "progressButton", position: CGPoint(x: size.width / 2 - 150, y: navY))
         camera?.addChild(progressButton)
         
         // Vocabulary Button (moved to the left to fit on screen)
-        let vocabularyButton = createNavigationButton(text: "📖 詞彙", name: "vocabularyButton", position: CGPoint(x: size.width / 2 - 50, y: -size.height / 2 + 50))  // ✅ Moved left (from center to -50)
+        let vocabularyButton = createNavigationButton(text: "📖 詞彙", name: "vocabularyButton", position: CGPoint(x: size.width / 2 - 50, y: navY))
         camera?.addChild(vocabularyButton)
         
         // Report Button (moved to the left)

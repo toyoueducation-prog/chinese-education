@@ -48,7 +48,7 @@ class SignInScene: SKScene, UITextFieldDelegate {
         gameTitle.fontSize = 48  // ✅ Larger font
         gameTitle.fontColor = .white
         gameTitle.fontName = "AvenirNext-Bold"
-        gameTitle.position = CGPoint(x: size.width / 2, y: size.height - 150)  // ✅ Top center
+        gameTitle.position = CGPoint(x: size.width / 2, y: safeTopY - 56)
         addChild(gameTitle)
     }
     
@@ -73,9 +73,11 @@ class SignInScene: SKScene, UITextFieldDelegate {
         let buttonWidth: CGFloat = 180
         let buttonHeight: CGFloat = 55
         
-        // Position elements with much more spacing from top
-        let startY: CGFloat = size.height * 0.3  // Start at 30% from top
-        let spacing: CGFloat = 120  // Much more space between each element
+        // UIKit coordinates: y grows downward from the top of the view.
+        let topInset = view?.safeAreaInsets.top ?? safeInsets.top
+        let bottomInset = view?.safeAreaInsets.bottom ?? safeInsets.bottom
+        let startY: CGFloat = topInset + 140
+        let spacing: CGFloat = 100
         
         // Create UITextField for Username with improved styling
         usernameTextField = UITextField()
@@ -117,6 +119,7 @@ class SignInScene: SKScene, UITextFieldDelegate {
             view.addSubview(usernameTextField)
             view.addSubview(passwordTextField)
         }
+        _ = bottomInset // reserved for future bottom-anchored UIKit controls
         
         // Calculate button positions relative to password field
         // Convert UIKit coordinates to SpriteKit coordinates

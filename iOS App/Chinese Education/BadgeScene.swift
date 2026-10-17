@@ -52,13 +52,13 @@ class BadgeScene: SKScene {
         badgeLabel = SKLabelNode(text: "🏅 \(badgeName)")
         badgeLabel.fontSize = 32
         badgeLabel.fontColor = .yellow
-        badgeLabel.position = CGPoint(x: size.width / 2, y: size.height - 100)
+        badgeLabel.position = CGPoint(x: size.width / 2, y: safeTopY - 48)
         addChild(badgeLabel)
 
         continueButton = SKLabelNode(text: "點擊繼續")
         continueButton.fontSize = 28
         continueButton.fontColor = .white
-        continueButton.position = CGPoint(x: size.width / 2, y: size.height / 4)
+        continueButton.position = CGPoint(x: size.width / 2, y: max(safeBottomY + 80, size.height / 4))
         continueButton.name = "continueButton"
         addChild(continueButton)
     }

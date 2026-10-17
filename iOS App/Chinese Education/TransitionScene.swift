@@ -63,7 +63,7 @@ class TransitionScene: SKScene, AVSpeechSynthesizerDelegate {
         playPauseButton?.fontSize = 30
         playPauseButton?.fontColor = .white
         playPauseButton?.name = "playPauseButton"
-        playPauseButton?.position = CGPoint(x: size.width - 50, y: size.height - 50)
+        playPauseButton?.position = CGPoint(x: size.width - safeInsets.right - 40, y: safeTopY - 28)
         playPauseButton?.zPosition = 100
         addChild(playPauseButton!)
     }
@@ -152,7 +152,7 @@ class TransitionScene: SKScene, AVSpeechSynthesizerDelegate {
         continueButtonBackground = SKShapeNode(rectOf: CGSize(width: 200, height: 60), cornerRadius: 15)
         continueButtonBackground.fillColor = .white  // ✅ Default background color
         continueButtonBackground.strokeColor = .black
-        continueButtonBackground.position = CGPoint(x: size.width / 2, y: size.height / 5)
+        continueButtonBackground.position = CGPoint(x: size.width / 2, y: max(safeBottomY + 70, size.height / 5))
         continueButtonBackground.zPosition = 5
         addChild(continueButtonBackground)
 

@@ -43,7 +43,7 @@ class ProgressScene: SKScene {
         backButtonBackground.fillColor = UIColor.white.withAlphaComponent(0.9)
         backButtonBackground.strokeColor = UIColor.systemGray4
         backButtonBackground.lineWidth = 1
-        backButtonBackground.position = CGPoint(x: 60, y: size.height - 50)
+        backButtonBackground.position = CGPoint(x: safeInsets.left + 60, y: safeTopY - 28)
         backButtonBackground.name = "backButton"
         backButtonBackground.zPosition = 100
         addChild(backButtonBackground)
@@ -62,7 +62,7 @@ class ProgressScene: SKScene {
         titleLabel.fontSize = 28
         titleLabel.fontColor = .black
         titleLabel.fontName = "AvenirNext-Bold"
-        titleLabel.position = CGPoint(x: size.width / 2, y: size.height - 50)
+        titleLabel.position = CGPoint(x: size.width / 2, y: safeTopY - 28)
         titleLabel.zPosition = 100
         addChild(titleLabel)
     }

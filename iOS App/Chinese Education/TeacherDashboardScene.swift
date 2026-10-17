@@ -170,7 +170,7 @@ class TeacherDashboardScene: SKScene {
         backButtonBackground.fillColor = UIColor.white.withAlphaComponent(0.9)
         backButtonBackground.strokeColor = UIColor.systemGray4
         backButtonBackground.lineWidth = 1
-        backButtonBackground.position = CGPoint(x: 60, y: size.height - 50)
+        backButtonBackground.position = CGPoint(x: safeInsets.left + 60, y: safeTopY - 28)
         backButtonBackground.name = "backButton"
         backButtonBackground.zPosition = 100
         addChild(backButtonBackground)
@@ -189,7 +189,7 @@ class TeacherDashboardScene: SKScene {
         titleLabel.fontSize = 28
         titleLabel.fontColor = .black
         titleLabel.fontName = "AvenirNext-Bold"
-        titleLabel.position = CGPoint(x: size.width / 2, y: size.height - 50)
+        titleLabel.position = CGPoint(x: size.width / 2, y: safeTopY - 28)
         titleLabel.zPosition = 100
         addChild(titleLabel)
         
@@ -199,7 +199,7 @@ class TeacherDashboardScene: SKScene {
         exportBg.fillColor = UIColor.systemGreen.withAlphaComponent(0.9)
         exportBg.strokeColor = UIColor.systemGreen
         exportBg.lineWidth = 1
-        exportBg.position = CGPoint(x: size.width - 200, y: size.height - 50)
+        exportBg.position = CGPoint(x: size.width - safeInsets.right - 200, y: safeTopY - 28)
         exportBg.name = "exportCSV"
         exportBg.zPosition = 100
         addChild(exportBg)
@@ -216,7 +216,7 @@ class TeacherDashboardScene: SKScene {
         ansBg.fillColor = UIColor.systemTeal.withAlphaComponent(0.95)
         ansBg.strokeColor = UIColor.systemTeal
         ansBg.lineWidth = 1
-        ansBg.position = CGPoint(x: size.width - 70, y: size.height - 50)
+        ansBg.position = CGPoint(x: size.width - safeInsets.right - 70, y: safeTopY - 28)
         ansBg.name = "exportAnswerLog"
         ansBg.zPosition = 100
         addChild(ansBg)
@@ -309,7 +309,7 @@ class TeacherDashboardScene: SKScene {
         classStatsLabel.numberOfLines = 0
         classStatsLabel.verticalAlignmentMode = .top
         classStatsLabel.horizontalAlignmentMode = .left
-        classStatsLabel.position = CGPoint(x: 50, y: size.height - 120)
+        classStatsLabel.position = CGPoint(x: 50, y: safeTopY - 98)
         classStatsLabel.zPosition = 10
         classStatsLabel.name = "classOverview"
         addChild(classStatsLabel)
@@ -318,7 +318,7 @@ class TeacherDashboardScene: SKScene {
         let processTitle = SKLabelNode(text: "PIRLS 過程平均分數")
         processTitle.fontSize = 20
         processTitle.fontColor = .black  // Use explicit color
-        processTitle.position = CGPoint(x: size.width / 2, y: size.height - 200)
+        processTitle.position = CGPoint(x: size.width / 2, y: safeTopY - 178)
         processTitle.zPosition = 10
         addChild(processTitle)
         
@@ -355,7 +355,7 @@ class TeacherDashboardScene: SKScene {
             processLabel.fontSize = 16
             processLabel.fontColor = .black
             processLabel.horizontalAlignmentMode = .left
-            processLabel.position = CGPoint(x: 50, y: size.height - 200 - yOffset)
+            processLabel.position = CGPoint(x: 50, y: safeTopY - 178 - yOffset)
             processLabel.zPosition = 10
             processLabel.name = "classOverview"
             addChild(processLabel)
@@ -366,14 +366,14 @@ class TeacherDashboardScene: SKScene {
             let progressBar = SKShapeNode(rectOf: CGSize(width: barWidth, height: barHeight))
             progressBar.fillColor = .systemGray5
             progressBar.strokeColor = .systemGray
-            progressBar.position = CGPoint(x: size.width / 2, y: size.height - 200 - yOffset - 12)
+            progressBar.position = CGPoint(x: size.width / 2, y: safeTopY - 178 - yOffset - 12)
             progressBar.name = "classOverview"
             addChild(progressBar)
             
             let filledBar = SKShapeNode(rectOf: CGSize(width: barWidth * CGFloat(processAvg), height: barHeight))
             filledBar.fillColor = processAvg >= 0.7 ? .systemGreen : (processAvg >= 0.5 ? .systemYellow : .systemRed)
             filledBar.strokeColor = .clear
-            filledBar.position = CGPoint(x: 50 + (barWidth * CGFloat(processAvg)) / 2, y: size.height - 200 - yOffset - 12)
+            filledBar.position = CGPoint(x: 50 + (barWidth * CGFloat(processAvg)) / 2, y: safeTopY - 178 - yOffset - 12)
             filledBar.name = "classOverview"
             addChild(filledBar)
             
@@ -389,7 +389,7 @@ class TeacherDashboardScene: SKScene {
         }
         studentCards.removeAll()
         
-        let listStartY = size.height - 450
+        let listStartY = safeTopY - 420
         var currentY = listStartY
         
         let listTitle = SKLabelNode(text: "學生列表 (點擊查看詳情)")
