@@ -176,16 +176,19 @@ class NPC {
             crop.userData?["displayName"] = "森林守護者"
             crop.userData?["walkVideo"] = walkName
 
-            // Optional green-screen walk clip (keyed like Move2 / doll clips).
-            if let url = Bundle.main.url(forResource: walkName, withExtension: "mp4")
-                ?? Bundle.main.url(forResource: "doll2", withExtension: "mp4") {
+            // Green-screen walk clip — keyed + frame-cached via ChromaKeyVideoNode (same as player).
+            // Init starts background bake into the shared texture cache.
+            if let url = Bundle.main.url(forResource: walkName, withExtension: "mp4") {
                 let video = ChromaKeyVideoNode(url: url, size: guardianSize, loops: true, muted: true)
                 video.position = .zero
-                video.zPosition = sprite.zPosition
+                video.zPosition = max(sprite.zPosition + 1, 1)
                 video.isHidden = true
                 video.name = "guardianWalk"
                 crop.addChild(video)
                 crop.userData?["hasWalkVideo"] = true
+                print("🎬 森林守護者 walk clip ready: \(walkName).mp4")
+            } else {
+                print("⚠️ Missing \(walkName).mp4 — guardian will use static sprite only")
             }
 
             scene.addChild(crop)
@@ -195,19 +198,30 @@ class NPC {
         }
     }
 
+    private func guardianWalkNode(in guardian: SKNode) -> ChromaKeyVideoNode? {
+        if let walk = guardian.childNode(withName: "guardianWalk") as? ChromaKeyVideoNode {
+            return walk
+        }
+        // Fallback: chroma nodes may keep their default name briefly.
+        return guardian.children.compactMap { $0 as? ChromaKeyVideoNode }.first
+    }
+
     private func setGuardianWalking(_ guardian: SKNode, walking: Bool) {
         let sprite = guardian.childNode(withName: "guardianSprite")
-        let walk = guardian.childNode(withName: "guardianWalk") as? ChromaKeyVideoNode
-        guard let walk = walk else {
+        guard let walk = guardianWalkNode(in: guardian) else {
             sprite?.isHidden = false
             return
         }
         sprite?.isHidden = walking
         walk.isHidden = !walking
-        if walking { walk.play() } else { walk.pause() }
+        if walking {
+            walk.play()  // uses cached keyed frames
+        } else {
+            walk.pause()
+        }
     }
 
-    /// Guardian idle art faces left; flip when traveling right.
+    /// Idle/walk art faces left; flip when traveling right.
     private func setFacing(_ node: SKNode, dx: CGFloat) {
         guard abs(dx) > 0.5 else { return }
         let magnitude = abs(node.xScale) < 0.01 ? 1 : abs(node.xScale)
@@ -216,65 +230,82 @@ class NPC {
 
     private func patrolEnemy(enemy: SKNode, scene: SKScene) {
         let moveDistance: CGFloat = 100
-        let moveDuration: TimeInterval = 2
+        let moveDuration: TimeInterval = 2.2
+        let pauseDuration: TimeInterval = 1.2
 
-        func getValidRandomPosition() -> CGPoint {
-            var newPosition: CGPoint = enemy.position
+        func nextPatrolTarget() -> CGPoint {
+            var newPosition = enemy.position
             var attempts = 0
             repeat {
                 let dx = [moveDistance, -moveDistance].randomElement()!
-                let dy = [moveDistance, -moveDistance].randomElement()!
+                let dy = [moveDistance, -moveDistance, CGFloat(0)].randomElement()!
                 let proposed = CGPoint(x: enemy.position.x + dx, y: enemy.position.y + dy)
                 newPosition = clampToMapBounds(proposed, scene: scene)
                 if let tileType = getTileTypeAtPosition(newPosition, scene: scene),
                    ["S", "T", "W"].contains(tileType) {
                     attempts += 1
-                    if attempts > 10 { break }
                     continue
                 }
                 attempts += 1
-                if attempts > 10 { break }
-            } while isPositionOccupied(newPosition, scene: scene) || !isValidMovementPosition(newPosition, scene: scene)
+            } while attempts < 12 && (
+                isPositionOccupied(newPosition, scene: scene)
+                || !isValidMovementPosition(newPosition, scene: scene)
+                || newPosition == enemy.position
+            )
             return newPosition
         }
 
-        let moveAction = SKAction.run { [weak self] in
+        // One patrol step = face + show walk video for the whole travel, then idle pause.
+        // Single custom action so the walk clip stays on for the full travel duration.
+        let step = SKAction.customAction(withDuration: moveDuration + pauseDuration) { [weak self] node, elapsed in
             guard let self = self else { return }
-            let currentClamped = self.clampToMapBounds(enemy.position, scene: scene)
-            if enemy.position != currentClamped {
-                enemy.position = currentClamped
+            let travelEnd = moveDuration
+            if node.userData?["patrolActive"] as? Bool != true {
+                let next = self.clampToMapBounds(nextPatrolTarget(), scene: scene)
+                node.userData?["patrolStart"] = NSValue(cgPoint: node.position)
+                node.userData?["patrolEnd"] = NSValue(cgPoint: next)
+                node.userData?["patrolActive"] = true
+                node.userData?["patrolWalking"] = true
+                self.setFacing(node, dx: next.x - node.position.x)
+                self.setGuardianWalking(node, walking: true)
             }
-
-            let next = self.clampToMapBounds(getValidRandomPosition(), scene: scene)
-            guard next != enemy.position else { return }
-
-            let dx = next.x - enemy.position.x
-            self.setFacing(enemy, dx: dx)
-            self.setGuardianWalking(enemy, walking: true)
-
-            let start = enemy.position
-            let move = SKAction.customAction(withDuration: moveDuration) { [weak self] _, elapsed in
-                guard let self = self else { return }
-                let progress = min(elapsed / moveDuration, 1.0)
-                let x = start.x + (next.x - start.x) * CGFloat(progress)
-                let y = start.y + (next.y - start.y) * CGFloat(progress)
-                enemy.position = self.clampToMapBounds(CGPoint(x: x, y: y), scene: scene)
+            guard let startVal = node.userData?["patrolStart"] as? NSValue,
+                  let endVal = node.userData?["patrolEnd"] as? NSValue else { return }
+            let start = startVal.cgPointValue
+            let end = endVal.cgPointValue
+            if elapsed <= travelEnd {
+                let progress = CGFloat(min(elapsed / max(travelEnd, 0.001), 1.0))
+                let x = start.x + (end.x - start.x) * progress
+                let y = start.y + (end.y - start.y) * progress
+                node.position = self.clampToMapBounds(CGPoint(x: x, y: y), scene: scene)
+            } else {
+                node.position = self.clampToMapBounds(end, scene: scene)
+                if node.userData?["patrolWalking"] as? Bool == true {
+                    node.userData?["patrolWalking"] = false
+                    self.setGuardianWalking(node, walking: false)
+                }
             }
-
-            enemy.run(move) { [weak self] in
-                guard let self = self else { return }
-                enemy.position = self.clampToMapBounds(enemy.position, scene: scene)
-                self.setGuardianWalking(enemy, walking: false)
+            // Reset step bookkeeping when this cycle is about to finish so the next
+            // repeatForever iteration picks a new target.
+            if elapsed >= moveDuration + pauseDuration - 0.02 {
+                node.userData?["patrolActive"] = false
             }
         }
 
-        let wait = SKAction.wait(forDuration: 2)
-        enemy.run(SKAction.repeatForever(SKAction.sequence([moveAction, wait])), withKey: "patrol")
+        enemy.run(SKAction.repeatForever(step), withKey: "patrol")
     }
 
     func restartPatrol(for enemy: SKNode, in scene: SKScene) {
         enemy.removeAction(forKey: "patrol")
         patrolEnemy(enemy: enemy, scene: scene)
+    }
+
+    /// QA / debug: force walk clip visibility (uses cached chroma frames).
+    func setWalkingAnimation(for guardian: SKNode, walking: Bool, facingDX: CGFloat? = nil) {
+        if let dx = facingDX {
+            setFacing(guardian, dx: dx)
+        }
+        setGuardianWalking(guardian, walking: walking)
     }
 
     private func isPositionOccupied(_ position: CGPoint, scene: SKScene) -> Bool {

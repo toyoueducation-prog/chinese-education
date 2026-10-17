@@ -381,27 +381,42 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         // ✅ Setup Player FIRST to avoid nil error
         PlayerManager.shared.setupPlayer(in: self)
-        // QA: verify horizontal flip for rightward facing + pull guardians on-camera.
+        // QA: pull both guardians on-camera and force walk clips (cached chroma frames).
         if ProcessInfo.processInfo.arguments.contains("-qaJumpGame") {
             let faceRight = ProcessInfo.processInfo.arguments.contains("-qaFaceRight")
             let faceLeft = ProcessInfo.processInfo.arguments.contains("-qaFaceLeft")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { [weak self] in
+            let forceWalk = ProcessInfo.processInfo.arguments.contains("-qaGuardianWalk")
+                || faceRight || faceLeft
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
                 guard let self = self, let player = PlayerManager.shared.playerCropNode else { return }
                 if faceRight {
                     PlayerManager.shared.setWalking(true)
                     PlayerManager.shared.updateFacing(dx: 1)
-                    print("🧪 QA face right xScale=\(player.xScale)")
                 } else if faceLeft {
                     PlayerManager.shared.setWalking(true)
                     PlayerManager.shared.updateFacing(dx: -1)
-                    print("🧪 QA face left xScale=\(player.xScale)")
                 }
-                var offset: CGFloat = 110
+                var offset: CGFloat = 120
                 for guardian in NPC.shared.enemyNodes where guardian.parent === self {
-                    guardian.position = CGPoint(x: player.position.x + offset, y: player.position.y - 20)
-                    if faceRight { guardian.xScale = -abs(guardian.xScale == 0 ? 1 : guardian.xScale) }
-                    else { guardian.xScale = abs(guardian.xScale == 0 ? 1 : guardian.xScale) }
-                    offset = -offset * 1.15
+                    let type = guardian.userData?["guardianType"] as? String ?? "?"
+                    guardian.removeAction(forKey: "patrol")  // freeze near player for clear shots
+                    guardian.position = CGPoint(x: player.position.x + offset, y: player.position.y - 30)
+                    let dx: CGFloat = faceRight ? 1 : -1
+                    if forceWalk {
+                        NPC.shared.setWalkingAnimation(for: guardian, walking: true, facingDX: dx)
+                    }
+                    print("🧪 QA guardian \(type) walk=\(forceWalk) xScale=\(guardian.xScale)")
+                    offset = -offset * 1.2
+                }
+            }
+            // Re-assert walk after chroma bake finishes.
+            if forceWalk {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) { [weak self] in
+                    guard let self = self else { return }
+                    let dx: CGFloat = faceRight ? 1 : (faceLeft ? -1 : 1)
+                    for guardian in NPC.shared.enemyNodes where guardian.parent === self {
+                        NPC.shared.setWalkingAnimation(for: guardian, walking: true, facingDX: dx)
+                    }
                 }
             }
         }
