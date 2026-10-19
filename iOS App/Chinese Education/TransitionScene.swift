@@ -1,5 +1,8 @@
 import SpriteKit
 import AVFoundation
+#if os(iOS)
+import UIKit
+#endif
 
 class TransitionScene: SKScene, AVSpeechSynthesizerDelegate {
     private var videoNode: SKVideoNode?
@@ -13,11 +16,14 @@ class TransitionScene: SKScene, AVSpeechSynthesizerDelegate {
     private var playPauseButton: SKLabelNode?  // ✅ Play/pause button
     private var isPronunciationPlaying = false  // ✅ Track pronunciation state
     private var explanationText = "你遇到了森林守護者……\n牠想向你提問一個問題！"
+    /// Animal bumped on the map (`GuardianFox` / `GuardianOwl`).
+    private var guardianType: String = UserDefaults.standard.string(forKey: "lastCollidedGuardianType") ?? "GuardianFox"
+    private var guardianWalkName: String = UserDefaults.standard.string(forKey: "lastCollidedGuardianWalk") ?? "guardian_fox_walk"
     
     override func didMove(to view: SKView) {
         backgroundColor = .black
         setupBackground()
-        setupDoll2Character()  // ✅ Setup doll2 character video
+        setupEncounterGuardian()  // Match fox/owl from the map collision
         synthesizer.delegate = self
         
         // ✅ Delay text setup slightly to ensure background is set first
@@ -28,33 +34,46 @@ class TransitionScene: SKScene, AVSpeechSynthesizerDelegate {
         }
     }
     
-    // MARK: - Setup Doll2 Character Video
-    func setupDoll2Character() {
-        // ✅ Try to load doll2.mp4 video
-        guard let videoURL = Bundle.main.url(forResource: "doll2", withExtension: "mp4") else {
-            print("⚠️ doll2.mp4 not found, using fallback image")
-            // Fallback to image if video not found
-            let dollImage = SKSpriteNode(imageNamed: "Doll2")
-            dollImage.size = CGSize(width: 200, height: 200)
-            dollImage.position = CGPoint(x: size.width * 0.2, y: size.height * 0.4)
-            dollImage.zPosition = 10  // Above background, below text
-            addChild(dollImage)
+    // MARK: - Setup Encounter Guardian (same animal as map bump)
+    func setupEncounterGuardian() {
+        let displayName = guardianType == "GuardianOwl" ? "貓頭鷹守護者" : "狐狸守護者"
+        explanationText = "你遇到了\(displayName)……\n牠想向你提問一個問題！"
+
+        let characterSize = CGSize(width: 220, height: 220)
+        let position = CGPoint(x: size.width * 0.22, y: size.height * 0.42)
+
+        // Prefer the matching walk clip; fall back to idle sprite, then Doll2.
+        if let videoURL = Bundle.main.url(forResource: guardianWalkName, withExtension: "mp4") {
+            let node = ChromaKeyVideoNode(
+                url: videoURL,
+                size: characterSize,
+                loops: true,
+                muted: true
+            )
+            node.position = position
+            node.zPosition = 10
+            node.name = "encounterGuardian"
+            doll2VideoNode = node
+            doll2AVPlayer = node.player
+            addChild(node)
+            node.play()
+            print("🎬 Encounter shows \(guardianWalkName).mp4 for \(guardianType)")
             return
         }
-        
-        let node = ChromaKeyVideoNode(
-            url: videoURL,
-            size: CGSize(width: 200, height: 200),
-            loops: true,
-            muted: true
-        )
-        node.position = CGPoint(x: size.width * 0.2, y: size.height * 0.4)
-        node.zPosition = 10
-        node.name = "doll2Character"
-        doll2VideoNode = node
-        doll2AVPlayer = node.player
-        addChild(node)
-        node.play()
+
+        let imageName: String
+        if UIImage(named: guardianType) != nil {
+            imageName = guardianType
+        } else {
+            imageName = "Doll2"
+        }
+        print("⚠️ \(guardianWalkName).mp4 missing — using \(imageName)")
+        let dollImage = SKSpriteNode(imageNamed: imageName)
+        dollImage.size = characterSize
+        dollImage.position = position
+        dollImage.zPosition = 10
+        dollImage.name = "encounterGuardian"
+        addChild(dollImage)
     }
 
     // MARK: - Setup Play/Pause Button

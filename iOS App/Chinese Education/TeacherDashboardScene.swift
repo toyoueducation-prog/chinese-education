@@ -61,6 +61,7 @@ class TeacherDashboardScene: SKScene {
         
         // ✅ Wrap setup in do-catch to prevent crashes from causing immediate return
         do {
+            AnalyticsAPIClient.shared.flushIfNeeded()
             loadStudentData()
             setupUI()
             refreshDisplay()  // ✅ Use unified display method
@@ -309,6 +310,21 @@ class TeacherDashboardScene: SKScene {
         classStatsLabel.zPosition = 10
         classStatsLabel.name = "classOverview"
         addChild(classStatsLabel)
+        fetchServerInsightsIfConfigured()
+    }
+
+    /// When ECS is configured, overlay server insights; otherwise keep local engine text.
+    private func fetchServerInsightsIfConfigured() {
+        guard AnalyticsServerConfig.isConfigured else { return }
+        // Optional: teachers can store a class id in UserDefaults after claiming a class.
+        if let classID = UserDefaults.standard.object(forKey: "analyticsServerClassID") as? Int {
+            AnalyticsAPIClient.shared.fetchClassMetrics(classID: classID) { [weak self] dto in
+                guard let self, let dto else { return }
+                let lines = dto.insights.prefix(4).map { "• \($0.title)：\($0.detail)" }.joined(separator: "\n")
+                let extra = "\n\n伺服器分析 (ECS)\n學生 \(dto.student_count)｜正確率 \(Int(dto.class_accuracy * 100))%\n\(lines)"
+                self.classStatsLabel.text = (self.classStatsLabel.text ?? "") + extra
+            }
+        }
     }
     
     // MARK: - Display Student List

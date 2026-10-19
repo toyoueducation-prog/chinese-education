@@ -77,7 +77,8 @@ class NPC {
             return
         }
 
-        let guardianSize = CGSize(width: 72, height: 72)
+        // ~1.25× previous 72pt size so guardians read clearly when the map is zoomed.
+        let guardianSize = CGSize(width: 90, height: 90)
         var usedTypes = Set(enemyNodes.compactMap { $0.userData?["guardianType"] as? String })
 
         for i in 0..<toSpawn {

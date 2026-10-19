@@ -98,6 +98,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private static let mapIndexKey = "currentMapIndex"
     /// On-screen tile size in points. Catalog tiles ship as 192px @3x (= 64pt).
     static let mapTilePointSize: CGFloat = 64
+    /// Camera zoom-in factor (< 1 shows less world → larger tiles/characters).
+    /// ~0.32 ≈ 3.1× on iPhone; HUD is a camera child (screen-stable). Map scrolls with player.
+    static let mapCameraZoom: CGFloat = 0.32
     private var mapLayout: [[Character]] = [
         ["S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S"], // Row 0: Top boundary
         ["S",".",".",".","T","G","G","G","T",".",".",".",".",".",".",".",".",".",".",".","S"], // Row 1: Forest area
@@ -381,12 +384,23 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         // ✅ Setup Player FIRST to avoid nil error
         PlayerManager.shared.setupPlayer(in: self)
+        // If map marked a spawn "P" and we still sit on the legacy top-edge default, snap to first P tile.
+        if let spawn = firstPlayerSpawnWorldPosition(),
+           let node = PlayerManager.shared.playerCropNode,
+           abs(node.position.y - size.height / 2) < 1 {
+            node.position = spawn
+        }
         // QA: pull both guardians on-camera and force walk clips (cached chroma frames).
         if ProcessInfo.processInfo.arguments.contains("-qaJumpGame") {
             let faceRight = ProcessInfo.processInfo.arguments.contains("-qaFaceRight")
             let faceLeft = ProcessInfo.processInfo.arguments.contains("-qaFaceLeft")
             let forceWalk = ProcessInfo.processInfo.arguments.contains("-qaGuardianWalk")
                 || faceRight || faceLeft
+            // Snap player to a mid-map corridor so zoom/follow screenshots aren't clipped at the north wall.
+            if let player = PlayerManager.shared.playerCropNode {
+                let mid = firstPlayerSpawnWorldPosition() ?? CGPoint(x: 0, y: -280)
+                player.position = CGPoint(x: mid.x, y: min(mid.y, -200))
+            }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
                 guard let self = self, let player = PlayerManager.shared.playerCropNode else { return }
                 if faceRight {
@@ -397,11 +411,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                     PlayerManager.shared.updateFacing(dx: -1)
                 }
                 print("🧪 QA player faceR=\(faceRight) faceL=\(faceLeft) imgScale=\(PlayerManager.shared.playerImage?.xScale ?? 0) vidScale=\(PlayerManager.shared.playerVideoNode?.xScale ?? 0)")
-                var offset: CGFloat = 120
+                // Keep guardians inside the zoomed viewport (~half-width ≈ size.width * zoom / 2).
+                var offset: CGFloat = 55
                 for guardian in NPC.shared.enemyNodes where guardian.parent === self {
                     let type = guardian.userData?["guardianType"] as? String ?? "?"
                     guardian.removeAction(forKey: "patrol")  // freeze near player for clear shots
-                    guardian.position = CGPoint(x: player.position.x + offset, y: player.position.y - 30)
+                    guardian.position = CGPoint(x: player.position.x + offset, y: player.position.y - 20)
                     let dx: CGFloat = faceRight ? 1 : -1
                     if forceWalk {
                         NPC.shared.setWalkingAnimation(for: guardian, walking: true, facingDX: dx)
@@ -589,15 +604,22 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                     treasuryBox.physicsBody?.contactTestBitMask = 0x1 << 0
                 }
                 
-                // Add physics body to block player movement
-                // Obstacles: Trees, Water, Stone walls, Bushes, Rocks, Logs
+                // Obstacles: Trees, Water, Stone walls, Bushes, Rocks, Logs.
+                // Inset bodies leave a walkable channel through 1-tile corridors.
                 if ["T", "W", "S", "B", "R", "L"].contains(symbol) {
-                    let bodySize = CGSize(width: tileSize.width, height: tileSize.height)
-                    tileNode.physicsBody = SKPhysicsBody(rectangleOf: bodySize, center: CGPoint(x: tileSize.width / 2, y: -tileSize.height / 2))
+                    let inset: CGFloat = 6
+                    let bodySize = CGSize(
+                        width: max(8, tileSize.width - inset * 2),
+                        height: max(8, tileSize.height - inset * 2)
+                    )
+                    let center = CGPoint(x: tileSize.width / 2, y: -tileSize.height / 2)
+                    tileNode.physicsBody = SKPhysicsBody(rectangleOf: bodySize, center: center)
                     tileNode.physicsBody?.isDynamic = false
+                    tileNode.physicsBody?.friction = 0
+                    tileNode.physicsBody?.restitution = 0
                     tileNode.physicsBody?.categoryBitMask = 0x1 << 2
-                    tileNode.physicsBody?.collisionBitMask = 0xFFFFFFFF
-                    tileNode.physicsBody?.contactTestBitMask = 0xFFFFFFFF
+                    tileNode.physicsBody?.collisionBitMask = PhysicsCategory.player
+                    tileNode.physicsBody?.contactTestBitMask = PhysicsCategory.none
                 }
             }
         }
@@ -815,8 +837,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                     let tree = SKSpriteNode(texture: treeTexture)
                     tree.position = position
                     tree.size = treeSize
-                    tree.physicsBody = SKPhysicsBody(rectangleOf: treeSize)
+                    // Trunk-only collider so foliage doesn't block corridors.
+                    let trunk = CGSize(width: 22, height: 28)
+                    tree.physicsBody = SKPhysicsBody(rectangleOf: trunk, center: CGPoint(x: 0, y: -treeSize.height * 0.28))
                     tree.physicsBody?.isDynamic = false
+                    tree.physicsBody?.categoryBitMask = 0x1 << 2
+                    tree.physicsBody?.collisionBitMask = PhysicsCategory.player
                     tree.name = "tree"
                     addChild(tree)
                     placedTrees.append(position)
@@ -832,8 +858,34 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     func setupCamera() {
         cameraNode = SKCameraNode()
         camera = cameraNode
-        cameraNode.position = PlayerManager.shared.playerCropNode.position // ✅ Start centered on player
+        // Zoom in so tiles/characters/HUD read larger; map scrolls with the player.
+        cameraNode.setScale(Self.mapCameraZoom)
+        cameraNode.position = clampedCameraPosition(
+            for: PlayerManager.shared.playerCropNode?.position ?? .zero
+        )
         addChild(cameraNode)
+    }
+
+    /// Keep the zoomed camera inside the map so edges don't show empty void.
+    private func clampedCameraPosition(for playerPos: CGPoint) -> CGPoint {
+        let tileSize = Self.mapTilePointSize
+        let mapColumns: CGFloat = 21
+        let mapRows: CGFloat = 20
+        let zoom = cameraNode?.xScale ?? Self.mapCameraZoom
+        let halfViewW = size.width * zoom / 2
+        let halfViewH = size.height * zoom / 2
+        let mapMinX = 0 * tileSize - size.width / 2
+        let mapMaxX = (mapColumns - 1) * tileSize - size.width / 2 + tileSize
+        let mapMaxY = 0 * tileSize + size.height / 2
+        let mapMinY = -(mapRows - 1) * tileSize + size.height / 2 - tileSize
+        let minX = mapMinX + halfViewW
+        let maxX = mapMaxX - halfViewW
+        let minY = mapMinY + halfViewH
+        let maxY = mapMaxY - halfViewH
+        return CGPoint(
+            x: min(max(playerPos.x, min(minX, maxX)), max(minX, maxX)),
+            y: min(max(playerPos.y, min(minY, maxY)), max(minY, maxY))
+        )
     }
 
     
@@ -851,37 +903,34 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
         lastUpdateTime = currentTime
 
-        if isMoving {
-            PlayerManager.shared.updateFacing(dx: moveDirection.dx)
-            let newX = PlayerManager.shared.playerCropNode.position.x + moveDirection.dx * dt
-            let newY = PlayerManager.shared.playerCropNode.position.y + moveDirection.dy * dt
-            
-            // ✅ Original map boundaries: 21x20 grid, 64x64 tiles
-            // ✅ Map is rendered with col 0 at (-size.width/2) and col 20 at (20*64 - size.width/2)
-            let tileSize: CGFloat = Self.mapTilePointSize
-            let mapColumns = 21
-            let mapRows = 20
-            let mapWidth = CGFloat(mapColumns) * tileSize  // 1344
-            let mapHeight = CGFloat(mapRows) * tileSize     // 1280
-            // ✅ Calculate actual map bounds based on tile positions
-            let mapBounds = (
-                minX: 0 * tileSize - size.width / 2 + 30,           // First column + margin
-                maxX: CGFloat(mapColumns - 1) * tileSize - size.width / 2 - 30,  // Last column - margin
-                minY: -(CGFloat(mapRows - 1) * tileSize) + size.height / 2 - 30,  // Last row - margin
-                maxY: 0 * tileSize + size.height / 2 - 30          // First row - margin
-            )
-            
-            // ✅ Clamp player position to map boundaries
-            let clampedX = max(mapBounds.minX, min(mapBounds.maxX, newX))
-            let clampedY = max(mapBounds.minY, min(mapBounds.maxY, newY))
-            
-            // ✅ Update cropNode position (main player node)
-            PlayerManager.shared.playerCropNode.position.x = clampedX
-            PlayerManager.shared.playerCropNode.position.y = clampedY
-            PlayerManager.shared.playerVideoNode?.position = CGPoint.zero  // Relative to cropNode
-
-            // ✅ Ensure camera follows the player
-            cameraNode.position = PlayerManager.shared.playerCropNode.position
+        if let playerNode = PlayerManager.shared.playerCropNode {
+            if isMoving {
+                PlayerManager.shared.updateFacing(dx: moveDirection.dx)
+                // Axis-separated slide: try X then Y so walls don't fully stop diagonal motion
+                // and one-tile corridors stay walkable with the smaller feet collider.
+                let tryX = CGPoint(
+                    x: playerNode.position.x + moveDirection.dx * dt,
+                    y: playerNode.position.y
+                )
+                let tryY = CGPoint(
+                    x: playerNode.position.x,
+                    y: playerNode.position.y + moveDirection.dy * dt
+                )
+                let tryBoth = CGPoint(
+                    x: playerNode.position.x + moveDirection.dx * dt,
+                    y: playerNode.position.y + moveDirection.dy * dt
+                )
+                if canOccupy(tryBoth) {
+                    playerNode.position = clampToPlayableBounds(tryBoth)
+                } else if canOccupy(tryX) {
+                    playerNode.position = clampToPlayableBounds(tryX)
+                } else if canOccupy(tryY) {
+                    playerNode.position = clampToPlayableBounds(tryY)
+                }
+                PlayerManager.shared.playerVideoNode?.position = .zero
+            }
+            // Camera follows player (zoomed); clamp so map edges fill the view.
+            cameraNode.position = clampedCameraPosition(for: playerNode.position)
         }
 
         guard let playerNode = PlayerManager.shared.playerCropNode else { return }
@@ -1164,6 +1213,65 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
         return false
     }
+
+    /// Soft occupancy test for slide movement — grid-aligned feet samples only.
+    /// Avoids sprite/canopy frames so every corridor ≥ 1 tile wide stays walkable.
+    private func canOccupy(_ position: CGPoint) -> Bool {
+        let feetRadius: CGFloat = 14
+        let feetCenter = CGPoint(x: position.x, y: position.y - 20)
+        let samples: [CGPoint] = [
+            feetCenter,
+            CGPoint(x: feetCenter.x + feetRadius, y: feetCenter.y),
+            CGPoint(x: feetCenter.x - feetRadius, y: feetCenter.y),
+            CGPoint(x: feetCenter.x, y: feetCenter.y + feetRadius),
+            CGPoint(x: feetCenter.x, y: feetCenter.y - feetRadius)
+        ]
+        for sample in samples {
+            if let symbol = tileSymbol(at: sample),
+               ["T", "W", "S", "B", "R", "L"].contains(symbol) {
+                return false
+            }
+        }
+        return true
+    }
+
+    private func tileSymbol(at worldPos: CGPoint) -> Character? {
+        let tileSize = Self.mapTilePointSize
+        let col = Int(((worldPos.x + size.width / 2) / tileSize).rounded(.down))
+        let row = Int(((size.height / 2 - worldPos.y) / tileSize).rounded(.down))
+        guard row >= 0, row < mapLayout.count,
+              col >= 0, col < mapLayout[row].count else { return nil }
+        return mapLayout[row][col]
+    }
+
+    /// World position of the first "P" spawn tile on the active map layout.
+    private func firstPlayerSpawnWorldPosition() -> CGPoint? {
+        let tileSize = Self.mapTilePointSize
+        for (row, rowTiles) in mapLayout.enumerated() {
+            for (col, symbol) in rowTiles.enumerated() where symbol == "P" {
+                let xPos = CGFloat(col) * tileSize - size.width / 2 + tileSize / 2
+                let yPos = size.height / 2 - CGFloat(row) * tileSize - tileSize / 2
+                return CGPoint(x: xPos, y: yPos)
+            }
+        }
+        return nil
+    }
+
+    private func clampToPlayableBounds(_ position: CGPoint) -> CGPoint {
+        let tileSize = Self.mapTilePointSize
+        let mapColumns = 21
+        let mapRows = 20
+        let mapBounds = (
+            minX: 0 * tileSize - size.width / 2 + 30,
+            maxX: CGFloat(mapColumns - 1) * tileSize - size.width / 2 - 30,
+            minY: -(CGFloat(mapRows - 1) * tileSize) + size.height / 2 - 30,
+            maxY: 0 * tileSize + size.height / 2 - 30
+        )
+        return CGPoint(
+            x: max(mapBounds.minX, min(mapBounds.maxX, position.x)),
+            y: max(mapBounds.minY, min(mapBounds.maxY, position.y))
+        )
+    }
     
     func savePlayerPosition() {
         let positionDict: [String: CGFloat] = [
@@ -1228,6 +1336,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             // ✅ Store last collided enemy and its identifier (do NOT defeat yet)
             lastCollidedEnemy = enemy
             lastCollidedEnemyIdentifier = enemy.userData?["identifier"] as? String
+            if let gType = enemy.userData?["guardianType"] as? String {
+                UserDefaults.standard.set(gType, forKey: "lastCollidedGuardianType")
+            }
+            if let walk = enemy.userData?["walkVideo"] as? String {
+                UserDefaults.standard.set(walk, forKey: "lastCollidedGuardianWalk")
+            }
             
             // ✅ Begin encounter only — guardian stays until quiz completion succeeds
             if let enemyId = lastCollidedEnemyIdentifier {

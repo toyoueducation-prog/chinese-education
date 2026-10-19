@@ -34,8 +34,12 @@ import Foundation
  * All endpoints are optional - app works fully offline with local data.
  */
 struct QuestionBankAPI {
-    // Alibaba ECS primary endpoint (configure your Alibaba ECS server URL here)
-    static let alibabaECSBaseURL = "https://your-alibaba-ecs-server.com/api"  // ✅ Replace with your Alibaba ECS URL
+    // Alibaba ECS primary endpoint — prefer AnalyticsServerConfig when set.
+    static var alibabaECSBaseURL: String {
+        let configured = AnalyticsServerConfig.baseURLString.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !configured.isEmpty { return configured }
+        return "https://your-alibaba-ecs-server.com/api"
+    }
     
     // Question endpoints
     static func questionURL(forKey key: String) -> URL? {

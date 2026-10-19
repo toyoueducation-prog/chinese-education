@@ -39,10 +39,21 @@ class PlayerManager {
         playerImage = originalImage  // Keep reference for compatibility
         playerImage.name = "player"
 
-        // ✅ Load saved position
-        let savedX = UserDefaults.standard.dictionary(forKey: "playerPosition")?["x"] as? CGFloat ?? scene.size.width / 2
-        let savedY = UserDefaults.standard.dictionary(forKey: "playerPosition")?["y"] as? CGFloat ?? scene.size.height / 2
-        let playerPosition = CGPoint(x: savedX, y: savedY)
+        // ✅ Load saved position (UserDefaults plists box numbers — never `as? CGFloat`)
+        let saved = UserDefaults.standard.dictionary(forKey: "playerPosition")
+        func coord(_ key: String, fallback: CGFloat) -> CGFloat {
+            guard let raw = saved?[key] else { return fallback }
+            if let n = raw as? NSNumber { return CGFloat(truncating: n) }
+            if let d = raw as? Double { return CGFloat(d) }
+            if let i = raw as? Int { return CGFloat(i) }
+            if let s = raw as? String, let d = Double(s) { return CGFloat(d) }
+            return fallback
+        }
+        // Prefer mid-map defaults over scene.height/2 (that lands on the north wall).
+        let playerPosition = CGPoint(
+            x: coord("x", fallback: 0),
+            y: coord("y", fallback: -200)
+        )
         
         playerCropNode.position = playerPosition
         playerImage.position = CGPoint.zero  // Relative to cropNode
@@ -77,15 +88,22 @@ class PlayerManager {
     
     // MARK: - Setup Player Physics
     private func setupPlayerPhysics(playerSize: CGSize) {
-        // ✅ Use circular physics body for oval/circular collision
-        let radius = min(playerSize.width, playerSize.height) / 2
-        playerCropNode.physicsBody = SKPhysicsBody(circleOfRadius: radius)
-        playerCropNode.physicsBody?.isDynamic = true  // ✅ Allow movement
-        playerCropNode.physicsBody?.affectedByGravity = false
-        playerCropNode.physicsBody?.allowsRotation = false
-        playerCropNode.physicsBody?.categoryBitMask = 0x1 << 0  // ✅ Player category
-        playerCropNode.physicsBody?.collisionBitMask = 0x1 << 2 // ✅ Collides with obstacles
-        playerCropNode.physicsBody?.contactTestBitMask = 0x1 << 1 // ✅ Detects enemy collision
+        // Feet-sized circle so one-tile (64pt) corridors are walkable.
+        // Centered near the bottom of the 72pt sprite (visual feet).
+        let radius: CGFloat = 14
+        let feetOffset = CGPoint(x: 0, y: -playerSize.height * 0.28)
+        let body = SKPhysicsBody(circleOfRadius: radius, center: feetOffset)
+        body.isDynamic = true
+        body.affectedByGravity = false
+        body.allowsRotation = false
+        body.friction = 0
+        body.restitution = 0
+        body.linearDamping = 8
+        body.categoryBitMask = PhysicsCategory.player
+        body.collisionBitMask = 0x1 << 2  // Obstacles / walls only
+        body.contactTestBitMask = PhysicsCategory.enemy | (0x1 << 3)  // Guardians + treasury
+        body.usesPreciseCollisionDetection = true
+        playerCropNode.physicsBody = body
     }
 
     // MARK: - Save Player Position

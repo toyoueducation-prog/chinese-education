@@ -51,6 +51,9 @@ final class AnswerHistoryStore {
             }
             Self.saveRaw(items, key: defaultsKey)
         }
+        // Best-effort ECS upload (offline queue + retry).
+        AnalyticsAPIClient.shared.enqueue(record: record)
+        AnalyticsAPIClient.shared.flushIfNeeded()
     }
 
     func allRecords() -> [StudentAnswerLogRecord] {

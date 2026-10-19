@@ -578,7 +578,7 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         questionLabel.numberOfLines = 0
         questionLabel.lineBreakMode = .byWordWrapping
         questionLabel.name = "questionLabel"
-        questionLabel.fontSize = 22
+        questionLabel.fontSize = 26
         let textBudget = max(44, maxQuestionHeight - headerHeight - verticalPad * 2)
         questionLabel.fitFont(maxWidth: textWidth, maxHeight: textBudget, minimum: 17, starting: 22)
         let questionTextHeight = min(textBudget, questionLabel.measuredTextHeight(maxWidth: textWidth))
@@ -677,7 +677,7 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
             answerButton.numberOfLines = 0
             answerButton.lineBreakMode = .byWordWrapping
             answerButton.preferredMaxLayoutWidth = textWidth
-            answerButton.fontSize = 20
+            answerButton.fontSize = 24
             answerButton.fitFont(
                 maxWidth: textWidth,
                 maxHeight: buttonHeight - 12,
@@ -704,7 +704,7 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         
         // ✅ Instructions label
         let instructionLabel = SKLabelNode(text: "請錄製您的答案")
-        instructionLabel.fontSize = 20
+        instructionLabel.fontSize = 22
         instructionLabel.fontColor = .systemBlue
         instructionLabel.fontName = "AvenirNext-Bold"
         instructionLabel.horizontalAlignmentMode = .center
@@ -1098,7 +1098,7 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         
         // ✅ Create explanation label - positioned at the very bottom of the screen
         let explanationLabel = SKLabelNode(text: explanationText)
-        explanationLabel.fontSize = 18
+        explanationLabel.fontSize = 20
         explanationLabel.fontColor = .black
         explanationLabel.fontName = "AvenirNext-Medium"
         explanationLabel.horizontalAlignmentMode = .center
