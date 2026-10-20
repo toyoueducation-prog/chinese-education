@@ -196,17 +196,34 @@ class TeacherDashboardScene: SKScene {
         addChild(titleLabel)
         
         #if os(iOS)
-        let exportSize = CGSize(width: 118, height: 40)
+        let exportSize = CGSize(width: 100, height: 40)
+        let settingsBg = SKShapeNode(rectOf: exportSize, cornerRadius: 8)
+        settingsBg.fillColor = UIColor.systemIndigo.withAlphaComponent(0.95)
+        settingsBg.strokeColor = UIColor.systemIndigo
+        settingsBg.lineWidth = 1
+        settingsBg.position = CGPoint(x: size.width - safeInsets.right - 280, y: safeTopY - 28)
+        settingsBg.name = "openAnalyticsSettings"
+        settingsBg.zPosition = 100
+        addChild(settingsBg)
+        let settingsLabel = SKLabelNode(text: "分析設定")
+        settingsLabel.fontSize = 14
+        settingsLabel.fontColor = .white
+        settingsLabel.fontName = "AvenirNext-Bold"
+        settingsLabel.position = settingsBg.position
+        settingsLabel.name = "openAnalyticsSettings"
+        settingsLabel.zPosition = 101
+        addChild(settingsLabel)
+
         let exportBg = SKShapeNode(rectOf: exportSize, cornerRadius: 8)
         exportBg.fillColor = UIColor.systemGreen.withAlphaComponent(0.9)
         exportBg.strokeColor = UIColor.systemGreen
         exportBg.lineWidth = 1
-        exportBg.position = CGPoint(x: size.width - safeInsets.right - 200, y: safeTopY - 28)
+        exportBg.position = CGPoint(x: size.width - safeInsets.right - 170, y: safeTopY - 28)
         exportBg.name = "exportCSV"
         exportBg.zPosition = 100
         addChild(exportBg)
         let exportLabel = SKLabelNode(text: "匯出名單")
-        exportLabel.fontSize = 15
+        exportLabel.fontSize = 14
         exportLabel.fontColor = .white
         exportLabel.fontName = "AvenirNext-Bold"
         exportLabel.position = exportBg.position
@@ -218,12 +235,12 @@ class TeacherDashboardScene: SKScene {
         ansBg.fillColor = UIColor.systemTeal.withAlphaComponent(0.95)
         ansBg.strokeColor = UIColor.systemTeal
         ansBg.lineWidth = 1
-        ansBg.position = CGPoint(x: size.width - safeInsets.right - 70, y: safeTopY - 28)
+        ansBg.position = CGPoint(x: size.width - safeInsets.right - 60, y: safeTopY - 28)
         ansBg.name = "exportAnswerLog"
         ansBg.zPosition = 100
         addChild(ansBg)
         let ansLabel = SKLabelNode(text: "匯出作答")
-        ansLabel.fontSize = 15
+        ansLabel.fontSize = 14
         ansLabel.fontColor = .white
         ansLabel.fontName = "AvenirNext-Bold"
         ansLabel.position = ansBg.position
@@ -313,13 +330,14 @@ class TeacherDashboardScene: SKScene {
         fetchServerInsightsIfConfigured()
     }
 
-    /// When ECS is configured, overlay server insights; otherwise keep local engine text.
+    /// When ECS admin token is configured, overlay server insights; otherwise keep local engine text.
     private func fetchServerInsightsIfConfigured() {
-        guard AnalyticsServerConfig.isConfigured else { return }
-        // Optional: teachers can store a class id in UserDefaults after claiming a class.
-        if let classID = UserDefaults.standard.object(forKey: "analyticsServerClassID") as? Int {
+        guard AnalyticsServerConfig.isAdminConfigured else { return }
+        if let classID = AnalyticsServerConfig.classID {
             AnalyticsAPIClient.shared.fetchClassMetrics(classID: classID) { [weak self] dto in
                 guard let self, let dto else { return }
+                // Ignore stale overlay if user already left overview.
+                guard case .overview = self.viewMode else { return }
                 let lines = dto.insights.prefix(4).map { "• \($0.title)：\($0.detail)" }.joined(separator: "\n")
                 let extra = "\n\n伺服器分析 (ECS)\n學生 \(dto.student_count)｜正確率 \(Int(dto.class_accuracy * 100))%\n\(lines)"
                 self.classStatsLabel.text = (self.classStatsLabel.text ?? "") + extra
@@ -472,6 +490,10 @@ class TeacherDashboardScene: SKScene {
             presentClassCSVExport()
         } else if touchedNode.name == "exportAnswerLog" || touchedNode.parent?.name == "exportAnswerLog" {
             presentAnswerHistoryCSVExport()
+        } else if touchedNode.name == "openAnalyticsSettings" || touchedNode.parent?.name == "openAnalyticsSettings" {
+            let settings = TeacherAnalyticsSettingsScene(size: size)
+            settings.scaleMode = .aspectFill
+            view?.presentScene(settings, transition: SKTransition.fade(withDuration: 0.35))
         } else {
             // Ignore other touches - don't transition
             print("ℹ️ Touch ignored (not back button or student card)")
@@ -610,6 +632,27 @@ class TeacherDashboardScene: SKScene {
         detailLabel.zPosition = 10
         detailLabel.name = "studentDetail"
         addChild(detailLabel)
+
+        // Overlay server metrics when admin token is present; keep local text on failure.
+        fetchStudentServerMetricsIfConfigured(studentID: student.studentID, onto: detailLabel)
+    }
+
+    private func fetchStudentServerMetricsIfConfigured(studentID: String, onto label: SKLabelNode) {
+        guard AnalyticsServerConfig.isAdminConfigured else { return }
+        AnalyticsAPIClient.shared.fetchStudentMetrics(externalID: studentID) { [weak self, weak label] dto in
+            guard let self, let label, let dto else { return }
+            guard case .individual = self.viewMode else { return }
+            let lines = dto.insights.prefix(4).map { "• \($0.title)：\($0.detail)" }.joined(separator: "\n")
+            let extra = """
+
+
+            伺服器分析 (ECS)
+            正確率 \(Int(dto.accuracy * 100))%（\(dto.total_answers) 題）｜平均 \(String(format: "%.1f", dto.average_response_time)) 秒
+            連續 \(dto.current_streak)｜最佳 \(dto.best_streak)
+            \(lines.isEmpty ? "• 尚無伺服器洞察" : lines)
+            """
+            label.text = (label.text ?? "") + extra
+        }
     }
     
     // MARK: - Open Student Report

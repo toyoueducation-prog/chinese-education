@@ -37,6 +37,12 @@ def health():
     return {"status": "ok"}
 
 
+@router.get("/analytics/health")
+def analytics_health():
+    """Flask-compatible health path used by the iOS client."""
+    return {"status": "ok"}
+
+
 @router.post("/auth/register", response_model=TokenResponse)
 def register_teacher(payload: TeacherRegister, db: Session = Depends(get_db)):
     if db.query(Teacher).filter(Teacher.email == payload.email).first():
@@ -94,6 +100,12 @@ def create_class(
     return {"id": row.id, "name": row.name, "invite_code": row.invite_code}
 
 
+@router.get("/classes", response_model=list)
+def list_classes(teacher: Teacher = Depends(require_teacher), db: Session = Depends(get_db)):
+    rows = db.query(SchoolClass).filter(SchoolClass.teacher_id == teacher.id).order_by(SchoolClass.id.asc()).all()
+    return [{"id": r.id, "name": r.name, "invite_code": r.invite_code} for r in rows]
+
+
 @router.post("/students/upsert", response_model=dict)
 def upsert_student(payload: StudentUpsert, db: Session = Depends(get_db), auth: dict = Depends(require_auth)):
     student = db.query(Student).filter(Student.external_id == payload.external_id).first()
@@ -123,6 +135,11 @@ def upsert_student(payload: StudentUpsert, db: Session = Depends(get_db), auth: 
 @router.post("/answers/batch", response_model=AnswerBatchResult)
 def ingest_answers(payload: AnswerBatchIn, db: Session = Depends(get_db), auth: dict = Depends(require_auth)):
     accepted = duplicates = 0
+    batch_class_id = None
+    if payload.class_invite_code:
+        klass = db.query(SchoolClass).filter(SchoolClass.invite_code == payload.class_invite_code).first()
+        if klass:
+            batch_class_id = klass.id
     for event in payload.events:
         existing = db.query(AnswerEvent).filter(AnswerEvent.client_event_id == event.client_event_id).first()
         if existing:
@@ -133,9 +150,12 @@ def ingest_answers(payload: AnswerBatchIn, db: Session = Depends(get_db), auth: 
             student = Student(
                 external_id=event.student_external_id,
                 display_name=event.student_name or event.student_external_id,
+                class_id=batch_class_id,
             )
             db.add(student)
             db.flush()
+        elif batch_class_id is not None:
+            student.class_id = batch_class_id
         row = AnswerEvent(
             client_event_id=event.client_event_id,
             student_id=student.id,
@@ -184,3 +204,23 @@ async def class_analytics(class_id: int, db: Session = Depends(get_db), teacher:
         students_payload.append((student.external_id, student.display_name, events))
     metrics = analyze_class_events(klass.id, klass.name, students_payload)
     return await maybe_enrich_with_llm(metrics)
+
+
+@router.get("/analytics/students/{external_id}/insights", response_model=StudentMetricsOut)
+async def student_insights(external_id: str, db: Session = Depends(get_db), auth: dict = Depends(require_auth)):
+    return await student_analytics(external_id, db, auth)
+
+
+@router.post("/analytics/students/{external_id}/insights", response_model=StudentMetricsOut)
+async def student_insights_refresh(external_id: str, db: Session = Depends(get_db), auth: dict = Depends(require_auth)):
+    return await student_analytics(external_id, db, auth)
+
+
+@router.get("/analytics/classes/{class_id}/insights", response_model=ClassMetricsOut)
+async def class_insights(class_id: int, db: Session = Depends(get_db), teacher: Teacher = Depends(require_teacher)):
+    return await class_analytics(class_id, db, teacher)
+
+
+@router.post("/analytics/classes/{class_id}/insights", response_model=ClassMetricsOut)
+async def class_insights_refresh(class_id: int, db: Session = Depends(get_db), teacher: Teacher = Depends(require_teacher)):
+    return await class_analytics(class_id, db, teacher)

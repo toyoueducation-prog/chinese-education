@@ -13,12 +13,18 @@ def test_health(client):
     r = client.get("/api/health")
     assert r.status_code == 200
     assert r.json()["status"] == "ok"
+    r2 = client.get("/api/analytics/health")
+    assert r2.status_code == 200
+    assert r2.json()["status"] == "ok"
 
 def test_register_login_and_class(client):
     headers = _auth_header(client)
     r = client.post("/api/classes", json={"name": "P3A"}, headers=headers)
     assert r.status_code == 200
     assert "invite_code" in r.json()
+    listed = client.get("/api/classes", headers=headers)
+    assert listed.status_code == 200
+    assert any(c["name"] == "P3A" for c in listed.json())
 
 def test_answer_batch_and_student_analytics(client):
     headers = _auth_header(client)
@@ -46,7 +52,11 @@ def test_answer_batch_and_student_analytics(client):
             "pirls_process": "retrieving" if i < 4 else "inferring",
             "answered_at": datetime.utcnow().isoformat(),
         })
-    batch = client.post("/api/answers/batch", json={"events": events}, headers=headers)
+    batch = client.post(
+        "/api/answers/batch",
+        json={"events": events, "class_invite_code": klass["invite_code"]},
+        headers=headers,
+    )
     assert batch.status_code == 200
     assert batch.json()["accepted"] == 8
     again = client.post("/api/answers/batch", json={"events": events[:2]}, headers=headers)
@@ -56,6 +66,9 @@ def test_answer_batch_and_student_analytics(client):
     body = metrics.json()
     assert body["total_answers"] == 8
     assert body["insights"]
+    insights = client.get("/api/analytics/students/stu-1/insights", headers=headers)
+    assert insights.status_code == 200
+    assert insights.json()["insights"]
     class_metrics = client.get(f"/api/analytics/classes/{klass['id']}", headers=headers)
     assert class_metrics.status_code == 200
     assert class_metrics.json()["student_count"] == 1

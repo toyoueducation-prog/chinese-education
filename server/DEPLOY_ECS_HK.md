@@ -41,12 +41,17 @@ Keep `5432` (Postgres) **private** — only the Docker network should reach it.
 
 ## iOS app wiring
 
-After the server is up:
+After the server is up (production default: `https://api.insightmeter.site/api`):
 
-- `analyticsServerBaseURL` = `https://YOUR_DOMAIN/api`
-- `analyticsServerToken` = device token from step 5
+- Teacher → **分析設定**: set `analyticsServerBaseURL` (no trailing slash)
+- **Ingest token** (Keychain) = device token from step 5 — student upsert + answer upload
+- **Admin token** (Keychain) = teacher JWT (or teacher-scoped device token) — class create + analytics reads
+- Create a class in settings to get an **invite code**; students enter it on sign-in
+- Store `analyticsServerClassID` after create (auto-filled)
 
-The app queues answer events offline and retries; the teacher dashboard reads from the server and falls back to local analytics when the URL/token is empty or unreachable.
+Question bank / login / reading analysis stay on `jkcorp.pythonanywhere.com` and are never redirected by the analytics URL.
+
+The app queues answer events offline and retries; the teacher dashboard reads from the server and falls back to local analytics when tokens are empty or the host is unreachable. No ATS exception is required (HTTPS only).
 
 ## LLM insight endpoint
 

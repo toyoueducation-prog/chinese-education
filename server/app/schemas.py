@@ -52,6 +52,7 @@ class AnswerEventIn(BaseModel):
 
 class AnswerBatchIn(BaseModel):
     events: List[AnswerEventIn]
+    class_invite_code: Optional[str] = None
 
 
 class AnswerBatchResult(BaseModel):

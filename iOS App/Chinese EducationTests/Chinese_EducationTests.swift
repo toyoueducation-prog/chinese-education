@@ -393,4 +393,78 @@ final class Chinese_EducationTests: XCTestCase {
         XCTAssertEqual(snap.totalAnswers, 2)
         XCTAssertEqual(snap.studentName, "測試")
     }
+
+    // MARK: - Analytics server wiring
+
+    func testAnalyticsPathEncodedIDEscapesSlash() {
+        let encoded = AnalyticsServerConfig.pathEncodedID("stu/with/slash")
+        XCTAssertFalse(encoded.contains("/"))
+        XCTAssertTrue(encoded.contains("%2F") || encoded.contains("%2f"))
+        XCTAssertEqual(AnalyticsServerConfig.pathEncodedID("plain-id"), "plain-id")
+    }
+
+    func testAnalyticsBaseURLStripsTrailingSlashAndDefaults() {
+        let previous = UserDefaults.standard.string(forKey: "analyticsServerBaseURL")
+        defer {
+            if let previous {
+                UserDefaults.standard.set(previous, forKey: "analyticsServerBaseURL")
+            } else {
+                UserDefaults.standard.removeObject(forKey: "analyticsServerBaseURL")
+            }
+        }
+        UserDefaults.standard.removeObject(forKey: "analyticsServerBaseURL")
+        XCTAssertEqual(AnalyticsServerConfig.baseURLString, AnalyticsServerConfig.defaultBaseURLString)
+        XCTAssertFalse(AnalyticsServerConfig.defaultBaseURLString.hasSuffix("/"))
+
+        AnalyticsServerConfig.baseURLString = "https://api.insightmeter.site/api/"
+        XCTAssertEqual(AnalyticsServerConfig.baseURLString, "https://api.insightmeter.site/api")
+        XCTAssertEqual(
+            AnalyticsServerConfig.normalizedBaseURL("https://example.com/api///"),
+            "https://example.com/api"
+        )
+    }
+
+    func testQuestionBankContentURLIsIndependentOfAnalytics() {
+        let previous = UserDefaults.standard.string(forKey: "analyticsServerBaseURL")
+        defer {
+            if let previous {
+                UserDefaults.standard.set(previous, forKey: "analyticsServerBaseURL")
+            } else {
+                UserDefaults.standard.removeObject(forKey: "analyticsServerBaseURL")
+            }
+        }
+        AnalyticsServerConfig.baseURLString = "https://api.insightmeter.site/api"
+        XCTAssertEqual(QuestionBankAPI.contentBaseURL, "https://jkcorp.pythonanywhere.com")
+        XCTAssertEqual(QuestionBankAPI.alibabaECSBaseURL, QuestionBankAPI.contentBaseURL)
+        XCTAssertNotEqual(QuestionBankAPI.contentBaseURL, AnalyticsServerConfig.baseURLString)
+        XCTAssertTrue(QuestionBankAPI.questionURL(forKey: "q1")?.absoluteString.contains("jkcorp.pythonanywhere.com") == true)
+    }
+
+    func testBatchBodyIncludesOptionalClassInviteCode() throws {
+        struct BatchBody: Encodable {
+            let events: [AnalyticsAPIClient.OutboundAnswerEvent]
+            let class_invite_code: String?
+        }
+        let event = AnalyticsAPIClient.OutboundAnswerEvent(
+            client_event_id: "e1",
+            student_external_id: "stu",
+            student_name: "Amy",
+            passage_key: "passage1",
+            question_key: "q1",
+            question_type: "mc",
+            question_preview: "p",
+            student_answer: "A",
+            correct_answer: "A",
+            is_correct: true,
+            response_time_seconds: 1,
+            attempt_number: 1,
+            pirls_process: nil,
+            reading_purpose: nil,
+            answered_at: "2026-01-01T00:00:00.000Z"
+        )
+        let data = try JSONEncoder().encode(BatchBody(events: [event], class_invite_code: "abc123"))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        XCTAssertEqual(json["class_invite_code"] as? String, "abc123")
+        XCTAssertEqual((json["events"] as? [[String: Any]])?.count, 1)
+    }
 }
