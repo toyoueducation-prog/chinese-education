@@ -4,16 +4,17 @@ import UIKit
 #endif
 
 /**
- * TEACHER DASHBOARD SCENE - Class Overview and Student Management
+ * TEACHER DASHBOARD SCENE - Class / educator overview (user “ECS” → teacher/class dashboard)
  *
  * **Demo / local mode:** There is no separate teacher password. 「教師登入」only switches to this scene on the same device.
  * The roster is built from `ClassManager` snapshots taken when students sign in and when they finish passages.
  * Per-student word counts are only accurate for the student whose profile is currently loaded on this device (`StudentProfile` is a singleton).
  *
  * Provides teachers with:
- * - Class overview with student list
- * - PIRLS performance metrics (snapshot)
- * - CSV export of roster snapshots
+ * - Class overview with student list + answer-history analytics
+ * - Per-student skill accuracy, trends, streaks, response time
+ * - Rule-based AI insights (LLM-ready via `AnalyticsInsightProviding`)
+ * - CSV export of roster and answer logs
  */
 // MARK: - 👨‍🏫 TEACHER DASHBOARD SCENE
 class TeacherDashboardScene: SKScene {
@@ -60,6 +61,7 @@ class TeacherDashboardScene: SKScene {
         
         // ✅ Wrap setup in do-catch to prevent crashes from causing immediate return
         do {
+            AnalyticsAPIClient.shared.flushIfNeeded()
             loadStudentData()
             setupUI()
             refreshDisplay()  // ✅ Use unified display method
@@ -170,7 +172,7 @@ class TeacherDashboardScene: SKScene {
         backButtonBackground.fillColor = UIColor.white.withAlphaComponent(0.9)
         backButtonBackground.strokeColor = UIColor.systemGray4
         backButtonBackground.lineWidth = 1
-        backButtonBackground.position = CGPoint(x: 60, y: size.height - 50)
+        backButtonBackground.position = CGPoint(x: safeInsets.left + 60, y: safeTopY - 28)
         backButtonBackground.name = "backButton"
         backButtonBackground.zPosition = 100
         addChild(backButtonBackground)
@@ -189,22 +191,39 @@ class TeacherDashboardScene: SKScene {
         titleLabel.fontSize = 28
         titleLabel.fontColor = .black
         titleLabel.fontName = "AvenirNext-Bold"
-        titleLabel.position = CGPoint(x: size.width / 2, y: size.height - 50)
+        titleLabel.position = CGPoint(x: size.width / 2, y: safeTopY - 28)
         titleLabel.zPosition = 100
         addChild(titleLabel)
         
         #if os(iOS)
-        let exportSize = CGSize(width: 118, height: 40)
+        let exportSize = CGSize(width: 100, height: 40)
+        let settingsBg = SKShapeNode(rectOf: exportSize, cornerRadius: 8)
+        settingsBg.fillColor = UIColor.systemIndigo.withAlphaComponent(0.95)
+        settingsBg.strokeColor = UIColor.systemIndigo
+        settingsBg.lineWidth = 1
+        settingsBg.position = CGPoint(x: size.width - safeInsets.right - 280, y: safeTopY - 28)
+        settingsBg.name = "openAnalyticsSettings"
+        settingsBg.zPosition = 100
+        addChild(settingsBg)
+        let settingsLabel = SKLabelNode(text: "分析設定")
+        settingsLabel.fontSize = 14
+        settingsLabel.fontColor = .white
+        settingsLabel.fontName = "AvenirNext-Bold"
+        settingsLabel.position = settingsBg.position
+        settingsLabel.name = "openAnalyticsSettings"
+        settingsLabel.zPosition = 101
+        addChild(settingsLabel)
+
         let exportBg = SKShapeNode(rectOf: exportSize, cornerRadius: 8)
         exportBg.fillColor = UIColor.systemGreen.withAlphaComponent(0.9)
         exportBg.strokeColor = UIColor.systemGreen
         exportBg.lineWidth = 1
-        exportBg.position = CGPoint(x: size.width - 200, y: size.height - 50)
+        exportBg.position = CGPoint(x: size.width - safeInsets.right - 170, y: safeTopY - 28)
         exportBg.name = "exportCSV"
         exportBg.zPosition = 100
         addChild(exportBg)
         let exportLabel = SKLabelNode(text: "匯出名單")
-        exportLabel.fontSize = 15
+        exportLabel.fontSize = 14
         exportLabel.fontColor = .white
         exportLabel.fontName = "AvenirNext-Bold"
         exportLabel.position = exportBg.position
@@ -216,12 +235,12 @@ class TeacherDashboardScene: SKScene {
         ansBg.fillColor = UIColor.systemTeal.withAlphaComponent(0.95)
         ansBg.strokeColor = UIColor.systemTeal
         ansBg.lineWidth = 1
-        ansBg.position = CGPoint(x: size.width - 70, y: size.height - 50)
+        ansBg.position = CGPoint(x: size.width - safeInsets.right - 60, y: safeTopY - 28)
         ansBg.name = "exportAnswerLog"
         ansBg.zPosition = 100
         addChild(ansBg)
         let ansLabel = SKLabelNode(text: "匯出作答")
-        ansLabel.fontSize = 15
+        ansLabel.fontSize = 14
         ansLabel.fontColor = .white
         ansLabel.fontName = "AvenirNext-Bold"
         ansLabel.position = ansBg.position
@@ -254,9 +273,6 @@ class TeacherDashboardScene: SKScene {
     
     // MARK: - Display Class Overview
     func displayClassOverview() {
-        let analytics = PIRLSAnalytics.shared
-        
-        // Calculate class averages (for multiple students)
         var totalScore: Double = 0
         var totalVocab: Double = 0
         for student in students {
@@ -265,154 +281,104 @@ class TeacherDashboardScene: SKScene {
         }
         let avgScore = students.isEmpty ? 0.0 : totalScore / Double(students.count)
         let avgVocab = students.isEmpty ? 0.0 : totalVocab / Double(students.count)
-        
-        // ✅ Calculate comprehensive class statistics
-        let vocabStats = VocabularyManager.shared.getStatistics()
-        var totalVocabWords = 0
-        var totalMasteredWords = 0
-        var processScores: [PIRLSProcess: [Double]] = [:]
-        
-        for student in students {
-            totalVocabWords += student.totalVocabularyWords
-            totalMasteredWords += student.masteredVocabularyWords
-            
-            // Get process scores from StudentProfile (if available)
-            let profile = StudentProfile.shared
-            for process in PIRLSProcess.allCases {
-                if processScores[process] == nil {
-                    processScores[process] = []
-                }
-                if let perf = profile.pirlsAssessment.processPerformance[process] {
-                    processScores[process]?.append(perf.masteryLevel)
-                }
-            }
+
+        let roster = students.map { (id: $0.studentID, name: $0.studentName) }
+        let classSnap = AnalyticsInsightEngine.classSnapshot(roster: roster)
+
+        let skillLines: String
+        if classSnap.accuracyBySkill.isEmpty {
+            skillLines = "技能正確率: 資料不足"
+        } else {
+            skillLines = classSnap.accuracyBySkill
+                .sorted { $0.key < $1.key }
+                .map { "\($0.key): \(Int($0.value * 100))%" }
+                .joined(separator: "\n")
         }
-        
-        let avgVocabWords = students.isEmpty ? 0 : totalVocabWords / students.count
-        let avgMasteredWords = students.isEmpty ? 0 : totalMasteredWords / students.count
-        
-        // Class statistics with more details
+        let insightLines = classSnap.insights.prefix(4).map { insight in
+            let action = insight.action.map { " → \($0)" } ?? ""
+            return "• \(insight.title)：\(insight.detail)\(action)"
+        }.joined(separator: "\n")
+
         let statsText = """
-        學生總數: \(students.count)
-        平均PIRLS分數: \(Int(avgScore * 100))%
-        平均詞彙掌握率: \(Int(avgVocab * 100))%
-        平均詞彙數: \(avgVocabWords)
-        平均已掌握詞彙: \(avgMasteredWords)
+        學生總數: \(students.count)｜作答筆數: \(classSnap.totalAnswers)
+        平均PIRLS分數: \(Int(avgScore * 100))%｜班級正確率: \(Int(classSnap.classAccuracy * 100))%
+        平均詞彙掌握率: \(Int(avgVocab * 100))%｜平均作答: \(String(format: "%.1f", classSnap.averageResponseTime))秒
+        較弱技能: \(classSnap.weakestSkills.isEmpty ? "—" : classSnap.weakestSkills.joined(separator: "、"))
+        需關注: \(classSnap.atRiskStudentNames.isEmpty ? "無" : classSnap.atRiskStudentNames.joined(separator: "、"))
+
+        \(skillLines)
+
+        AI 分析
+        \(insightLines.isEmpty ? "• 尚無洞察" : insightLines)
         """
-        
-        // ✅ Remove existing stats label if present
+
         classStatsLabel?.removeFromParent()
-        
+
+        let leftX = safeInsets.left + 24
         classStatsLabel = SKLabelNode(text: statsText)
-        classStatsLabel.fontSize = 16
+        classStatsLabel.fontSize = 14
         classStatsLabel.fontColor = .black
+        classStatsLabel.fontName = "AvenirNext-Medium"
         classStatsLabel.numberOfLines = 0
         classStatsLabel.verticalAlignmentMode = .top
         classStatsLabel.horizontalAlignmentMode = .left
-        classStatsLabel.position = CGPoint(x: 50, y: size.height - 120)
+        classStatsLabel.preferredMaxLayoutWidth = size.width - safeInsets.left - safeInsets.right - 48
+        classStatsLabel.position = CGPoint(x: leftX, y: safeTopY - 88)
         classStatsLabel.zPosition = 10
         classStatsLabel.name = "classOverview"
         addChild(classStatsLabel)
-        
-        // PIRLS Process Averages
-        let processTitle = SKLabelNode(text: "PIRLS 過程平均分數")
-        processTitle.fontSize = 20
-        processTitle.fontColor = .black  // Use explicit color
-        processTitle.position = CGPoint(x: size.width / 2, y: size.height - 200)
-        processTitle.zPosition = 10
-        addChild(processTitle)
-        
-        var yOffset: CGFloat = 30
-        for process in PIRLSProcess.allCases {
-            // ✅ Calculate average for this process using actual process scores
-            var processTotal: Double = 0
-            var processCount = 0
-            
-            // Try to get actual process scores from StudentProfile
-            let profile = StudentProfile.shared
-            if let perf = profile.pirlsAssessment.processPerformance[process] {
-                processTotal += perf.masteryLevel
-                processCount += 1
+        fetchServerInsightsIfConfigured()
+    }
+
+    /// When ECS admin token is configured, overlay server insights; otherwise keep local engine text.
+    private func fetchServerInsightsIfConfigured() {
+        guard AnalyticsServerConfig.isAdminConfigured else { return }
+        if let classID = AnalyticsServerConfig.classID {
+            AnalyticsAPIClient.shared.fetchClassMetrics(classID: classID) { [weak self] dto in
+                guard let self, let dto else { return }
+                // Ignore stale overlay if user already left overview.
+                guard case .overview = self.viewMode else { return }
+                let lines = dto.insights.prefix(4).map { "• \($0.title)：\($0.detail)" }.joined(separator: "\n")
+                let extra = "\n\n伺服器分析 (ECS)\n學生 \(dto.student_count)｜正確率 \(Int(dto.class_accuracy * 100))%\n\(lines)"
+                self.classStatsLabel.text = (self.classStatsLabel.text ?? "") + extra
             }
-            
-            // If we have process scores from multiple students, use them
-            if let scores = processScores[process], !scores.isEmpty {
-                processTotal = scores.reduce(0, +)
-                processCount = scores.count
-            }
-            
-            // Fallback to overall score if no process data
-            if processCount == 0 {
-                for student in students {
-                    processTotal += student.overallScore
-                    processCount += 1
-                }
-            }
-            
-            let processAvg = processCount > 0 ? processTotal / Double(processCount) : 0.0
-            
-            let processLabel = SKLabelNode(text: "\(process.displayName): \(Int(processAvg * 100))%")
-            processLabel.fontSize = 16
-            processLabel.fontColor = .black
-            processLabel.horizontalAlignmentMode = .left
-            processLabel.position = CGPoint(x: 50, y: size.height - 200 - yOffset)
-            processLabel.zPosition = 10
-            processLabel.name = "classOverview"
-            addChild(processLabel)
-            
-            // Progress bar
-            let barWidth: CGFloat = size.width - 100
-            let barHeight: CGFloat = 15
-            let progressBar = SKShapeNode(rectOf: CGSize(width: barWidth, height: barHeight))
-            progressBar.fillColor = .systemGray5
-            progressBar.strokeColor = .systemGray
-            progressBar.position = CGPoint(x: size.width / 2, y: size.height - 200 - yOffset - 12)
-            progressBar.name = "classOverview"
-            addChild(progressBar)
-            
-            let filledBar = SKShapeNode(rectOf: CGSize(width: barWidth * CGFloat(processAvg), height: barHeight))
-            filledBar.fillColor = processAvg >= 0.7 ? .systemGreen : (processAvg >= 0.5 ? .systemYellow : .systemRed)
-            filledBar.strokeColor = .clear
-            filledBar.position = CGPoint(x: 50 + (barWidth * CGFloat(processAvg)) / 2, y: size.height - 200 - yOffset - 12)
-            filledBar.name = "classOverview"
-            addChild(filledBar)
-            
-            yOffset += 35
         }
     }
     
     // MARK: - Display Student List
     func displayStudentList() {
-        // ✅ Remove existing student cards
         for card in studentCards {
             card.removeFromParent()
         }
         studentCards.removeAll()
-        
-        let listStartY = size.height - 450
-        var currentY = listStartY
-        
-        let listTitle = SKLabelNode(text: "學生列表 (點擊查看詳情)")
-        listTitle.fontSize = 22
+
+        // Keep list below the analytics block; measure roughly from class stats height.
+        let statsBottom = (classStatsLabel?.position.y ?? (safeTopY - 88))
+            - (classStatsLabel?.measuredTextHeight(maxWidth: size.width - 80) ?? 180)
+        var currentY = min(statsBottom - 28, safeTopY - 320)
+        currentY = max(currentY, safeBottomY + 220)
+
+        let listTitle = SKLabelNode(text: "學生列表 (點擊查看詳情與 AI 分析)")
+        listTitle.fontSize = 20
         listTitle.fontColor = .black
         listTitle.fontName = "AvenirNext-Bold"
         listTitle.position = CGPoint(x: size.width / 2, y: currentY)
         listTitle.zPosition = 10
         listTitle.name = "classOverview"
         addChild(listTitle)
-        
+
         currentY -= 40
-        
+
         for (index, student) in students.enumerated() {
-            if currentY < 100 { break }  // Stop if below screen
-            
+            if currentY < safeBottomY + 70 { break }
+
             let card = createStudentCard(student: student, index: index)
             card.position = CGPoint(x: size.width / 2, y: currentY)
             card.name = "studentCard_\(index)"
             card.zPosition = 10
             addChild(card)
             studentCards.append(card)
-            
+
             currentY -= 100
         }
     }
@@ -524,6 +490,10 @@ class TeacherDashboardScene: SKScene {
             presentClassCSVExport()
         } else if touchedNode.name == "exportAnswerLog" || touchedNode.parent?.name == "exportAnswerLog" {
             presentAnswerHistoryCSVExport()
+        } else if touchedNode.name == "openAnalyticsSettings" || touchedNode.parent?.name == "openAnalyticsSettings" {
+            let settings = TeacherAnalyticsSettingsScene(size: size)
+            settings.scaleMode = .aspectFill
+            view?.presentScene(settings, transition: SKTransition.fade(withDuration: 0.35))
         } else {
             // Ignore other touches - don't transition
             print("ℹ️ Touch ignored (not back button or student card)")
@@ -582,18 +552,19 @@ class TeacherDashboardScene: SKScene {
     
     // MARK: - Display Individual Student Detail
     func displayIndividualStudent(_ student: StudentSummary) {
-        var currentY = size.height - 120
-        
-        // ✅ Back to overview button
+        let leftX = safeInsets.left + 24
+        let contentWidth = size.width - safeInsets.left - safeInsets.right - 48
+        var currentY = safeTopY - 36
+
         let backToOverviewButton = SKShapeNode(rectOf: CGSize(width: 120, height: 40), cornerRadius: 8)
         backToOverviewButton.fillColor = UIColor.white.withAlphaComponent(0.9)
         backToOverviewButton.strokeColor = UIColor.systemGray4
         backToOverviewButton.lineWidth = 1
-        backToOverviewButton.position = CGPoint(x: 70, y: currentY)
+        backToOverviewButton.position = CGPoint(x: leftX + 50, y: currentY)
         backToOverviewButton.name = "backToOverview"
         backToOverviewButton.zPosition = 10
         addChild(backToOverviewButton)
-        
+
         let backLabel = SKLabelNode(text: "← 返回列表")
         backLabel.fontSize = 16
         backLabel.fontColor = .systemBlue
@@ -602,165 +573,85 @@ class TeacherDashboardScene: SKScene {
         backLabel.name = "backToOverview"
         backLabel.zPosition = 11
         addChild(backLabel)
-        
-        currentY -= 60
-        
-        // ✅ Student name header
-        let nameHeader = SKLabelNode(text: student.studentName)
-        nameHeader.fontSize = 32
-        nameHeader.fontColor = .black
-        nameHeader.fontName = "AvenirNext-Bold"
-        nameHeader.position = CGPoint(x: size.width / 2, y: currentY)
-        nameHeader.zPosition = 10
-        nameHeader.name = "studentDetail"
-        addChild(nameHeader)
-        
-        currentY -= 50
-        
-        // ✅ Level and basic info
-        let levelInfo = SKLabelNode(text: "小學 \(student.currentLevel) 年級 | 學生ID: \(student.studentID)")
-        levelInfo.fontSize = 18
-        levelInfo.fontColor = .darkGray
-        levelInfo.position = CGPoint(x: size.width / 2, y: currentY)
-        levelInfo.zPosition = 10
-        levelInfo.name = "studentDetail"
-        addChild(levelInfo)
-        
-        currentY -= 60
-        
-        // ✅ Overall PIRLS Score
-        let scoreTitle = SKLabelNode(text: "整體PIRLS分數")
-        scoreTitle.fontSize = 22
-        scoreTitle.fontColor = .black
-        scoreTitle.fontName = "AvenirNext-Bold"
-        scoreTitle.horizontalAlignmentMode = .left
-        scoreTitle.position = CGPoint(x: 50, y: currentY)
-        scoreTitle.zPosition = 10
-        scoreTitle.name = "studentDetail"
-        addChild(scoreTitle)
-        
-        currentY -= 35
-        
-        let scoreValue = SKLabelNode(text: "\(Int(student.overallScore * 100))%")
-        scoreValue.fontSize = 36
-        scoreValue.fontColor = student.overallScore >= 0.7 ? .systemGreen : (student.overallScore >= 0.5 ? .systemYellow : .systemRed)
-        scoreValue.fontName = "AvenirNext-Bold"
-        scoreValue.horizontalAlignmentMode = .left
-        scoreValue.position = CGPoint(x: 50, y: currentY)
-        scoreValue.zPosition = 10
-        scoreValue.name = "studentDetail"
-        addChild(scoreValue)
-        
-        // Progress bar for overall score
-        let scoreBarWidth: CGFloat = size.width - 100
-        let scoreBarHeight: CGFloat = 20
-        let scoreBarBg = SKShapeNode(rectOf: CGSize(width: scoreBarWidth, height: scoreBarHeight))
-        scoreBarBg.fillColor = .systemGray5
-        scoreBarBg.strokeColor = .systemGray
-        scoreBarBg.position = CGPoint(x: size.width / 2, y: currentY - 25)
-        scoreBarBg.zPosition = 10
-        scoreBarBg.name = "studentDetail"
-        addChild(scoreBarBg)
-        
-        let scoreBarFill = SKShapeNode(rectOf: CGSize(width: scoreBarWidth * CGFloat(student.overallScore), height: scoreBarHeight))
-        scoreBarFill.fillColor = student.overallScore >= 0.7 ? .systemGreen : (student.overallScore >= 0.5 ? .systemYellow : .systemRed)
-        scoreBarFill.strokeColor = .clear
-        scoreBarFill.position = CGPoint(x: 50 + (scoreBarWidth * CGFloat(student.overallScore)) / 2, y: currentY - 25)
-        scoreBarFill.zPosition = 11
-        scoreBarFill.name = "studentDetail"
-        addChild(scoreBarFill)
-        
-        currentY -= 80
-        
-        // ✅ Vocabulary Statistics
-        let vocabTitle = SKLabelNode(text: "詞彙掌握情況")
-        vocabTitle.fontSize = 22
-        vocabTitle.fontColor = .black
-        vocabTitle.fontName = "AvenirNext-Bold"
-        vocabTitle.horizontalAlignmentMode = .left
-        vocabTitle.position = CGPoint(x: 50, y: currentY)
-        vocabTitle.zPosition = 10
-        vocabTitle.name = "studentDetail"
-        addChild(vocabTitle)
-        
-        currentY -= 30
-        
-        let vocabStatsText: String
-        if student.totalVocabularyWords < 0 {
-            vocabStatsText = """
-            掌握率: \(Int(student.vocabularyMastery * 100))%（上次登入快照）
-            詳細詞彙筆數僅在目前登入學生的裝置「詞彙」頁可查。
-            """
+
+        currentY -= 48
+
+        let snap = AnalyticsInsightEngine.studentSnapshot(
+            studentID: student.studentID,
+            studentName: student.studentName
+        )
+
+        let skillLines: String
+        if snap.accuracyBySkill.isEmpty {
+            skillLines = "技能正確率: 資料不足（作答後會出現）"
         } else {
-            vocabStatsText = """
-            掌握率: \(Int(student.vocabularyMastery * 100))%
-            總詞彙數: \(student.totalVocabularyWords)
-            已掌握: \(student.masteredVocabularyWords)
-            """
+            skillLines = snap.accuracyBySkill
+                .sorted { $0.key < $1.key }
+                .map { "\($0.key): \(Int($0.value * 100))%" }
+                .joined(separator: "\n")
         }
-        let vocabStatsLabel = SKLabelNode(text: vocabStatsText)
-        vocabStatsLabel.fontSize = 18
-        vocabStatsLabel.fontColor = .black
-        vocabStatsLabel.horizontalAlignmentMode = .left
-        vocabStatsLabel.verticalAlignmentMode = .top
-        vocabStatsLabel.numberOfLines = 0
-        vocabStatsLabel.position = CGPoint(x: 50, y: currentY)
-        vocabStatsLabel.zPosition = 10
-        vocabStatsLabel.name = "studentDetail"
-        addChild(vocabStatsLabel)
-        
-        currentY -= 100
-        
-        // ✅ PIRLS Process Breakdown
-        let processTitle = SKLabelNode(text: "PIRLS 過程分數")
-        processTitle.fontSize = 22
-        processTitle.fontColor = .black
-        processTitle.fontName = "AvenirNext-Bold"
-        processTitle.horizontalAlignmentMode = .left
-        processTitle.position = CGPoint(x: 50, y: currentY)
-        processTitle.zPosition = 10
-        processTitle.name = "studentDetail"
-        addChild(processTitle)
-        
-        currentY -= 40
-        
-        // Get actual process scores from StudentProfile
-        let profile = StudentProfile.shared
-        var processYOffset: CGFloat = 0
-        for process in PIRLSProcess.allCases {
-            if let perf = profile.pirlsAssessment.processPerformance[process] {
-                let processScore = perf.masteryLevel
-                
-                let processLabel = SKLabelNode(text: "\(process.displayName): \(Int(processScore * 100))%")
-                processLabel.fontSize = 16
-                processLabel.fontColor = .black
-                processLabel.horizontalAlignmentMode = .left
-                processLabel.position = CGPoint(x: 50, y: currentY - processYOffset)
-                processLabel.zPosition = 10
-                processLabel.name = "studentDetail"
-                addChild(processLabel)
-                
-                // Progress bar
-                let barWidth: CGFloat = size.width - 100
-                let barHeight: CGFloat = 15
-                let barBg = SKShapeNode(rectOf: CGSize(width: barWidth, height: barHeight))
-                barBg.fillColor = .systemGray5
-                barBg.strokeColor = .systemGray
-                barBg.position = CGPoint(x: size.width / 2, y: currentY - processYOffset - 12)
-                barBg.zPosition = 10
-                barBg.name = "studentDetail"
-                addChild(barBg)
-                
-                let barFill = SKShapeNode(rectOf: CGSize(width: barWidth * CGFloat(processScore), height: barHeight))
-                barFill.fillColor = processScore >= 0.7 ? .systemGreen : (processScore >= 0.5 ? .systemYellow : .systemRed)
-                barFill.strokeColor = .clear
-                barFill.position = CGPoint(x: 50 + (barWidth * CGFloat(processScore)) / 2, y: currentY - processYOffset - 12)
-                barFill.zPosition = 11
-                barFill.name = "studentDetail"
-                addChild(barFill)
-                
-                processYOffset += 35
-            }
+        let insightLines = snap.insights.prefix(6).map { insight in
+            let action = insight.action.map { " → \($0)" } ?? ""
+            return "• \(insight.title)：\(insight.detail)\(action)"
+        }.joined(separator: "\n")
+
+        let vocabLine: String
+        if student.totalVocabularyWords < 0 {
+            vocabLine = "詞彙掌握: \(Int(student.vocabularyMastery * 100))%（快照）"
+        } else {
+            vocabLine = "詞彙掌握: \(Int(student.vocabularyMastery * 100))%（\(student.masteredVocabularyWords)/\(student.totalVocabularyWords)）"
+        }
+
+        let body = """
+        \(student.studentName)
+        小學 \(student.currentLevel) 年級｜ID: \(student.studentID)
+        PIRLS: \(Int(student.overallScore * 100))%｜作答正確率: \(Int(snap.accuracy * 100))%（\(snap.totalAnswers) 題）
+        \(vocabLine)
+        平均作答: \(String(format: "%.1f", snap.averageResponseTime)) 秒
+        連續答對: \(snap.currentStreak)｜最佳連續: \(snap.bestStreak)
+        近期趨勢: \(snap.recentTrendDelta >= 0 ? "+" : "")\(Int(snap.recentTrendDelta * 100)) 百分點
+        較弱技能: \(snap.weakestSkills.isEmpty ? "—" : snap.weakestSkills.joined(separator: "、"))
+        較弱題型: \(snap.weakestQuestionTypes.isEmpty ? "—" : snap.weakestQuestionTypes.joined(separator: "、"))
+        建議複習篇章: \(snap.weakestPassages.isEmpty ? "—" : snap.weakestPassages.joined(separator: "、"))
+
+        \(skillLines)
+
+        AI 分析與建議
+        \(insightLines.isEmpty ? "• 尚無洞察" : insightLines)
+        """
+
+        let detailLabel = SKLabelNode(text: body)
+        detailLabel.fontSize = 14
+        detailLabel.fontColor = .black
+        detailLabel.fontName = "AvenirNext-Medium"
+        detailLabel.numberOfLines = 0
+        detailLabel.verticalAlignmentMode = .top
+        detailLabel.horizontalAlignmentMode = .left
+        detailLabel.preferredMaxLayoutWidth = contentWidth
+        detailLabel.position = CGPoint(x: leftX, y: currentY)
+        detailLabel.zPosition = 10
+        detailLabel.name = "studentDetail"
+        addChild(detailLabel)
+
+        // Overlay server metrics when admin token is present; keep local text on failure.
+        fetchStudentServerMetricsIfConfigured(studentID: student.studentID, onto: detailLabel)
+    }
+
+    private func fetchStudentServerMetricsIfConfigured(studentID: String, onto label: SKLabelNode) {
+        guard AnalyticsServerConfig.isAdminConfigured else { return }
+        AnalyticsAPIClient.shared.fetchStudentMetrics(externalID: studentID) { [weak self, weak label] dto in
+            guard let self, let label, let dto else { return }
+            guard case .individual = self.viewMode else { return }
+            let lines = dto.insights.prefix(4).map { "• \($0.title)：\($0.detail)" }.joined(separator: "\n")
+            let extra = """
+
+
+            伺服器分析 (ECS)
+            正確率 \(Int(dto.accuracy * 100))%（\(dto.total_answers) 題）｜平均 \(String(format: "%.1f", dto.average_response_time)) 秒
+            連續 \(dto.current_streak)｜最佳 \(dto.best_streak)
+            \(lines.isEmpty ? "• 尚無伺服器洞察" : lines)
+            """
+            label.text = (label.text ?? "") + extra
         }
     }
     

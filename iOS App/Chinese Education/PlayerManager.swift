@@ -8,19 +8,21 @@ class PlayerManager {
     // MARK: - 🎮 PLAYER VISUAL COMPONENTS
     var playerImage: SKSpriteNode!       // Main player sprite (Doll1 texture)
     var playerCropNode: SKCropNode!      // ✅ Crop node for oval/circular shape
-    /// Optional walk animation. Nil when Move2/moving.mp4 are absent (root `.gitignore` ignores `*.mp4`).
-    var playerVideoNode: SKVideoNode?
+    /// Optional walk animation with chroma-key green removal. Nil when Move2/moving.mp4 are absent.
+    var playerVideoNode: ChromaKeyVideoNode?
     var avPlayer: AVPlayer?
 
     private init() {}  // Private initializer for singleton
 
     // MARK: - Setup Player
     func setupPlayer(in scene: SKScene) {
-        let playerSize = CGSize(width: 60, height: 60)
+        // 72pt on-screen; Doll1@3x is 256px (~3.5×) to stay sharp on Retina.
+        let playerSize = CGSize(width: 72, height: 72)
 
         // ✅ Create player image with oval/circular shape (always available via Assets.xcassets/Doll1)
         let originalImage = SKSpriteNode(imageNamed: "Doll1")
         originalImage.size = playerSize
+        originalImage.texture?.filteringMode = .linear
         
         // ✅ Create circular mask for oval shape
         let maskNode = SKShapeNode(ellipseOf: playerSize)
@@ -37,17 +39,27 @@ class PlayerManager {
         playerImage = originalImage  // Keep reference for compatibility
         playerImage.name = "player"
 
-        // ✅ Load saved position
-        let savedX = UserDefaults.standard.dictionary(forKey: "playerPosition")?["x"] as? CGFloat ?? scene.size.width / 2
-        let savedY = UserDefaults.standard.dictionary(forKey: "playerPosition")?["y"] as? CGFloat ?? scene.size.height / 2
-        let playerPosition = CGPoint(x: savedX, y: savedY)
+        // ✅ Load saved position (UserDefaults plists box numbers — never `as? CGFloat`)
+        let saved = UserDefaults.standard.dictionary(forKey: "playerPosition")
+        func coord(_ key: String, fallback: CGFloat) -> CGFloat {
+            guard let raw = saved?[key] else { return fallback }
+            if let n = raw as? NSNumber { return CGFloat(truncating: n) }
+            if let d = raw as? Double { return CGFloat(d) }
+            if let i = raw as? Int { return CGFloat(i) }
+            if let s = raw as? String, let d = Double(s) { return CGFloat(d) }
+            return fallback
+        }
+        // Prefer mid-map defaults over scene.height/2 (that lands on the north wall).
+        let playerPosition = CGPoint(
+            x: coord("x", fallback: 0),
+            y: coord("y", fallback: -200)
+        )
         
         playerCropNode.position = playerPosition
         playerImage.position = CGPoint.zero  // Relative to cropNode
         scene.addChild(playerCropNode)
 
         // Optional walk video: Move2.mp4 → moving.mp4 → Doll1 sprite only (never crash).
-        // Packaging: add Move2.mp4 / moving.mp4 locally under the app target; they are gitignored as `*.mp4`.
         if let videoURL = Bundle.main.url(forResource: "Move2", withExtension: "mp4") {
             setupVideoPlayer(url: videoURL)
         } else if let fallbackURL = Bundle.main.url(forResource: "moving", withExtension: "mp4") {
@@ -62,45 +74,36 @@ class PlayerManager {
         setupPlayerPhysics(playerSize: playerSize)
     }
     
-    // MARK: - Setup Video Player (with transparent background support)
+    // MARK: - Setup Video Player (chroma-key green → transparent)
     private func setupVideoPlayer(url: URL) {
-        let playerSize = CGSize(width: 60, height: 60)
-        
-        avPlayer = AVPlayer(url: url)
-        avPlayer?.actionAtItemEnd = .none
-        NotificationCenter.default.addObserver(
-            forName: .AVPlayerItemDidPlayToEndTime,
-            object: avPlayer?.currentItem,
-            queue: .main
-        ) { [weak self] _ in
-            self?.avPlayer?.seek(to: CMTime.zero)
-            self?.avPlayer?.play()
-        }
-
-        let videoNode = SKVideoNode(avPlayer: avPlayer!)
-        videoNode.size = playerSize
+        let playerSize = CGSize(width: 72, height: 72)
+        let videoNode = ChromaKeyVideoNode(url: url, size: playerSize, loops: true, muted: true)
         videoNode.position = CGPoint.zero  // Relative to cropNode
         videoNode.zPosition = playerImage.zPosition
         videoNode.isHidden = true
         playerVideoNode = videoNode
-        
-        // ✅ For transparent background video, the video file itself needs to have alpha channel
-        // SpriteKit's SKVideoNode will respect the video's alpha channel if present
-        // Note: The video file (move2.mp4) should be encoded with alpha channel (e.g., ProRes 4444 or HEVC with alpha)
+        avPlayer = videoNode.player
         playerCropNode.addChild(videoNode)
     }
     
     // MARK: - Setup Player Physics
     private func setupPlayerPhysics(playerSize: CGSize) {
-        // ✅ Use circular physics body for oval/circular collision
-        let radius = min(playerSize.width, playerSize.height) / 2
-        playerCropNode.physicsBody = SKPhysicsBody(circleOfRadius: radius)
-        playerCropNode.physicsBody?.isDynamic = true  // ✅ Allow movement
-        playerCropNode.physicsBody?.affectedByGravity = false
-        playerCropNode.physicsBody?.allowsRotation = false
-        playerCropNode.physicsBody?.categoryBitMask = 0x1 << 0  // ✅ Player category
-        playerCropNode.physicsBody?.collisionBitMask = 0x1 << 2 // ✅ Collides with obstacles
-        playerCropNode.physicsBody?.contactTestBitMask = 0x1 << 1 // ✅ Detects enemy collision
+        // Feet-sized circle so one-tile (64pt) corridors are walkable.
+        // Centered near the bottom of the 72pt sprite (visual feet).
+        let radius: CGFloat = 14
+        let feetOffset = CGPoint(x: 0, y: -playerSize.height * 0.28)
+        let body = SKPhysicsBody(circleOfRadius: radius, center: feetOffset)
+        body.isDynamic = true
+        body.affectedByGravity = false
+        body.allowsRotation = false
+        body.friction = 0
+        body.restitution = 0
+        body.linearDamping = 8
+        body.categoryBitMask = PhysicsCategory.player
+        body.collisionBitMask = 0x1 << 2  // Obstacles / walls only
+        body.contactTestBitMask = PhysicsCategory.enemy | (0x1 << 3)  // Guardians + treasury
+        body.usesPreciseCollisionDetection = true
+        playerCropNode.physicsBody = body
     }
 
     // MARK: - Save Player Position
@@ -115,16 +118,26 @@ class PlayerManager {
     
     /// Show walk animation when video assets exist; otherwise keep Doll1 visible.
     func setWalking(_ walking: Bool) {
-        guard let videoNode = playerVideoNode, let player = avPlayer else {
+        guard let videoNode = playerVideoNode else {
             playerImage?.isHidden = false
             return
         }
         playerImage?.isHidden = walking
         videoNode.isHidden = !walking
         if walking {
-            player.play()
+            videoNode.play()
         } else {
-            player.pause()
+            videoNode.pause()
         }
+    }
+
+    /// Verified against Move2 clip frames: authored walk art faces RIGHT.
+    /// Flip the sprite/video children (not the crop mask) so facing is reliable.
+    func updateFacing(dx: CGFloat) {
+        guard abs(dx) > 0.5 else { return }
+        let scale: CGFloat = dx < 0 ? -1 : 1
+        playerCropNode?.xScale = abs(playerCropNode?.xScale ?? 1)
+        playerImage?.xScale = scale
+        playerVideoNode?.xScale = scale
     }
 }

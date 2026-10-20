@@ -39,7 +39,7 @@ class TreasuryScene: SKScene {
         titleLabel.fontSize = 48
         titleLabel.fontColor = .systemYellow
         titleLabel.fontName = "AvenirNext-Bold"
-        titleLabel.position = CGPoint(x: size.width / 2, y: size.height - 150)
+        titleLabel.position = CGPoint(x: size.width / 2, y: safeTopY - 80)
         titleLabel.zPosition = 10
         addChild(titleLabel)
         
@@ -60,7 +60,7 @@ class TreasuryScene: SKScene {
         continueButtonBackground.fillColor = UIColor.white.withAlphaComponent(0.9)
         continueButtonBackground.strokeColor = UIColor.systemGray4
         continueButtonBackground.lineWidth = 1
-        continueButtonBackground.position = CGPoint(x: 60, y: size.height - 50)
+        continueButtonBackground.position = CGPoint(x: safeInsets.left + 60, y: safeTopY - 28)
         continueButtonBackground.name = "continueButton"
         continueButtonBackground.zPosition = 100
         addChild(continueButtonBackground)

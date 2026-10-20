@@ -19,6 +19,7 @@ class SignInScene: SKScene, UITextFieldDelegate {
     // MARK: - 📝 TEXT INPUT FIELDS
     private var usernameTextField: UITextField!             // Username input field
     private var passwordTextField: UITextField!             // Password input field
+    private var inviteCodeTextField: UITextField!           // Class invite code for analytics
     
     // MARK: - 💾 USER CREDENTIALS
     private var enteredUsername: String = ""                // Stored username
@@ -33,6 +34,9 @@ class SignInScene: SKScene, UITextFieldDelegate {
         setupBackground()
         setupGameTitle()  // ✅ Add Game Title
         setupManualSignIn()
+        // First launch / return: register membership if we already have an invite code + ingest token.
+        AnalyticsAPIClient.shared.upsertCurrentStudentIfPossible()
+        AnalyticsAPIClient.shared.flushIfNeeded()
     }
     
     override func willMove(from view: SKView) {
@@ -40,6 +44,7 @@ class SignInScene: SKScene, UITextFieldDelegate {
         // Clean up text fields when leaving the scene
         usernameTextField?.removeFromSuperview()
         passwordTextField?.removeFromSuperview()
+        inviteCodeTextField?.removeFromSuperview()
     }
     
     // MARK: - Add Game Title
@@ -48,7 +53,8 @@ class SignInScene: SKScene, UITextFieldDelegate {
         gameTitle.fontSize = 48  // ✅ Larger font
         gameTitle.fontColor = .white
         gameTitle.fontName = "AvenirNext-Bold"
-        gameTitle.position = CGPoint(x: size.width / 2, y: size.height - 150)  // ✅ Top center
+        gameTitle.verticalAlignmentMode = .center
+        gameTitle.position = CGPoint(x: size.width / 2, y: safeTopY - 40)
         addChild(gameTitle)
     }
     
@@ -73,9 +79,11 @@ class SignInScene: SKScene, UITextFieldDelegate {
         let buttonWidth: CGFloat = 180
         let buttonHeight: CGFloat = 55
         
-        // Position elements with much more spacing from top
-        let startY: CGFloat = size.height * 0.3  // Start at 30% from top
-        let spacing: CGFloat = 120  // Much more space between each element
+        // UIKit coordinates: y grows downward from the top of the view.
+        let topInset = view?.safeAreaInsets.top ?? safeInsets.top
+        let bottomInset = view?.safeAreaInsets.bottom ?? safeInsets.bottom
+        let startY: CGFloat = topInset + 140
+        let spacing: CGFloat = 100
         
         // Create UITextField for Username with improved styling
         usernameTextField = UITextField()
@@ -111,25 +119,48 @@ class SignInScene: SKScene, UITextFieldDelegate {
         passwordTextField.center = CGPoint(x: size.width / 2, y: startY + spacing)
         passwordTextField.tag = 2
         passwordTextField.delegate = self
+
+        // Class invite code (analytics membership) — optional; stored for upsert + batch upload.
+        inviteCodeTextField = UITextField()
+        inviteCodeTextField.placeholder = "班級邀請碼（選填）"
+        inviteCodeTextField.borderStyle = .roundedRect
+        inviteCodeTextField.backgroundColor = UIColor.white.withAlphaComponent(0.95)
+        inviteCodeTextField.textColor = .black
+        inviteCodeTextField.font = UIFont.systemFont(ofSize: 18, weight: .medium)
+        inviteCodeTextField.autocapitalizationType = .none
+        inviteCodeTextField.autocorrectionType = .no
+        inviteCodeTextField.layer.cornerRadius = 12
+        inviteCodeTextField.layer.borderWidth = 2
+        inviteCodeTextField.layer.borderColor = UIColor.systemTeal.cgColor
+        inviteCodeTextField.frame = CGRect(x: 0, y: 0, width: inputBoxWidth, height: inputBoxHeight)
+        inviteCodeTextField.center = CGPoint(x: size.width / 2, y: startY + spacing * 2)
+        inviteCodeTextField.tag = 3
+        inviteCodeTextField.delegate = self
+        let savedInvite = AnalyticsServerConfig.studentClassInviteCode
+        if !savedInvite.isEmpty {
+            inviteCodeTextField.text = savedInvite
+        }
         
         // Add text fields to the view
         if let view = self.view {
             view.addSubview(usernameTextField)
             view.addSubview(passwordTextField)
+            view.addSubview(inviteCodeTextField)
         }
+        _ = bottomInset // reserved for future bottom-anchored UIKit controls
         
-        // Calculate button positions relative to password field
+        // Calculate button positions relative to invite-code field
         // Convert UIKit coordinates to SpriteKit coordinates
-        let passwordFieldBottomY = passwordTextField.center.y + (inputBoxHeight / 2)
-        let buttonSpacing: CGFloat = 100  // Space between buttons and password field
+        let inviteFieldBottomY = inviteCodeTextField.center.y + (inputBoxHeight / 2)
+        let buttonSpacing: CGFloat = 72
         
-        // Sign-In Button positioned below password field
+        // Sign-In Button positioned below invite code field
         signInButtonBackground = SKShapeNode(rectOf: CGSize(width: buttonWidth, height: buttonHeight), cornerRadius: 15)
         signInButtonBackground.fillColor = UIColor.systemBlue
         signInButtonBackground.strokeColor = UIColor.systemBlue
         signInButtonBackground.lineWidth = 2
         // Convert UIKit Y to SpriteKit Y (flip coordinate system)
-        let signInButtonY = size.height - (passwordFieldBottomY + buttonSpacing)
+        let signInButtonY = size.height - (inviteFieldBottomY + buttonSpacing)
         signInButtonBackground.position = CGPoint(x: size.width / 2, y: signInButtonY)
         addChild(signInButtonBackground)
         
@@ -166,7 +197,7 @@ class SignInScene: SKScene, UITextFieldDelegate {
         self.teacherButtonBackground.fillColor = UIColor.systemPurple
         self.teacherButtonBackground.strokeColor = UIColor.systemPurple
         self.teacherButtonBackground.lineWidth = 2
-        self.teacherButtonBackground.position = CGPoint(x: size.width / 2, y: 50)
+        self.teacherButtonBackground.position = CGPoint(x: size.width / 2, y: safeBottomY + 40)
         self.teacherButtonBackground.name = "teacherLoginButton"
         addChild(self.teacherButtonBackground)
         
@@ -204,7 +235,11 @@ class SignInScene: SKScene, UITextFieldDelegate {
     func textFieldDidBeginEditing(_ textField: UITextField) {
         // Clear placeholder text when user starts typing
         if textField.text == "" {
-            textField.placeholder = textField.tag == 1 ? "登入名稱" : "輸入密碼"
+            switch textField.tag {
+            case 1: textField.placeholder = "登入名稱"
+            case 2: textField.placeholder = "輸入密碼"
+            default: textField.placeholder = "班級邀請碼"
+            }
         }
     }
     
@@ -214,21 +249,30 @@ class SignInScene: SKScene, UITextFieldDelegate {
             enteredUsername = textField.text ?? ""
         } else if textField.tag == 2 {
             enteredPassword = textField.text ?? ""
+        } else if textField.tag == 3 {
+            let code = (textField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            AnalyticsServerConfig.studentClassInviteCode = code
         }
     }
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         if textField.tag == 1 {
-            // Move to password field when username is entered
             passwordTextField.becomeFirstResponder()
         } else if textField.tag == 2 {
-            // Dismiss keyboard and attempt login when password is entered
+            inviteCodeTextField.becomeFirstResponder()
+        } else if textField.tag == 3 {
             textField.resignFirstResponder()
             enteredUsername = usernameTextField.text ?? ""
             enteredPassword = passwordTextField.text ?? ""
+            persistInviteCodeFromField()
             authenticateWithUsernamePassword()
         }
         return true
+    }
+
+    private func persistInviteCodeFromField() {
+        let code = (inviteCodeTextField?.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        AnalyticsServerConfig.studentClassInviteCode = code
     }
     
     // ✅ Reset Progress
@@ -282,6 +326,7 @@ class SignInScene: SKScene, UITextFieldDelegate {
             // Get values from text fields
             enteredUsername = usernameTextField.text ?? ""
             enteredPassword = passwordTextField.text ?? ""
+            persistInviteCodeFromField()
             authenticateWithUsernamePassword()
         } else if touchedNode.name == "resetButton" {
             resetProgress()
@@ -295,7 +340,8 @@ class SignInScene: SKScene, UITextFieldDelegate {
     
     // MARK: - Authenticate User via Username & Password
     func authenticateWithUsernamePassword() {
-        let url = URL(string: "https://jkcorp.pythonanywhere.com/login")!
+        // Login stays on jkcorp — never use AnalyticsServerConfig here.
+        let url = URL(string: "\(QuestionBankAPI.contentBaseURL)/login")!
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -324,6 +370,10 @@ class SignInScene: SKScene, UITextFieldDelegate {
                     }
                     StudentProfile.shared.saveProfile()
                     ClassManager.shared.addOrUpdateStudentFromCurrentProfile(displayName: name.isEmpty ? nil : name)
+                    self.persistInviteCodeFromField()
+                    // Register class membership on analytics server (ingest token); offline-safe.
+                    AnalyticsAPIClient.shared.upsertCurrentStudentIfPossible()
+                    AnalyticsAPIClient.shared.flushIfNeeded()
                     self.hideLoginUI()
                     self.transitionToGameScene()
                 }
@@ -338,6 +388,7 @@ class SignInScene: SKScene, UITextFieldDelegate {
         // Remove UITextField objects
         usernameTextField?.removeFromSuperview()
         passwordTextField?.removeFromSuperview()
+        inviteCodeTextField?.removeFromSuperview()
         
         // Remove SpriteKit nodes
         signInButtonBackground?.removeFromParent()

@@ -111,6 +111,21 @@ final class Chinese_EducationTests: XCTestCase {
         XCTAssertFalse(unknown.isPracticeReady)
     }
 
+    /// Regression: duplicate dict keys fatalError when extractVocabulary first touches the glossary.
+    func testVocabularyGlossaryEntriesLoadWithoutDuplicateKeyCrash() {
+        let entries = VocabularyGlossary.entries
+        XCTAssertGreaterThanOrEqual(entries.count, 150)
+        for word in ["陽光", "冒險", "好奇", "探索", "地球"] {
+            XCTAssertNotNil(entries[word], "Expected shared gloss for \(word)")
+            XCTAssertFalse(entries[word]!.meaning.isEmpty)
+        }
+        // Same path ConversationScene hits after adaptive encounter selection.
+        if let passage = QuestionBank.shared.getPassageSet(for: "passage1")?.passage {
+            let extracted = VocabularyManager.shared.extractVocabulary(from: passage, maxWords: 15)
+            XCTAssertFalse(extracted.isEmpty)
+        }
+    }
+
     func testPracticeVocabularyExcludesEmptyMeanings() {
         let manager = VocabularyManager.shared
         // Extraction may create empty-gloss bigrams; practice list must only include glossed words.
@@ -233,5 +248,223 @@ final class Chinese_EducationTests: XCTestCase {
         XCTAssertTrue(LearningPathManager.shared.getWeakProcesses(profile).isEmpty)
         let processNeeds = InterventionEngine.shared.identifyStrugglingAreas(profile).filter { $0.type == .process }
         XCTAssertTrue(processNeeds.isEmpty)
+    }
+
+    // MARK: - Teacher analytics / AI insight engine
+
+    private func makeAnswerRecord(
+        studentID: String,
+        name: String,
+        passage: String,
+        type: String,
+        process: PIRLSProcess?,
+        correct: Bool,
+        time: TimeInterval,
+        attempt: Int = 1,
+        date: Date = Date()
+    ) -> StudentAnswerLogRecord {
+        StudentAnswerLogRecord(
+            id: UUID().uuidString,
+            studentID: studentID,
+            studentName: name,
+            date: date,
+            passageKey: passage,
+            questionKey: "q_\(UUID().uuidString.prefix(6))",
+            questionType: type,
+            questionPreview: "preview",
+            studentAnswer: correct ? "A" : "B",
+            correctAnswer: "A",
+            isCorrect: correct,
+            responseTimeSeconds: time,
+            attemptNumber: attempt,
+            pirlsProcessRaw: process?.rawValue,
+            readingPurposeRaw: ReadingPurpose.literary.rawValue
+        )
+    }
+
+    func testRuleBasedInsightEngineStudentAccuracyAndStreaks() {
+        let engine = RuleBasedAnalyticsInsightEngine()
+        engine.skillSampleFloor = 2
+        let base = Date(timeIntervalSince1970: 1_700_000_000)
+        var records: [StudentAnswerLogRecord] = []
+        // Build a clear retrieving weakness and a streak of 3 at the end.
+        for i in 0..<4 {
+            records.append(makeAnswerRecord(
+                studentID: "s1", name: "小明", passage: "passage1", type: "選擇題",
+                process: .retrieving, correct: false, time: 20, date: base.addingTimeInterval(Double(i))
+            ))
+        }
+        for i in 0..<4 {
+            records.append(makeAnswerRecord(
+                studentID: "s1", name: "小明", passage: "passage3", type: "選擇題",
+                process: .inferring, correct: true, time: 8, date: base.addingTimeInterval(Double(10 + i))
+            ))
+        }
+        // Break the run so the trailing streak is exactly 3.
+        records.append(makeAnswerRecord(
+            studentID: "s1", name: "小明", passage: "passage4", type: "選擇題",
+            process: .evaluating, correct: false, time: 15, date: base.addingTimeInterval(19)
+        ))
+        records.append(makeAnswerRecord(
+            studentID: "s1", name: "小明", passage: "passage5", type: "開放題",
+            process: .interpreting, correct: true, time: 12, date: base.addingTimeInterval(20)
+        ))
+        records.append(makeAnswerRecord(
+            studentID: "s1", name: "小明", passage: "passage5", type: "開放題",
+            process: .interpreting, correct: true, time: 11, date: base.addingTimeInterval(21)
+        ))
+        records.append(makeAnswerRecord(
+            studentID: "s1", name: "小明", passage: "passage5", type: "開放題",
+            process: .interpreting, correct: true, time: 10, date: base.addingTimeInterval(22)
+        ))
+
+        let snap = engine.analyzeStudent(studentID: "s1", studentName: "小明", records: records)
+        XCTAssertEqual(snap.totalAnswers, 12)
+        XCTAssertEqual(snap.currentStreak, 3)
+        XCTAssertGreaterThanOrEqual(snap.bestStreak, 3)
+        XCTAssertTrue(snap.weakestSkills.contains("檢索理解"))
+        XCTAssertGreaterThan(snap.accuracyBySkill["推論理解"] ?? 0, 0.7)
+        XCTAssertFalse(snap.insights.isEmpty)
+        XCTAssertTrue(snap.insights.contains { $0.kind == .weakness || $0.kind == .recommendation })
+    }
+
+    func testRuleBasedInsightEngineFlagsAtRiskAndClassView() {
+        let engine = RuleBasedAnalyticsInsightEngine()
+        engine.atRiskAccuracyThreshold = 0.45
+        engine.atRiskMinimumAnswers = 6
+        engine.skillSampleFloor = 2
+
+        var records: [StudentAnswerLogRecord] = []
+        for i in 0..<8 {
+            records.append(makeAnswerRecord(
+                studentID: "risk", name: "阿華", passage: "passage2", type: "選擇題",
+                process: .evaluating, correct: i < 2, time: 30, date: Date().addingTimeInterval(Double(i))
+            ))
+        }
+        for i in 0..<6 {
+            records.append(makeAnswerRecord(
+                studentID: "ok", name: "小美", passage: "passage4", type: "選擇題",
+                process: .retrieving, correct: true, time: 9, date: Date().addingTimeInterval(Double(20 + i))
+            ))
+        }
+
+        let classSnap = engine.analyzeClass(
+            roster: [(id: "risk", name: "阿華"), (id: "ok", name: "小美")],
+            records: records
+        )
+        XCTAssertEqual(classSnap.studentCount, 2)
+        XCTAssertEqual(classSnap.totalAnswers, 14)
+        XCTAssertTrue(classSnap.atRiskStudentIDs.contains("risk"))
+        XCTAssertFalse(classSnap.atRiskStudentIDs.contains("ok"))
+        XCTAssertTrue(classSnap.insights.contains { $0.kind == .atRisk })
+    }
+
+    func testAnswerHistoryRecordAttemptDefaultsForLegacyPayload() throws {
+        // Simulate a pre-attemptNumber log entry (field absent).
+        let json = """
+        {"id":"r1","studentID":"s9","date":725000000.0,"passageKey":"passage1","questionKey":"q1","questionType":"選擇題","questionPreview":"Q","studentAnswer":"A","correctAnswer":"A","isCorrect":true,"responseTimeSeconds":5.0}
+        """.data(using: .utf8)!
+        let decoded = try JSONDecoder().decode(StudentAnswerLogRecord.self, from: json)
+        XCTAssertEqual(decoded.attemptNumber, 1)
+        XCTAssertEqual(decoded.studentID, "s9")
+    }
+
+    func testAnalyticsInsightEngineFacadeUsesProvider() {
+        let engine = RuleBasedAnalyticsInsightEngine()
+        let previous = AnalyticsInsightEngine.provider
+        AnalyticsInsightEngine.provider = engine
+        defer { AnalyticsInsightEngine.provider = previous }
+
+        let prior = AnswerHistoryStore.shared.allRecords()
+        defer { AnswerHistoryStore.shared.replaceAllForTesting(prior) }
+
+        let sample = [
+            makeAnswerRecord(
+                studentID: "facade", name: "測試", passage: "passage1", type: "選擇題",
+                process: .retrieving, correct: true, time: 7, attempt: 2
+            ),
+            makeAnswerRecord(
+                studentID: "facade", name: "測試", passage: "passage1", type: "選擇題",
+                process: .retrieving, correct: false, time: 12, attempt: 1
+            )
+        ]
+        AnswerHistoryStore.shared.replaceAllForTesting(sample)
+        let snap = AnalyticsInsightEngine.studentSnapshot(studentID: "facade", studentName: "測試")
+        XCTAssertEqual(snap.totalAnswers, 2)
+        XCTAssertEqual(snap.studentName, "測試")
+    }
+
+    // MARK: - Analytics server wiring
+
+    func testAnalyticsPathEncodedIDEscapesSlash() {
+        let encoded = AnalyticsServerConfig.pathEncodedID("stu/with/slash")
+        XCTAssertFalse(encoded.contains("/"))
+        XCTAssertTrue(encoded.contains("%2F") || encoded.contains("%2f"))
+        XCTAssertEqual(AnalyticsServerConfig.pathEncodedID("plain-id"), "plain-id")
+    }
+
+    func testAnalyticsBaseURLStripsTrailingSlashAndDefaults() {
+        let previous = UserDefaults.standard.string(forKey: "analyticsServerBaseURL")
+        defer {
+            if let previous {
+                UserDefaults.standard.set(previous, forKey: "analyticsServerBaseURL")
+            } else {
+                UserDefaults.standard.removeObject(forKey: "analyticsServerBaseURL")
+            }
+        }
+        UserDefaults.standard.removeObject(forKey: "analyticsServerBaseURL")
+        XCTAssertEqual(AnalyticsServerConfig.baseURLString, AnalyticsServerConfig.defaultBaseURLString)
+        XCTAssertFalse(AnalyticsServerConfig.defaultBaseURLString.hasSuffix("/"))
+
+        AnalyticsServerConfig.baseURLString = "https://api.insightmeter.site/api/"
+        XCTAssertEqual(AnalyticsServerConfig.baseURLString, "https://api.insightmeter.site/api")
+        XCTAssertEqual(
+            AnalyticsServerConfig.normalizedBaseURL("https://example.com/api///"),
+            "https://example.com/api"
+        )
+    }
+
+    func testQuestionBankContentURLIsIndependentOfAnalytics() {
+        let previous = UserDefaults.standard.string(forKey: "analyticsServerBaseURL")
+        defer {
+            if let previous {
+                UserDefaults.standard.set(previous, forKey: "analyticsServerBaseURL")
+            } else {
+                UserDefaults.standard.removeObject(forKey: "analyticsServerBaseURL")
+            }
+        }
+        AnalyticsServerConfig.baseURLString = "https://api.insightmeter.site/api"
+        XCTAssertEqual(QuestionBankAPI.contentBaseURL, "https://jkcorp.pythonanywhere.com")
+        XCTAssertEqual(QuestionBankAPI.alibabaECSBaseURL, QuestionBankAPI.contentBaseURL)
+        XCTAssertNotEqual(QuestionBankAPI.contentBaseURL, AnalyticsServerConfig.baseURLString)
+        XCTAssertTrue(QuestionBankAPI.questionURL(forKey: "q1")?.absoluteString.contains("jkcorp.pythonanywhere.com") == true)
+    }
+
+    func testBatchBodyIncludesOptionalClassInviteCode() throws {
+        struct BatchBody: Encodable {
+            let events: [AnalyticsAPIClient.OutboundAnswerEvent]
+            let class_invite_code: String?
+        }
+        let event = AnalyticsAPIClient.OutboundAnswerEvent(
+            client_event_id: "e1",
+            student_external_id: "stu",
+            student_name: "Amy",
+            passage_key: "passage1",
+            question_key: "q1",
+            question_type: "mc",
+            question_preview: "p",
+            student_answer: "A",
+            correct_answer: "A",
+            is_correct: true,
+            response_time_seconds: 1,
+            attempt_number: 1,
+            pirls_process: nil,
+            reading_purpose: nil,
+            answered_at: "2026-01-01T00:00:00.000Z"
+        )
+        let data = try JSONEncoder().encode(BatchBody(events: [event], class_invite_code: "abc123"))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        XCTAssertEqual(json["class_invite_code"] as? String, "abc123")
+        XCTAssertEqual((json["events"] as? [[String: Any]])?.count, 1)
     }
 }

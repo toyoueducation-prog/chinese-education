@@ -140,7 +140,7 @@ class ClampingScene: SKScene {
         rewardLabel.fontSize = 24
         rewardLabel.fontColor = .systemGreen
         rewardLabel.fontName = "AvenirNext-Bold"
-        rewardLabel.position = CGPoint(x: size.width / 2, y: size.height - 100)
+        rewardLabel.position = CGPoint(x: size.width / 2, y: safeTopY - 70)
         rewardLabel.zPosition = 100  // ✅ Higher zPosition to be in front of background
         rewardLabel.isHidden = true
         addChild(rewardLabel)
@@ -152,7 +152,7 @@ class ClampingScene: SKScene {
         starCountLabel.fontSize = 22
         starCountLabel.fontColor = .systemYellow
         starCountLabel.fontName = "AvenirNext-Bold"
-        starCountLabel.position = CGPoint(x: size.width / 2, y: size.height - 50)
+        starCountLabel.position = CGPoint(x: size.width / 2, y: safeTopY - 28)
         starCountLabel.zPosition = 100  // ✅ Higher zPosition to be in front of background
         addChild(starCountLabel)
         
@@ -160,7 +160,7 @@ class ClampingScene: SKScene {
         backButton = SKLabelNode(text: "返回遊戲")
         backButton.fontSize = 24
         backButton.fontColor = .systemBlue
-        backButton.position = CGPoint(x: 100, y: size.height - 50)
+        backButton.position = CGPoint(x: safeInsets.left + 80, y: safeTopY - 28)
         backButton.name = "backButton"
         backButton.zPosition = 100  // ✅ Higher zPosition to be in front of background
         addChild(backButton)

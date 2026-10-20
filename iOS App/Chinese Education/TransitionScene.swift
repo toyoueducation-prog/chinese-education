@@ -1,10 +1,13 @@
 import SpriteKit
 import AVFoundation
+#if os(iOS)
+import UIKit
+#endif
 
 class TransitionScene: SKScene, AVSpeechSynthesizerDelegate {
     private var videoNode: SKVideoNode?
-    private var doll2VideoNode: SKVideoNode?  // ✅ Video node for doll2 character
-    private var doll2AVPlayer: AVPlayer?  // ✅ AVPlayer for doll2 video
+    private var doll2VideoNode: ChromaKeyVideoNode?
+    private var doll2AVPlayer: AVPlayer?
     private var explanationLabel: SKLabelNode!
     private var continueButton: SKLabelNode!
     private var shouldPlayVideo: Bool = false  // ✅ Set to `true` for video transitions
@@ -12,12 +15,15 @@ class TransitionScene: SKScene, AVSpeechSynthesizerDelegate {
     private var synthesizer = AVSpeechSynthesizer()  // ✅ Speech synthesizer
     private var playPauseButton: SKLabelNode?  // ✅ Play/pause button
     private var isPronunciationPlaying = false  // ✅ Track pronunciation state
-    private var explanationText = "你遇到了森林的守護者...\n它想向你提問一個問題！"
+    private var explanationText = "你遇到了森林守護者……\n牠想向你提問一個問題！"
+    /// Animal bumped on the map (`GuardianFox` / `GuardianOwl`).
+    private var guardianType: String = UserDefaults.standard.string(forKey: "lastCollidedGuardianType") ?? "GuardianFox"
+    private var guardianWalkName: String = UserDefaults.standard.string(forKey: "lastCollidedGuardianWalk") ?? "guardian_fox_walk"
     
     override func didMove(to view: SKView) {
         backgroundColor = .black
         setupBackground()
-        setupDoll2Character()  // ✅ Setup doll2 character video
+        setupEncounterGuardian()  // Match fox/owl from the map collision
         synthesizer.delegate = self
         
         // ✅ Delay text setup slightly to ensure background is set first
@@ -28,45 +34,46 @@ class TransitionScene: SKScene, AVSpeechSynthesizerDelegate {
         }
     }
     
-    // MARK: - Setup Doll2 Character Video
-    func setupDoll2Character() {
-        // ✅ Try to load doll2.mp4 video
-        guard let videoURL = Bundle.main.url(forResource: "doll2", withExtension: "mp4") else {
-            print("⚠️ doll2.mp4 not found, using fallback image")
-            // Fallback to image if video not found
-            let dollImage = SKSpriteNode(imageNamed: "Doll2")
-            dollImage.size = CGSize(width: 200, height: 200)
-            dollImage.position = CGPoint(x: size.width * 0.2, y: size.height * 0.4)
-            dollImage.zPosition = 10  // Above background, below text
-            addChild(dollImage)
+    // MARK: - Setup Encounter Guardian (same animal as map bump)
+    func setupEncounterGuardian() {
+        let displayName = guardianType == "GuardianOwl" ? "貓頭鷹守護者" : "狐狸守護者"
+        explanationText = "你遇到了\(displayName)……\n牠想向你提問一個問題！"
+
+        let characterSize = CGSize(width: 220, height: 220)
+        let position = CGPoint(x: size.width * 0.22, y: size.height * 0.42)
+
+        // Prefer the matching walk clip; fall back to idle sprite, then Doll2.
+        if let videoURL = Bundle.main.url(forResource: guardianWalkName, withExtension: "mp4") {
+            let node = ChromaKeyVideoNode(
+                url: videoURL,
+                size: characterSize,
+                loops: true,
+                muted: true
+            )
+            node.position = position
+            node.zPosition = 10
+            node.name = "encounterGuardian"
+            doll2VideoNode = node
+            doll2AVPlayer = node.player
+            addChild(node)
+            node.play()
+            print("🎬 Encounter shows \(guardianWalkName).mp4 for \(guardianType)")
             return
         }
-        
-        // ✅ Setup video player for doll2
-        doll2AVPlayer = AVPlayer(url: videoURL)
-        doll2AVPlayer?.volume = 0  // ✅ Mute audio
-        doll2AVPlayer?.actionAtItemEnd = .none  // Loop the video
-        
-        // ✅ Loop video when it ends
-        NotificationCenter.default.addObserver(
-            forName: .AVPlayerItemDidPlayToEndTime,
-            object: doll2AVPlayer?.currentItem,
-            queue: .main
-        ) { [weak self] _ in
-            self?.doll2AVPlayer?.seek(to: CMTime.zero)
-            self?.doll2AVPlayer?.play()
+
+        let imageName: String
+        if UIImage(named: guardianType) != nil {
+            imageName = guardianType
+        } else {
+            imageName = "Doll2"
         }
-        
-        // ✅ Create video node
-        doll2VideoNode = SKVideoNode(avPlayer: doll2AVPlayer!)
-        doll2VideoNode?.size = CGSize(width: 200, height: 200)  // Character size
-        doll2VideoNode?.position = CGPoint(x: size.width * 0.2, y: size.height * 0.4)  // Left side
-        doll2VideoNode?.zPosition = 10  // Above background, below text
-        doll2VideoNode?.name = "doll2Character"
-        addChild(doll2VideoNode!)
-        
-        // ✅ Start playing
-        doll2AVPlayer?.play()
+        print("⚠️ \(guardianWalkName).mp4 missing — using \(imageName)")
+        let dollImage = SKSpriteNode(imageNamed: imageName)
+        dollImage.size = characterSize
+        dollImage.position = position
+        dollImage.zPosition = 10
+        dollImage.name = "encounterGuardian"
+        addChild(dollImage)
     }
 
     // MARK: - Setup Play/Pause Button
@@ -75,7 +82,7 @@ class TransitionScene: SKScene, AVSpeechSynthesizerDelegate {
         playPauseButton?.fontSize = 30
         playPauseButton?.fontColor = .white
         playPauseButton?.name = "playPauseButton"
-        playPauseButton?.position = CGPoint(x: size.width - 50, y: size.height - 50)
+        playPauseButton?.position = CGPoint(x: size.width - safeInsets.right - 40, y: safeTopY - 28)
         playPauseButton?.zPosition = 100
         addChild(playPauseButton!)
     }
@@ -164,7 +171,7 @@ class TransitionScene: SKScene, AVSpeechSynthesizerDelegate {
         continueButtonBackground = SKShapeNode(rectOf: CGSize(width: 200, height: 60), cornerRadius: 15)
         continueButtonBackground.fillColor = .white  // ✅ Default background color
         continueButtonBackground.strokeColor = .black
-        continueButtonBackground.position = CGPoint(x: size.width / 2, y: size.height / 5)
+        continueButtonBackground.position = CGPoint(x: size.width / 2, y: max(safeBottomY + 70, size.height / 5))
         continueButtonBackground.zPosition = 5
         addChild(continueButtonBackground)
 
@@ -250,7 +257,7 @@ class TransitionScene: SKScene, AVSpeechSynthesizerDelegate {
     // MARK: - Transition to Conversation Scene
     func transitionToConversationScene() {
         // ✅ Stop and cleanup video player before transitioning
-        doll2AVPlayer?.pause()
+        doll2VideoNode?.stop()
         doll2AVPlayer = nil
         doll2VideoNode?.removeFromParent()
         doll2VideoNode = nil
@@ -267,7 +274,7 @@ class TransitionScene: SKScene, AVSpeechSynthesizerDelegate {
         super.willMove(from: view)
         
         // ✅ Stop and cleanup video player
-        doll2AVPlayer?.pause()
+        doll2VideoNode?.stop()
         doll2AVPlayer = nil
         doll2VideoNode?.removeFromParent()
         doll2VideoNode = nil
