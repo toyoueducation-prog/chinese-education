@@ -24,7 +24,7 @@ class StoryScene: SKScene {
         continueButton = SKLabelNode(text: "Continue")
         continueButton.fontSize = 28
         continueButton.fontColor = .blue
-        continueButton.position = CGPoint(x: size.width / 2, y: size.height / 4)
+        continueButton.position = CGPoint(x: size.width / 2, y: max(safeBottomY + 80, size.height / 4))
         continueButton.name = "continueButton"
         addChild(continueButton)
     }

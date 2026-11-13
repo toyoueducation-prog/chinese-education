@@ -64,15 +64,28 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
     private var shouldStopPronunciation = false  // ✅ Flag to prevent moving to next line after answering
     private var incorrectQuestionKeys: Set<String> = []  // ✅ Track incorrect question keys for summary
     private var questionStartTime: Date = Date()  // ✅ Track when question is displayed for response time
+    /// Per-question attempt counts within this encounter (1-based when logged).
+    private var questionAttemptCounts: [String: Int] = [:]
     
     // UI Elements
     private var exitButton: SKLabelNode!
     private var exitButtonBackground: SKShapeNode!
+    private var passageCropNode: SKCropNode?
+    private var passageContentNode: SKNode?
+    private var passageScrollOffset: CGFloat = 0
+    private var passageContentHeight: CGFloat = 0
+    private var passageVisibleHeight: CGFloat = 0
+    private var isDraggingPassage = false
+    private var lastPassageTouchY: CGFloat = 0
+    /// Bottom Y of the question panel (scene coords) — answers stack below this.
+    private var questionPanelBottomY: CGFloat = 0
+    /// Bottom Y of the passage panel (scene coords).
+    private var passagePanelBottomY: CGFloat = 0
     
     // Video playback
-    private var doll1VideoNode: SKVideoNode?
+    private var doll1VideoNode: ChromaKeyVideoNode?
     private var doll1AVPlayer: AVPlayer?
-    private var doll2VideoNode: SKVideoNode?
+    private var doll2VideoNode: ChromaKeyVideoNode?
     private var doll2AVPlayer: AVPlayer?
     
     // Feedback video playback
@@ -101,8 +114,23 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         // ✅ Load passage and questions
         loadPassageAndQuestions()
         
-        // ✅ Setup UI
+        // Layout after the next run-loop tick so SKView/window safeAreaInsets are populated.
         setupConversation()
+        DispatchQueue.main.async { [weak self] in
+            self?.relayoutChromeAndContent()
+        }
+    }
+
+    /// Re-apply top chrome + passage/question stack using current safe-area insets.
+    private func relayoutChromeAndContent() {
+        enumerateChildNodes(withName: "exitButton") { node, _ in node.removeFromParent() }
+        enumerateChildNodes(withName: "playPauseButton") { node, _ in node.removeFromParent() }
+        setupExitButton()
+        setupPlayPauseButton()
+        setupPassageContainer()
+        if !questions.isEmpty {
+            displayQuestion(questions[currentQuestionIndex])
+        }
     }
     
     func setupBackground() {
@@ -122,6 +150,24 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
     
     // MARK: - Load Data
     func loadPassageAndQuestions() {
+        // QA: force the longest Chinese passage so layout can be stress-tested.
+        if ProcessInfo.processInfo.arguments.contains("-qaJumpConversation"),
+           let longest = QuestionBank.shared.getAllPassageSets()
+            .max(by: { $0.passage.count < $1.passage.count }) {
+            let qaQuestions = longest.questionKeys.prefix(4).compactMap {
+                QuestionBank.shared.getQuestion(forKey: $0)
+            }
+            if !qaQuestions.isEmpty {
+                passageText = longest.passage
+                questions = qaQuestions
+                currentPassageKey = longest.passageKey
+                _ = VocabularyManager.shared.extractVocabulary(from: passageText, maxWords: 15)
+                splitPassageIntoLines()
+                print("🧪 QA longest passage (\(passageText.count) chars, \(passageLines.count) lines)")
+                return
+            }
+        }
+
         // ✅ Get completed passages to avoid showing the same one
         let completedPassages = UserDefaults.standard.stringArray(forKey: "completedPassages") ?? []
         
@@ -192,26 +238,20 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
     
     // MARK: - Split Passage into Lines
     func splitPassageIntoLines() {
-        // ✅ Limit words per line to ensure highlighting works properly
-        // ✅ For Chinese, we'll use a more conservative character limit per line
-        // ✅ This ensures sentences don't span too many lines and highlighting stays accurate
-        let maxCharsPerLine = 25  // ✅ Reduced from calculated value to ensure better highlighting
+        // Fit Chinese glyphs to the passage panel: ~1em per character, with horizontal padding.
+        let usableWidth = max(160, safeContentFrame.width - 40)
+        let approxFont: CGFloat = max(20, min(24, size.width / 17))
+        let maxCharsPerLine = max(10, Int(floor(usableWidth / approxFont)))
         
-        // ✅ Split by sentence boundaries first, then by word/character groups
         var lines: [String] = []
-        
-        // ✅ First, split by sentence boundaries (。)
         let sentences = passageText.components(separatedBy: "。").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
         
         for sentence in sentences {
             let sentenceText = sentence.trimmingCharacters(in: .whitespaces) + "。"
             
-            // ✅ If sentence fits in one line, keep it together
             if sentenceText.count <= maxCharsPerLine {
                 lines.append(sentenceText)
             } else {
-                // ✅ Split long sentences at natural break points (punctuation, spaces)
-                // ✅ Try to break at punctuation first, then at word boundaries
                 var remainingSentence = sentenceText
                 while !remainingSentence.isEmpty {
                     if remainingSentence.count <= maxCharsPerLine {
@@ -219,12 +259,9 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
                         break
                     }
                     
-                    // ✅ Try to find a good break point (punctuation or space)
-                    // ✅ Look for punctuation marks (，、；：) or spaces as break points
                     var breakIndex: String.Index?
                     let breakChars: [Character] = ["，", "、", "；", "：", " ", "\n"]
                     
-                    // ✅ Search backwards from maxCharsPerLine to find a break point
                     for i in (0..<min(maxCharsPerLine, remainingSentence.count)).reversed() {
                         let checkIndex = remainingSentence.index(remainingSentence.startIndex, offsetBy: i)
                         if breakChars.contains(remainingSentence[checkIndex]) {
@@ -233,7 +270,6 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
                         }
                     }
                     
-                    // ✅ If no break point found, use maxCharsPerLine
                     let endIndex = breakIndex ?? remainingSentence.index(remainingSentence.startIndex, offsetBy: maxCharsPerLine, limitedBy: remainingSentence.endIndex) ?? remainingSentence.endIndex
                     
                     let line = String(remainingSentence[..<endIndex])
@@ -288,113 +324,184 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
     }
     
     func setupExitButton() {
-        // ✅ Exit button background
+        // Keep the whole 40pt control below the status bar (top edge ≤ safeTopY - 12).
+        let topY = safeTopY - 36
         exitButtonBackground = SKShapeNode(rectOf: CGSize(width: 100, height: 40), cornerRadius: 8)
-        exitButtonBackground.fillColor = UIColor.systemRed.withAlphaComponent(0.8)
+        exitButtonBackground.fillColor = UIColor.systemRed.withAlphaComponent(0.92)
         exitButtonBackground.strokeColor = .white
         exitButtonBackground.lineWidth = 2
-        exitButtonBackground.position = CGPoint(x: 60, y: size.height - 40)
+        exitButtonBackground.position = CGPoint(x: safeInsets.left + 60, y: topY)
         exitButtonBackground.zPosition = 100
         exitButtonBackground.name = "exitButton"
         addChild(exitButtonBackground)
-        
-        // ✅ Exit button label
+
         exitButton = SKLabelNode(text: "✕ 返回")
         exitButton.fontSize = 18
         exitButton.fontColor = .white
         exitButton.fontName = "AvenirNext-Bold"
+        exitButton.verticalAlignmentMode = .center
         exitButton.position = exitButtonBackground.position
         exitButton.zPosition = 101
         exitButton.name = "exitButton"
         addChild(exitButton)
     }
-    
+
     func setupPassageContainer() {
-        // ✅ Remove any existing passage container to prevent overlapping
         enumerateChildNodes(withName: "passageContainer") { node, _ in
             node.removeFromParent()
         }
-        
-        let safeAreaTop: CGFloat = 50
-        let maxPassageHeight: CGFloat = size.height * 0.35
-        let passageWidth = size.width - 60
-        let lineHeight: CGFloat = 28.0
-        let maxVisibleLines = Int(maxPassageHeight / lineHeight)
-        
-        // ✅ Calculate container height based on visible lines
-        let estimatedHeight = min(CGFloat(maxVisibleLines) * lineHeight + 60, maxPassageHeight)
-        
-        let passageContainer = SKShapeNode(rectOf: CGSize(width: passageWidth, height: estimatedHeight))
-        passageContainer.fillColor = UIColor.systemBlue.withAlphaComponent(0.1)
-        passageContainer.strokeColor = UIColor.systemBlue.withAlphaComponent(0.3)
-        passageContainer.lineWidth = 2
-        passageContainer.position = CGPoint(x: size.width / 2, y: size.height - 80 - safeAreaTop - estimatedHeight / 2)
-        passageContainer.name = "passageContainer"
-        addChild(passageContainer)
-        
-        // ✅ Display lines one by one - show current line and previous lines
-        let startY = estimatedHeight / 2 - 30
-        let visibleStartIndex = max(0, currentLineIndex - maxVisibleLines + 1)
-        let visibleEndIndex = min(passageLines.count, visibleStartIndex + maxVisibleLines)
-        
-        for (index, line) in passageLines.enumerated() {
-            if index >= visibleStartIndex && index < visibleEndIndex {
-                let lineLabel = SKLabelNode(text: line)
-                lineLabel.name = "passageLine_\(index)"
-                lineLabel.fontSize = 20
-                // ✅ Highlight current line being pronounced
-                if index == currentLineIndex {
-                    lineLabel.fontColor = UIColor(red: 0.0, green: 0.2, blue: 0.6, alpha: 1.0)
-                    lineLabel.fontName = "AvenirNext-Bold"
-                } else {
-                    lineLabel.fontColor = UIColor(red: 0.0, green: 0.2, blue: 0.6, alpha: 0.6)
-                    lineLabel.fontName = "AvenirNext-Medium"
-                }
-                lineLabel.horizontalAlignmentMode = .left  // ✅ Left align for accurate highlighting
-                lineLabel.verticalAlignmentMode = .top
-                lineLabel.numberOfLines = 1
-                let linePosition = CGFloat(index - visibleStartIndex)
-                // ✅ Position from left edge of container (accounting for padding)
-                lineLabel.position = CGPoint(x: -passageWidth / 2 + 20, y: startY - linePosition * lineHeight)
-                passageContainer.addChild(lineLabel)
-            }
+        enumerateChildNodes(withName: "passageCrop") { node, _ in
+            node.removeFromParent()
         }
-        
+        passageCropNode = nil
+        passageContentNode = nil
+        passageScrollOffset = 0
+
+        let frame = safeContentFrame
+        // Top chrome (exit / play) sits in the first ~56pt below the safe top.
+        let topBarReserved: CGFloat = 56
+        let passageWidth = frame.width
+        // Reserve room below the passage: gap + question + answers + dolls/home.
+        let gapAfterPassage: CGFloat = 20
+        let questionBudget: CGFloat = 100
+        let answerBudget: CGFloat = 4 * 52 + 24
+        let dollsBudget: CGFloat = 108
+        let reservedBelowPassage = gapAfterPassage + questionBudget + answerBudget + dollsBudget
+        let maxPassageHeight = max(
+            100,
+            min(frame.height * 0.24, frame.height - topBarReserved - reservedBelowPassage)
+        )
+        let fontSize: CGFloat = max(20, min(24, size.width / 17))
+        let lineHeight = fontSize + 10
+        let horizontalPad: CGFloat = 18
+        let verticalPad: CGFloat = 14
+
+        let contentHeight = max(lineHeight, CGFloat(passageLines.count) * lineHeight) + verticalPad * 2
+        let visibleHeight = min(maxPassageHeight, contentHeight)
+        passageContentHeight = contentHeight
+        passageVisibleHeight = visibleHeight
+
+        let panelTop = safeTopY - topBarReserved
+        let panelCenterY = panelTop - visibleHeight / 2
+        // Bottom edge of the passage panel — question stack must stay strictly below this.
+        passagePanelBottomY = panelTop - visibleHeight
+        let passageContainer = SKShapeNode(rectOf: CGSize(width: passageWidth, height: visibleHeight), cornerRadius: 14)
+        // Solid/semi-opaque panel — never put text directly on busy art.
+        passageContainer.fillColor = UIColor(white: 1.0, alpha: 0.96)
+        passageContainer.strokeColor = UIColor(red: 0.15, green: 0.35, blue: 0.65, alpha: 1.0)
+        passageContainer.lineWidth = 2
+        passageContainer.position = CGPoint(x: size.width / 2, y: panelCenterY)
+        passageContainer.name = "passageContainer"
+        passageContainer.zPosition = 8
+        addChild(passageContainer)
+
+        let crop = SKCropNode()
+        crop.name = "passageCrop"
+        crop.zPosition = 9
+        crop.position = passageContainer.position
+        let mask = SKSpriteNode(color: .white, size: CGSize(width: passageWidth - 8, height: visibleHeight - 8))
+        crop.maskNode = mask
+        addChild(crop)
+        passageCropNode = crop
+
+        let content = SKNode()
+        content.name = "passageContent"
+        crop.addChild(content)
+        passageContentNode = content
+
+        let startY = visibleHeight / 2 - verticalPad
+        for (index, line) in passageLines.enumerated() {
+            let lineLabel = SKLabelNode(text: line)
+            lineLabel.name = "passageLine_\(index)"
+            lineLabel.fontSize = fontSize
+            if index == currentLineIndex {
+                lineLabel.fontColor = UIColor(red: 0.05, green: 0.15, blue: 0.35, alpha: 1.0)
+                lineLabel.fontName = "AvenirNext-Bold"
+            } else {
+                lineLabel.fontColor = UIColor(red: 0.1, green: 0.15, blue: 0.25, alpha: 1.0)
+                lineLabel.fontName = "AvenirNext-Medium"
+            }
+            lineLabel.horizontalAlignmentMode = .left
+            lineLabel.verticalAlignmentMode = .top
+            lineLabel.numberOfLines = 1
+            lineLabel.position = CGPoint(
+                x: -passageWidth / 2 + horizontalPad,
+                y: startY - CGFloat(index) * lineHeight
+            )
+            content.addChild(lineLabel)
+        }
+
+        applyPassageScrollOffset()
+        // Scroll affordance lives inside the panel bottom padding so it cannot collide with the question.
+        if contentHeight > visibleHeight + 1 {
+            let hint = SKLabelNode(text: "↕ 滑動閱讀")
+            hint.fontSize = 11
+            hint.fontColor = UIColor.darkGray
+            hint.fontName = "AvenirNext-Medium"
+            hint.verticalAlignmentMode = .bottom
+            hint.position = CGPoint(x: 0, y: -visibleHeight / 2 + 4)
+            hint.name = "passageScrollHint"
+            hint.zPosition = 2
+            passageContainer.addChild(hint)
+        }
     }
-    
+
+    private func applyPassageScrollOffset() {
+        let maxOffset = max(0, passageContentHeight - passageVisibleHeight)
+        passageScrollOffset = min(max(0, passageScrollOffset), maxOffset)
+        passageContentNode?.position = CGPoint(x: 0, y: passageScrollOffset)
+    }
+
     func setupPlayPauseButton() {
+        let topY = safeTopY - 36
         playPauseButton = SKLabelNode(text: "▶️")
-        playPauseButton?.fontSize = 30
+        playPauseButton?.fontSize = 28
         playPauseButton?.fontColor = .white
         playPauseButton?.name = "playPauseButton"
-        playPauseButton?.position = CGPoint(x: size.width - 50, y: size.height - 50)
+        playPauseButton?.verticalAlignmentMode = .center
+        playPauseButton?.position = CGPoint(x: size.width - safeInsets.right - 40, y: topY)
         playPauseButton?.zPosition = 100
+        // Opaque hit target so icon stays readable on art.
+        let bg = SKShapeNode(circleOfRadius: 22)
+        bg.fillColor = UIColor.black.withAlphaComponent(0.55)
+        bg.strokeColor = .clear
+        bg.position = playPauseButton!.position
+        bg.zPosition = 99
+        bg.name = "playPauseButton"
+        addChild(bg)
         addChild(playPauseButton!)
     }
-    
+
     func setupDollVideos() {
-        // ✅ Setup doll1.mp4 (muted)
+        let dollY = safeBottomY + 70
         if let videoURL = Bundle.main.url(forResource: "doll1", withExtension: "mp4") {
-            doll1AVPlayer = AVPlayer(url: videoURL)
-            doll1AVPlayer?.volume = 0
-            doll1VideoNode = SKVideoNode(avPlayer: doll1AVPlayer!)
-            doll1VideoNode?.size = CGSize(width: 100, height: 100)
-            doll1VideoNode?.position = CGPoint(x: size.width - 100, y: 100)
-            doll1VideoNode?.zPosition = 50
-            addChild(doll1VideoNode!)
-            doll1AVPlayer?.play()
+            let node = ChromaKeyVideoNode(
+                url: videoURL,
+                size: CGSize(width: 88, height: 88),
+                loops: false,
+                muted: true
+            )
+            node.position = CGPoint(x: size.width - safeInsets.right - 70, y: dollY)
+            node.zPosition = 5
+            doll1VideoNode = node
+            doll1AVPlayer = node.player
+            addChild(node)
+            node.play()
         }
-        
-        // ✅ Setup doll2.mp4 (muted)
+
         if let videoURL = Bundle.main.url(forResource: "doll2", withExtension: "mp4") {
-            doll2AVPlayer = AVPlayer(url: videoURL)
-            doll2AVPlayer?.volume = 0
-            doll2VideoNode = SKVideoNode(avPlayer: doll2AVPlayer!)
-            doll2VideoNode?.size = CGSize(width: 100, height: 100)
-            doll2VideoNode?.position = CGPoint(x: 100, y: 100)
-            doll2VideoNode?.zPosition = 50
-            addChild(doll2VideoNode!)
-            doll2AVPlayer?.play()
+            let node = ChromaKeyVideoNode(
+                url: videoURL,
+                size: CGSize(width: 88, height: 88),
+                loops: true,
+                muted: true
+            )
+            node.position = CGPoint(x: safeInsets.left + 70, y: dollY)
+            node.zPosition = 5
+            doll2VideoNode = node
+            doll2AVPlayer = node.player
+            addChild(node)
+            node.play()
         }
     }
     
@@ -445,104 +552,145 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         answerButtons.removeAll()
         selectedAnswerIndex = nil
         
-        let safeAreaTop: CGFloat = 50
-        var passageHeight: CGFloat = size.height * 0.35
-        enumerateChildNodes(withName: "passageContainer") { node, _ in
-            if let container = node as? SKShapeNode {
-                passageHeight = container.frame.height
-            }
+        enumerateChildNodes(withName: "passageScrollHint") { node, _ in
+            node.removeFromParent()
         }
-        
-        let spacing: CGFloat = 40
-        let questionStartY = size.height - 120 - safeAreaTop - passageHeight - spacing
-        
-        // ✅ Question container - better aligned
-        let questionContainerHeight: CGFloat = 120
-        let questionContainerWidth = size.width - 80  // ✅ Consistent width with padding
-        let questionContainer = SKShapeNode(rectOf: CGSize(width: questionContainerWidth, height: questionContainerHeight))
-        questionContainer.fillColor = UIColor.systemYellow.withAlphaComponent(0.15)
-        questionContainer.strokeColor = UIColor.systemOrange.withAlphaComponent(0.4)
-        questionContainer.lineWidth = 3
-        // ✅ Center the container horizontally
-        questionContainer.position = CGPoint(x: size.width / 2, y: questionStartY - questionContainerHeight / 2)
+
+        let frame = safeContentFrame
+        // Strictly below the passage panel — never climb upward into it.
+        let passageBottom = (passagePanelBottomY > 0 ? passagePanelBottomY : safeTopY - 200) - 18
+
+        let questionContainerWidth = frame.width
+        let textWidth = questionContainerWidth - 36
+        let headerHeight: CGFloat = 26
+        let verticalPad: CGFloat = 12
+
+        // Answers always get space above dolls / home indicator.
+        let answerReserve: CGFloat = 4 * 52 + 20
+        let answersFloor = safeBottomY + 100
+        let maxQuestionHeight = max(84, passageBottom - (answersFloor + answerReserve) - 10)
+
+        questionLabel = SKLabelNode(text: question.question)
+        questionLabel.fontName = "AvenirNext-Medium"
+        questionLabel.fontColor = UIColor(red: 0.08, green: 0.1, blue: 0.14, alpha: 1.0)
+        questionLabel.horizontalAlignmentMode = .left
+        questionLabel.verticalAlignmentMode = .top
+        questionLabel.numberOfLines = 0
+        questionLabel.lineBreakMode = .byWordWrapping
+        questionLabel.name = "questionLabel"
+        questionLabel.fontSize = 26
+        let textBudget = max(44, maxQuestionHeight - headerHeight - verticalPad * 2)
+        questionLabel.fitFont(maxWidth: textWidth, maxHeight: textBudget, minimum: 17, starting: 22)
+        let questionTextHeight = min(textBudget, questionLabel.measuredTextHeight(maxWidth: textWidth))
+        let questionContainerHeight = min(
+            maxQuestionHeight,
+            headerHeight + questionTextHeight + verticalPad * 2 + 4
+        )
+
+        // Never push upward into the passage — only shrink.
+        let panelTop = passageBottom
+        let panelBottom = panelTop - questionContainerHeight
+
+        let questionContainer = SKShapeNode(
+            rectOf: CGSize(width: questionContainerWidth, height: questionContainerHeight),
+            cornerRadius: 14
+        )
+        questionContainer.fillColor = UIColor(red: 1.0, green: 0.96, blue: 0.88, alpha: 0.97)
+        questionContainer.strokeColor = UIColor(red: 0.75, green: 0.45, blue: 0.1, alpha: 1.0)
+        questionContainer.lineWidth = 2.5
+        questionContainer.position = CGPoint(x: size.width / 2, y: (panelTop + panelBottom) / 2)
         questionContainer.name = "questionContainer"
+        questionContainer.zPosition = 12
         addChild(questionContainer)
-        
-        // ✅ Question number - left aligned within container
+        questionPanelBottomY = panelBottom
+
         let questionNumberLabel = SKLabelNode(text: "問題 \(currentQuestionIndex + 1)")
-        questionNumberLabel.fontSize = 18
-        questionNumberLabel.fontColor = .systemOrange
+        questionNumberLabel.fontSize = 17
+        questionNumberLabel.fontColor = UIColor(red: 0.7, green: 0.35, blue: 0.05, alpha: 1.0)
         questionNumberLabel.fontName = "AvenirNext-Bold"
         questionNumberLabel.horizontalAlignmentMode = .left
         questionNumberLabel.verticalAlignmentMode = .top
-        questionNumberLabel.position = CGPoint(x: -questionContainerWidth / 2 + 20, y: questionContainerHeight / 2 - 20)
+        questionNumberLabel.position = CGPoint(
+            x: -questionContainerWidth / 2 + 18,
+            y: questionContainerHeight / 2 - verticalPad
+        )
         questionContainer.addChild(questionNumberLabel)
-        
-        // ✅ Question text - left aligned within container
-        questionLabel = SKLabelNode(text: question.question)
-        questionLabel.fontSize = 24
-        questionLabel.fontColor = .black
-        questionLabel.fontName = "AvenirNext-Medium"
-        questionLabel.horizontalAlignmentMode = .left  // ✅ Left align for better readability
-        questionLabel.verticalAlignmentMode = .top
-        questionLabel.numberOfLines = 0
-        questionLabel.preferredMaxLayoutWidth = questionContainerWidth - 40
-        questionLabel.lineBreakMode = .byWordWrapping
-        questionLabel.name = "questionLabel"
-        questionLabel.position = CGPoint(x: -questionContainerWidth / 2 + 20, y: questionContainerHeight / 2 - 50)
+
+        questionLabel.position = CGPoint(
+            x: -questionContainerWidth / 2 + 18,
+            y: questionContainerHeight / 2 - verticalPad - headerHeight
+        )
         questionContainer.addChild(questionLabel)
-        
-        // ✅ Check question type
+
         isOpenEndedQuestion = (question.type == "qa")
-        
-        // ✅ Answer choices or open-ended input
+
+        let answersTop = panelBottom - 12
         if let choices = question.choices, !isOpenEndedQuestion {
-            displayMultipleChoice(choices, question: question, belowY: questionStartY - questionContainerHeight - 10)
+            displayMultipleChoice(choices, question: question, belowY: answersTop)
         } else if isOpenEndedQuestion {
-            displayOpenEndedQuestion(question: question, belowY: questionStartY - questionContainerHeight - 10)
+            displayOpenEndedQuestion(question: question, belowY: answersTop)
         }
     }
-    
+
     func displayMultipleChoice(_ choices: [String], question: Question, belowY: CGFloat) {
-        // ✅ First, clear any existing answer buttons to prevent duplicates
         answerButtons.forEach { $0.removeFromParent() }
         answerButtons.removeAll()
-        
-        // ✅ Remove all answer button backgrounds
         for i in 0..<10 {
             enumerateChildNodes(withName: "answerButton_\(i)") { node, _ in
                 node.removeFromParent()
             }
+            enumerateChildNodes(withName: "answerButtonBg_\(i)") { node, _ in
+                node.removeFromParent()
+            }
         }
-        
-        var yOffset: CGFloat = 0
+
+        let frame = safeContentFrame
+        let buttonWidth = frame.width
+        let textWidth = buttonWidth - 40
+        let minButtonHeight: CGFloat = 52
+        let gap: CGFloat = 10
+        let bottomLimit = safeBottomY + 110  // keep clear of dolls / home indicator
+        let available = max(minButtonHeight, belowY - bottomLimit)
+        let rows = max(1, choices.count)
+        var buttonHeight = min(64, (available - CGFloat(rows - 1) * gap) / CGFloat(rows))
+        buttonHeight = max(minButtonHeight, buttonHeight)
+
+        var cursorY = belowY - buttonHeight / 2
         for (index, choice) in choices.enumerated() {
-            // ✅ Create button background with unique name
-            let buttonBackground = SKShapeNode(rectOf: CGSize(width: size.width - 80, height: 45), cornerRadius: 8)
-            buttonBackground.fillColor = UIColor.white.withAlphaComponent(0.8)
-            buttonBackground.strokeColor = UIColor.systemBlue.withAlphaComponent(0.5)
+            let buttonBackground = SKShapeNode(
+                rectOf: CGSize(width: buttonWidth, height: buttonHeight),
+                cornerRadius: 12
+            )
+            buttonBackground.fillColor = UIColor(white: 1.0, alpha: 0.96)
+            buttonBackground.strokeColor = UIColor(red: 0.15, green: 0.4, blue: 0.75, alpha: 1.0)
             buttonBackground.lineWidth = 2
-            // ✅ Position background from left edge to match answer button
-            buttonBackground.position = CGPoint(x: 80 + (size.width - 80) / 2, y: belowY - yOffset)
+            buttonBackground.position = CGPoint(x: size.width / 2, y: cursorY)
             buttonBackground.name = "answerButtonBg_\(index)"
             buttonBackground.zPosition = 9
             addChild(buttonBackground)
-            
-            // ✅ Create button label with unique name
+
             let answerButton = SKLabelNode(text: choice)
-            answerButton.fontSize = 20
-            answerButton.fontColor = .black
             answerButton.fontName = "AvenirNext-Medium"
+            answerButton.fontColor = UIColor(red: 0.08, green: 0.1, blue: 0.14, alpha: 1.0)
             answerButton.horizontalAlignmentMode = .left
             answerButton.verticalAlignmentMode = .center
-            answerButton.preferredMaxLayoutWidth = size.width - 120
-            // ✅ Position from left edge of screen with padding
-            answerButton.position = CGPoint(x: 80, y: belowY - yOffset)
+            answerButton.numberOfLines = 0
+            answerButton.lineBreakMode = .byWordWrapping
+            answerButton.preferredMaxLayoutWidth = textWidth
+            answerButton.fontSize = 24
+            answerButton.fitFont(
+                maxWidth: textWidth,
+                maxHeight: buttonHeight - 12,
+                minimum: 16,
+                starting: 20
+            )
+            answerButton.position = CGPoint(x: size.width / 2 - buttonWidth / 2 + 20, y: cursorY)
             answerButton.name = "answerButton_\(index)"
             answerButton.zPosition = 10
             addChild(answerButton)
             answerButtons.append(answerButton)
-            yOffset += 55
+
+            cursorY -= buttonHeight + gap
         }
     }
     
@@ -556,7 +704,7 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         
         // ✅ Instructions label
         let instructionLabel = SKLabelNode(text: "請錄製您的答案")
-        instructionLabel.fontSize = 20
+        instructionLabel.fontSize = 22
         instructionLabel.fontColor = .systemBlue
         instructionLabel.fontName = "AvenirNext-Bold"
         instructionLabel.horizontalAlignmentMode = .center
@@ -646,6 +794,15 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         guard let touch = touches.first else { return }
         let location = touch.location(in: self)
         let touchedNode = atPoint(location)
+
+        // Passage scroll (when content taller than the panel).
+        if passageContentHeight > passageVisibleHeight + 1,
+           let container = childNode(withName: "passageContainer"),
+           container.contains(location) {
+            isDraggingPassage = true
+            lastPassageTouchY = location.y
+            return
+        }
         
         // ✅ Exit button
         if touchedNode.name == "exitButton" {
@@ -694,7 +851,21 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         }
     }
     
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard isDraggingPassage, let touch = touches.first else { return }
+        let location = touch.location(in: self)
+        let dy = location.y - lastPassageTouchY
+        lastPassageTouchY = location.y
+        // Dragging up reveals lower lines (increase scroll offset).
+        passageScrollOffset += dy
+        applyPassageScrollOffset()
+    }
+
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if isDraggingPassage {
+            isDraggingPassage = false
+            return
+        }
         guard let touch = touches.first else { return }
         let location = touch.location(in: self)
         let touchedNode = atPoint(location)
@@ -773,6 +944,8 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
             loggedAnswer = ""
         }
         let profile = StudentProfile.shared
+        let attempt = (questionAttemptCounts[question.key] ?? 0) + 1
+        questionAttemptCounts[question.key] = attempt
         AnswerHistoryStore.shared.append(
             studentID: profile.studentID,
             studentName: profile.studentName,
@@ -780,7 +953,8 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
             question: question,
             studentAnswer: loggedAnswer,
             isCorrect: isCorrect,
-            responseTime: responseTime
+            responseTime: responseTime,
+            attemptNumber: attempt
         )
         
         // ✅ Prevent moving to next line after answering, but keep pronunciation/highlighting going
@@ -924,7 +1098,7 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
         
         // ✅ Create explanation label - positioned at the very bottom of the screen
         let explanationLabel = SKLabelNode(text: explanationText)
-        explanationLabel.fontSize = 18
+        explanationLabel.fontSize = 20
         explanationLabel.fontColor = .black
         explanationLabel.fontName = "AvenirNext-Medium"
         explanationLabel.horizontalAlignmentMode = .center
@@ -1744,6 +1918,8 @@ class ConversationScene: SKScene, AVSpeechSynthesizerDelegate {
     override func willMove(from view: SKView) {
         super.willMove(from: view)
         synthesizer.stopSpeaking(at: .immediate)
+        doll1VideoNode?.stop()
+        doll2VideoNode?.stop()
         doll1AVPlayer?.pause()
         doll2AVPlayer?.pause()
         

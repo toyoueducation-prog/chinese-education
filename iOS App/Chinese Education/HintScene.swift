@@ -53,8 +53,7 @@ class HintScene: SKScene, AVSpeechSynthesizerDelegate {
     
     // MARK: - Setup Question Container
     func setupQuestionContainer() {
-        let safeAreaTop: CGFloat = 50
-        let questionStartY = size.height - safeAreaTop - 50
+        let questionStartY = safeTopY - 50
         
         // ✅ Display all incorrect questions with answers and explanations
         if questionObjects.isEmpty {

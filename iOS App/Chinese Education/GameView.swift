@@ -8,15 +8,26 @@ struct GameView: View {
     @State private var isLoggedIn: Bool = false  // Login status tracking
 
     var body: some View {
-        if isLoggedIn {
+        // QA-only launch args for simulator verification (not shipped in production flows).
+        if ProcessInfo.processInfo.arguments.contains("-qaJumpConversation") {
+            SpriteView(scene: ConversationScene.createQAScene())
+                .ignoresSafeArea(.all)
+                .statusBarHidden(false)
+        } else if ProcessInfo.processInfo.arguments.contains("-qaJumpGame") {
+            SpriteView(scene: GameScene.createScene())
+                .ignoresSafeArea(.all)
+                .statusBarHidden(false)
+        } else if isLoggedIn {
             // Load the GameScene once login is successful
             // ✅ Background covers full screen including safe area, but UI respects safe area
             SpriteView(scene: GameScene.createScene())
                 .ignoresSafeArea(.all) // Background covers everything
+                .statusBarHidden(false)
         } else {
             // Load SigninScene initially
             SignInContainerView(isLoggedIn: $isLoggedIn)
                 .ignoresSafeArea(.all) // Background covers everything
+                .statusBarHidden(false)
         }
     }
 }
@@ -82,6 +93,14 @@ extension GameScene {
         let scene = GameScene()
         // ✅ Full screen size - background covers safe area, UI elements will respect safe area
         scene.size = CGSize(width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
+        scene.scaleMode = .resizeFill
+        return scene
+    }
+}
+
+extension ConversationScene {
+    static func createQAScene() -> SKScene {
+        let scene = ConversationScene(size: CGSize(width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height))
         scene.scaleMode = .resizeFill
         return scene
     }

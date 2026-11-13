@@ -87,7 +87,7 @@ class IntroductionScene: SKScene {
         skipButton = SKLabelNode(text: "跳過")
         skipButton.fontSize = 28
         skipButton.fontColor = .white
-        skipButton.position = CGPoint(x: size.width / 2, y: 50)  // ✅ Bottom center
+        skipButton.position = CGPoint(x: size.width / 2, y: safeBottomY + 44)
         skipButton.name = "skipButton"
         addChild(skipButton)
     }

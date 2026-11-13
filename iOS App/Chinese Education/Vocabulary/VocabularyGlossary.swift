@@ -82,10 +82,9 @@ enum VocabularyGlossary {
         "小貓": Entry(pinyin: "xiǎo māo", meaning: "小小的貓"),
         "小狗": Entry(pinyin: "xiǎo gǒu", meaning: "小小的狗"),
 
-        // Passage 5 — 植物的生長
+        // Passage 5 — 植物的生長 (陽光 shared with Passage 1)
         "植物": Entry(pinyin: "zhí wù", meaning: "會進行光合作用的生物，如花草樹木"),
         "生長": Entry(pinyin: "shēng zhǎng", meaning: "逐漸長大"),
-        "陽光": Entry(pinyin: "yáng guāng", meaning: "太陽照下來的光線"),
         "水分": Entry(pinyin: "shuǐ fèn", meaning: "水的含量"),
         "土壤": Entry(pinyin: "tǔ rǎng", meaning: "地上能種花種菜的泥土"),
         "空氣": Entry(pinyin: "kōng qì", meaning: "包圍地球、可供呼吸的氣體"),
@@ -96,14 +95,12 @@ enum VocabularyGlossary {
         "生態系統": Entry(pinyin: "shēng tài xì tǒng", meaning: "生物與環境互相影響的整體"),
         "照顧": Entry(pinyin: "zhào gù", meaning: "用心看護、照料"),
 
-        // Passage 6 — 小明的圖書館之旅
+        // Passage 6 — 小明的圖書館之旅 (冒險/好奇 shared with Passage 4)
         "圖書館": Entry(pinyin: "tú shū guǎn", meaning: "收藏書籍、供人閱讀的地方"),
         "閱讀": Entry(pinyin: "yuè dú", meaning: "看書、讀文章"),
         "書籍": Entry(pinyin: "shū jí", meaning: "書本的總稱"),
         "書架": Entry(pinyin: "shū jià", meaning: "放書的架子"),
-        "冒險": Entry(pinyin: "mào xiǎn", meaning: "去做有風險但可能有趣的事"),
         "知識": Entry(pinyin: "zhī shì", meaning: "透過學習得到的理解"),
-        "好奇": Entry(pinyin: "hào qí", meaning: "想知道更多的心情"),
         "故事": Entry(pinyin: "gù shi", meaning: "有情節的敘述"),
         "世界": Entry(pinyin: "shì jiè", meaning: "我們生活的廣大範圍"),
         "興趣": Entry(pinyin: "xìng qù", meaning: "對某事特別喜歡、想了解"),
@@ -122,7 +119,7 @@ enum VocabularyGlossary {
         "溫度": Entry(pinyin: "wēn dù", meaning: "冷熱的程度"),
         "大氣層": Entry(pinyin: "dà qì céng", meaning: "包圍行星的氣體層"),
         "生命": Entry(pinyin: "shēng mìng", meaning: "能生長、繁殖的生物狀態"),
-        "探索": Entry(pinyin: "tàn suǒ", meaning: "去發現未知的事物"),
+        // 探索 shared with Passage 4
         "特徵": Entry(pinyin: "tè zhēng", meaning: "與眾不同的特點"),
 
         // Passage 8 — 傳統節日
@@ -148,7 +145,7 @@ enum VocabularyGlossary {
         "環保": Entry(pinyin: "huán bǎo", meaning: "保護環境、減少污染"),
         "垃圾": Entry(pinyin: "lā jī", meaning: "丟掉的廢棄物"),
         "合作": Entry(pinyin: "hé zuò", meaning: "一起努力完成事情"),
-        "地球": Entry(pinyin: "dì qiú", meaning: "我們居住的行星"),
+        // 地球 shared with Passage 7
         "耐心": Entry(pinyin: "nài xīn", meaning: "不急躁、能持續努力"),
         "規則": Entry(pinyin: "guī zé", meaning: "大家共同遵守的約定"),
         "產品": Entry(pinyin: "chǎn pǐn", meaning: "製造出來的物品"),

@@ -28,14 +28,18 @@ import Foundation
  * - Questions automatically enriched with PIRLS data when retrieved
  */
 
-// MARK: - 🌐 API CONFIGURATION - Question Bank Endpoints
+// MARK: - 🌐 API CONFIGURATION - Question Bank / Content Endpoints
 /**
- * Defines API endpoints for Alibaba ECS backend integration.
- * All endpoints are optional - app works fully offline with local data.
+ * Content, login, passages, and reading analysis stay on jkcorp.
+ * Analytics uses a separate base URL (`AnalyticsServerConfig`) — never redirect
+ * these calls when the teacher sets the analytics server URL.
  */
 struct QuestionBankAPI {
-    // Alibaba ECS primary endpoint (configure your Alibaba ECS server URL here)
-    static let alibabaECSBaseURL = "https://your-alibaba-ecs-server.com/api"  // ✅ Replace with your Alibaba ECS URL
+    /// Question bank, passages, reading analysis (not the ECS analytics API).
+    static let contentBaseURL = "https://jkcorp.pythonanywhere.com"
+
+    /// Legacy alias — always the content host, never analytics.
+    static var alibabaECSBaseURL: String { contentBaseURL }
     
     // Question endpoints
     static func questionURL(forKey key: String) -> URL? {

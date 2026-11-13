@@ -56,7 +56,7 @@ class VocabularyScene: SKScene {
         backButtonBackground.fillColor = UIColor.white.withAlphaComponent(0.9)
         backButtonBackground.strokeColor = UIColor.systemGray4
         backButtonBackground.lineWidth = 1
-        backButtonBackground.position = CGPoint(x: 60, y: size.height - 50)
+        backButtonBackground.position = CGPoint(x: safeInsets.left + 60, y: safeTopY - 28)
         backButtonBackground.name = "backButton"
         backButtonBackground.zPosition = 100
         addChild(backButtonBackground)
@@ -75,7 +75,7 @@ class VocabularyScene: SKScene {
         titleLabel.fontSize = 28
         titleLabel.fontColor = .black
         titleLabel.fontName = "AvenirNext-Bold"
-        titleLabel.position = CGPoint(x: size.width / 2, y: size.height - 50)
+        titleLabel.position = CGPoint(x: size.width / 2, y: safeTopY - 28)
         titleLabel.zPosition = 100
         addChild(titleLabel)
         
@@ -100,7 +100,7 @@ class VocabularyScene: SKScene {
         let bg = SKShapeNode(rectOf: CGSize(width: 160, height: 40), cornerRadius: 10)
         bg.fillColor = enabled ? UIColor.systemBlue : UIColor.systemGray4
         bg.strokeColor = .clear
-        bg.position = CGPoint(x: size.width - 100, y: size.height - 50)
+        bg.position = CGPoint(x: size.width - safeInsets.right - 100, y: safeTopY - 28)
         bg.name = "practiceButtonBg"
         bg.zPosition = 100
         addChild(bg)
@@ -123,7 +123,7 @@ class VocabularyScene: SKScene {
             child.removeFromParent()
         }
 
-        let filterY = size.height - 100
+        let filterY = safeTopY - 78
         let buttonWidth: CGFloat = 80
         let spacing: CGFloat = 10
         let startX = (size.width - (buttonWidth * 6 + spacing * 5)) / 2
@@ -165,7 +165,7 @@ class VocabularyScene: SKScene {
         let statsLabel = SKLabelNode(text: statsText)
         statsLabel.fontSize = 16
         statsLabel.fontColor = .label
-        statsLabel.position = CGPoint(x: size.width / 2, y: size.height - 140)
+        statsLabel.position = CGPoint(x: size.width / 2, y: safeTopY - 118)
         addChild(statsLabel)
     }
     
@@ -190,7 +190,7 @@ class VocabularyScene: SKScene {
             return
         }
         
-        let startY = size.height - 180
+        let startY = safeTopY - 158
         var currentY = startY
         
         for (index, word) in vocabularyList.enumerated() {

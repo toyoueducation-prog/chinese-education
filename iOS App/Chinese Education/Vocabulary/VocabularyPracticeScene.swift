@@ -66,7 +66,7 @@ class VocabularyPracticeScene: SKScene {
         backButtonBackground.fillColor = UIColor.white.withAlphaComponent(0.9)
         backButtonBackground.strokeColor = UIColor.systemGray4
         backButtonBackground.lineWidth = 1
-        backButtonBackground.position = CGPoint(x: 60, y: size.height - 50)
+        backButtonBackground.position = CGPoint(x: safeInsets.left + 60, y: safeTopY - 28)
         backButtonBackground.name = "backButton"
         backButtonBackground.zPosition = 100
         addChild(backButtonBackground)
@@ -84,14 +84,14 @@ class VocabularyPracticeScene: SKScene {
         titleLabel.fontSize = 32
         titleLabel.fontColor = .label
         titleLabel.fontName = "AvenirNext-Bold"
-        titleLabel.position = CGPoint(x: size.width / 2, y: size.height - 50)
+        titleLabel.position = CGPoint(x: size.width / 2, y: safeTopY - 28)
         addChild(titleLabel)
 
         let subtitle = SKLabelNode(text: "翻轉後誠實回報：認識了或還不會")
         subtitle.fontSize = 16
         subtitle.fontColor = .secondaryLabel
         subtitle.fontName = "AvenirNext-Regular"
-        subtitle.position = CGPoint(x: size.width / 2, y: size.height - 90)
+        subtitle.position = CGPoint(x: size.width / 2, y: safeTopY - 68)
         addChild(subtitle)
     }
 

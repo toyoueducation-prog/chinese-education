@@ -209,35 +209,35 @@ class NewWorldScene: SKScene, SKPhysicsContactDelegate {
     func setupUI() {
         levelLabel = SKLabelNode(text: "Level: \(PlayerProgress.shared.level)")
         levelLabel.fontSize = 20
-        levelLabel.position = CGPoint(x: size.width / 2, y: size.height - 50)
+        levelLabel.position = CGPoint(x: size.width / 2, y: safeTopY - 28)
         addChild(levelLabel)
         
         xpLabel = SKLabelNode(text: "XP: \(PlayerProgress.shared.xp)")
         xpLabel.fontSize = 20
-        xpLabel.position = CGPoint(x: size.width / 2, y: size.height - 80)
+        xpLabel.position = CGPoint(x: size.width / 2, y: safeTopY - 58)
         addChild(xpLabel)
         
         badgeLabel = SKLabelNode(text: "Badges: \(PlayerProgress.shared.badges.count)")
         badgeLabel.fontSize = 20
-        badgeLabel.position = CGPoint(x: size.width / 2, y: size.height - 110)
+        badgeLabel.position = CGPoint(x: size.width / 2, y: safeTopY - 88)
         addChild(badgeLabel)
         
         worldLabel = SKLabelNode(text: "Unlocked Worlds: \(PlayerProgress.shared.unlockedWorlds.joined(separator: ", "))")
         worldLabel.fontSize = 16
-        worldLabel.position = CGPoint(x: size.width / 2, y: size.height - 140)
+        worldLabel.position = CGPoint(x: size.width / 2, y: safeTopY - 118)
         addChild(worldLabel)
         
         scoreLabel = SKLabelNode(text: "Score: \(gameScore)")
         scoreLabel.fontSize = 24
         scoreLabel.fontColor = .white
-        scoreLabel.position = CGPoint(x: -size.width / 2 + 100, y: size.height / 2 - 50)
+        scoreLabel.position = CGPoint(x: -size.width / 2 + 100, y: cameraSafeTopY - 36)
         scoreLabel.zPosition = 10
         cameraNode.addChild(scoreLabel)
 
         crystalCoinLabel = SKLabelNode(text: "Crystals: \(crystalCoins)")
         crystalCoinLabel.fontSize = 24
         crystalCoinLabel.fontColor = .yellow
-        crystalCoinLabel.position = CGPoint(x: -size.width / 2 + 100, y: size.height / 2 - 80)
+        crystalCoinLabel.position = CGPoint(x: -size.width / 2 + 100, y: cameraSafeTopY - 66)
         crystalCoinLabel.zPosition = 10
         cameraNode.addChild(crystalCoinLabel)
     }

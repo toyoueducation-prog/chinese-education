@@ -55,7 +55,7 @@ class ProcessPracticeScene: SKScene {
         backButtonBackground.fillColor = UIColor.white.withAlphaComponent(0.9)
         backButtonBackground.strokeColor = UIColor.systemGray4
         backButtonBackground.lineWidth = 1
-        backButtonBackground.position = CGPoint(x: 60, y: size.height - 50)
+        backButtonBackground.position = CGPoint(x: safeInsets.left + 60, y: safeTopY - 28)
         backButtonBackground.name = "backButton"
         backButtonBackground.zPosition = 100
         addChild(backButtonBackground)
@@ -73,7 +73,7 @@ class ProcessPracticeScene: SKScene {
         let titleLabel = SKLabelNode(text: "過程專項練習")
         titleLabel.fontSize = 32
         titleLabel.fontColor = .label
-        titleLabel.position = CGPoint(x: size.width / 2, y: size.height - 50)
+        titleLabel.position = CGPoint(x: size.width / 2, y: safeTopY - 28)
         addChild(titleLabel)
     }
     
